@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Beacon Authentication</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background:#0f172a;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.card{
+    width:420px;
+    background:#1e293b;
+    padding:35px;
+    border-radius:16px;
+    box-shadow:0 15px 40px rgba(0,0,0,.35);
+}
+
+.logo{
+    font-size:32px;
+    font-weight:700;
+    color:white;
+    text-align:center;
+}
+
+.subtitle{
+    color:#94a3b8;
+    text-align:center;
+    margin:10px 0 30px;
+}
+
+.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.tabs button{
+    flex:1;
+    border:none;
+    cursor:pointer;
+    border-radius:8px;
+    padding:12px;
+    background:#334155;
+    color:white;
+    font-weight:600;
+}
+
+.tabs button.active{
+    background:#2563eb;
+}
+
+.form{
+    display:flex;
+    flex-direction:column;
+}
+
+input{
+    margin-bottom:15px;
+    padding:12px;
+    border:none;
+    outline:none;
+    border-radius:8px;
+    background:#334155;
+    color:white;
+}
+
+input::placeholder{
+    color:#cbd5e1;
+}
+
+.primary{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:13px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+.divider{
+    text-align:center;
+    color:#94a3b8;
+    margin:20px 0;
+}
+
+.github{
+    width:100%;
+    background:#24292f;
+    color:white;
+    border:none;
+    padding:13px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+.response{
+    margin-top:20px;
+    background:#0f172a;
+    color:#22c55e;
+    border-radius:8px;
+    padding:12px;
+    min-height:80px;
+    font-size:13px;
+}
+
+.hidden{
+    display:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<div class="logo">
+Beacon
+</div>
+
+<div class="subtitle">
+Developer Authentication
+</div>
+
+<div class="tabs">
+
+<button
+class="active"
+onclick="showRegister(this)">
+Register
+</button>
+
+<button
+onclick="showLogin(this)">
+Login
+</button>
+
+</div>
+
+<div id="register" class="form">
+
+<input id="reg-username" placeholder="Username">
+
+<input
+id="reg-email"
+type="email"
+placeholder="Email">
+
+<input
+id="reg-password"
+type="password"
+placeholder="Password">
+
+<button class="primary" onclick="doRegister()">
+Create Account
+</button>
+
+</div>
+
+<div
+id="login"
+class="form hidden">
+
+<input
+id="login-email"
+type="email"
+placeholder="Email">
+
+<input
+id="login-password"
+type="password"
+placeholder="Password">
+
+<button class="primary" onclick="doLogin()">
+Login
+</button>
+
+</div>
+
+<div class="divider">
+OR
+</div>
+
+<button class="github" onclick="doGithub()">
+Continue with GitHub
+</button>
+
+<div id="response" class="response">
+
+Backend Response...
+
+</div>
+
+</div>
+
+<script>
+
+const API_URL = "http://localhost:8000";
+
+const register =
+document.getElementById("register");
+
+const login =
+document.getElementById("login");
+
+const buttons =
+document.querySelectorAll(".tabs button");
+
+const responseBox =
+document.getElementById("response");
+
+function showRegister(btn){
+
+register.classList.remove("hidden");
+login.classList.add("hidden");
+
+buttons.forEach(
+b=>b.classList.remove("active")
+);
+
+btn.classList.add("active");
+
+}
+
+function showLogin(btn){
+
+login.classList.remove("hidden");
+register.classList.add("hidden");
+
+buttons.forEach(
+b=>b.classList.remove("active")
+);
+
+btn.classList.add("active");
+
+}
+
+function setResponse(text, isError=false){
+    responseBox.textContent = text;
+    responseBox.style.color = isError ? "#ef4444" : "#22c55e";
+}
+
+async function doRegister(){
+    const username = document.getElementById("reg-username").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value;
+
+    if(!username || !email || !password){
+        setResponse("Please fill in all fields", true);
+        return;
+    }
+
+    try{
+        const res = await fetch(API_URL + "/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username, email, password})
+        });
+        const data = await res.json();
+        setResponse(JSON.stringify(data, null, 2), !res.ok);
+    }catch(err){
+        setResponse("Request failed: " + err.message, true);
+    }
+}
+
+async function doLogin(){
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+
+    if(!email || !password){
+        setResponse("Please fill in all fields", true);
+        return;
+    }
+
+    try{
+        const res = await fetch(API_URL + "/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email, password})
+        });
+        const data = await res.json();
+        setResponse(JSON.stringify(data, null, 2), !res.ok);
+    }catch(err){
+        setResponse("Request failed: " + err.message, true);
+    }
+}
+
+function doGithub(){
+    setResponse("Redirecting to GitHub...");
+    window.location.href = API_URL + "/auth/github";
+}
+
+</script>
+
+</body>
+</html>
