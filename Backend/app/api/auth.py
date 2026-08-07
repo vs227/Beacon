@@ -22,6 +22,19 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_USER_URL = "https://api.github.com/user"
 GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
 
+# Where GitHub OAuth should redirect the user on success.
+# Dev: Vite runs on port 5173.
+# Production: replace with your hosted frontend URL, e.g. "https://beacon.app".
+FRONTEND_AFTER_AUTH = "http://localhost:5173/"
+
+
+def _build_github_oauth_callback_url() -> str:
+    """Build the callback URL that GitHub should redirect back to.
+
+    Matches the Authorization callback URL configured in the GitHub OAuth app.
+    """
+    return "http://localhost:8000/auth/github/callback"
+
 
 @router.post("/register")
 def register(user: RegisterUser):
@@ -101,7 +114,12 @@ def login(user: LoginUser):
     return {
         "message": "Login successful",
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user": {
+            "id": db_user["id"],
+            "username": db_user.get("username", db_user["email"].split("@")[0]),
+            "email": db_user["email"]
+        }
     }
 
 
@@ -122,7 +140,7 @@ def github_login():
             status_code=500,
             detail="GitHub OAuth is not configured (missing GITHUB_CLIENT_ID)"
         )
-    callback = "http://localhost:8000/auth/github/callback"
+    callback = _build_github_oauth_callback_url()
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
         "redirect_uri": callback,
@@ -242,10 +260,16 @@ async def github_callback(code: str | None = None, error: str | None = None):
         "email": db_user["email"]
     })
 
-    result = {
-        "message": "GitHub login successful",
-        "access_token": jwt_token,
-        "token_type": "bearer",
-        "user": {"id": db_user["id"], "email": db_user["email"], "username": db_user.get("username")}
-    }
-    return JSONResponse(content=result)
+    # Redirect the user back to the frontend with the JWT in the query string.
+    # The React app picks this up on mount, stores it in localStorage, and
+    # clears it from the URL so the token doesn't linger in history.
+    from urllib.parse import urlencode
+    query = urlencode({
+        "auth": "github",
+        "token": jwt_token,
+        "email": email,
+        "username": username,
+    })
+    sep = "&" if "?" in FRONTEND_AFTER_AUTH else "?"
+    redirect_to = f"{FRONTEND_AFTER_AUTH}{sep}{query}"
+    return RedirectResponse(url=redirect_to)

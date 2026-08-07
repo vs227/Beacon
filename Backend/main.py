@@ -21,6 +21,9 @@ app.add_middleware(
         "http://localhost:5500",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -33,16 +36,11 @@ app.include_router(workspaces_router)
 app.include_router(kb_router)
 app.include_router(api_keys_router)
 
-# Mount Frontend directory for easy local testing
-frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Frontend"))
-if os.path.exists(frontend_path):
-    app.mount("/frontend", StaticFiles(directory=frontend_path, html=True), name="frontend")
-
 
 @app.get("/")
 def home():
     return {
         "message": "Welcome to Beacon API",
-        "docs": "http://localhost:8000/docs",
-        "frontend": "http://localhost:8000/frontend/"
+        "status": "online",
+        "docs": "/docs"
     }
