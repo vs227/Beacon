@@ -15,43 +15,37 @@ gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 // - Section i text enters as scroll goes from section (i-1) to section i.
 // - It is fully visible (opacity 1, blur 0) when stabilized at section i.
 // - It exits (fades out, blurs, slides right) as scroll goes from section i to section i+1.
+// Each section spans 0.60 * vh of scroll distance, giving ample room for
+// smooth fade-in and fade-out transitions that are clearly visible.
+// S1: 0.00 – 0.60vh,  S2: 0.60 – 1.20vh,  S3: 1.20 – 1.80vh,  S4: 1.80 – 2.40vh
+const SECTION_SPAN = 0.60 // fraction of viewport height each section occupies
+
 function applyTextStyle(el, sectionIndex, currentScroll, vh) {
   if (!el) return
   
-  // Exact scroll limits for each section
-  // S1: 0.00vh to 0.25vh
-  // S2: 0.25vh to 0.50vh
-  // S3: 0.50vh to 0.75vh
-  // S4: 0.75vh to 0.95vh
-  const start = sectionIndex === 3 ? 0.75 * vh : sectionIndex * 0.25 * vh
-  const end = sectionIndex === 3 ? 0.95 * vh : (sectionIndex + 1) * 0.25 * vh
-  
+  const span   = SECTION_SPAN * vh
+  const start  = sectionIndex * span
+  const end    = start + span
+
   let opacity = 0
   let blurVal = 8
   let tx = 0
 
   if (currentScroll < start) {
-    // Before section start
-    opacity = 0
-    blurVal = 8
-    tx = 0
+    opacity = 0; blurVal = 8; tx = 0
   } else if (currentScroll > end) {
-    // Past section end
-    opacity = 0
-    blurVal = 8
-    tx = 60
+    opacity = 0; blurVal = 8; tx = 60
   } else {
-    // Inside active section range:
-    // It should fade/unblur in quickly (first 25% of the section), stay fully visible/stable, 
-    // and then fade/blur/slide right at the end (last 25% of the section).
-    const span = end - start
     const rel = currentScroll - start
-    
-    const enterZone = 0.25 * span
-    const exitZone = 0.75 * span
+
+    // Enter: first 15% of the span  →  fade + unblur in
+    // Hold:  middle 70% fully visible
+    // Exit:  last 15% of the span   →  fade + blur + slide right
+    const enterZone = 0.15 * span
+    const exitZone  = 0.85 * span
 
     if (sectionIndex === 3) {
-      // The final section (Beyond) stays visible and does not fade out at the end
+      // Beyond — never fades out, stays fully visible to the end
       if (rel <= enterZone) {
         const t = rel / enterZone
         opacity = t
@@ -63,31 +57,26 @@ function applyTextStyle(el, sectionIndex, currentScroll, vh) {
       tx = 0
     } else {
       if (rel < enterZone) {
-        // Entering
         const t = rel / enterZone
         opacity = t
         blurVal = (1 - t) * 8
         tx = 0
       } else if (rel > exitZone) {
-        // Exiting
         const t = (rel - exitZone) / (span - exitZone)
         opacity = 1 - t
         blurVal = t * 8
         tx = t * 60
       } else {
-        // Fully visible in middle
-        opacity = 1
-        blurVal = 0
-        tx = 0
+        opacity = 1; blurVal = 0; tx = 0
       }
     }
   }
 
-  el.style.opacity = opacity
-  el.style.filter  = blurVal > 0.1 ? `blur(${blurVal}px)` : 'none'
-  el.style.transform = `translate3d(${tx}px, 0, 0)`
+  el.style.opacity      = opacity
+  el.style.filter       = blurVal > 0.1 ? `blur(${blurVal}px)` : 'none'
+  el.style.transform    = `translate3d(${tx}px, 0, 0)`
   el.style.pointerEvents = opacity > 0.15 ? 'auto' : 'none'
-  el.style.visibility = opacity <= 0.001 ? 'hidden' : 'visible'
+  el.style.visibility   = opacity <= 0.001 ? 'hidden' : 'visible'
 }
 
 // ─── App ─────────────────────────────────────────────────────────────────────
@@ -119,17 +108,17 @@ export default function App() {
       const top = scroller.scrollTop
       const vh = scroller.clientHeight || 1
 
-      // Total scroll range matches SECTION_FACTORS max = 0.95 * vh
-      const maxScroll = 0.95 * vh
+      // Each section spans 0.60 * vh; 4 sections = 2.40 * vh total
+      const seg = 0.60 * vh
 
-      // S1 progress: spans [0, 0.25 * vh]
-      const s1Prog = Math.max(0, Math.min(1, top / (0.25 * vh)))
-      // S2 progress: spans [0.25 * vh, 0.50 * vh]
-      const s2Prog = Math.max(0, Math.min(1, (top - 0.25 * vh) / (0.25 * vh)))
-      // S3 progress: spans [0.50 * vh, 0.75 * vh]
-      const s3Prog = Math.max(0, Math.min(1, (top - 0.50 * vh) / (0.25 * vh)))
-      // S4 progress: spans [0.75 * vh, maxScroll]
-      const s4Prog = Math.max(0, Math.min(1, (top - 0.75 * vh) / (0.20 * vh || 1)))
+      // S1 progress: spans [0, 0.60 * vh]
+      const s1Prog = Math.max(0, Math.min(1, top / seg))
+      // S2 progress: spans [0.60 * vh, 1.20 * vh]
+      const s2Prog = Math.max(0, Math.min(1, (top - seg) / seg))
+      // S3 progress: spans [1.20 * vh, 1.80 * vh]
+      const s3Prog = Math.max(0, Math.min(1, (top - 2 * seg) / seg))
+      // S4 progress: spans [1.80 * vh, 2.40 * vh]
+      const s4Prog = Math.max(0, Math.min(1, (top - 3 * seg) / seg))
 
       setHeroProgress(s1Prog)
       setPortalFormProgress(s2Prog)
@@ -141,12 +130,13 @@ export default function App() {
       applyTextStyle(cameraColRef.current, 2, top, vh)
       applyTextStyle(beyondColRef.current, 3, top, vh)
 
-      // Determine active section index
-      if (top < 0.25 * vh) {
+      // Determine active section index (based on which segment we're in)
+      const seg2 = 0.60 * vh
+      if (top < seg2) {
         setActiveSection(0)
-      } else if (top < 0.50 * vh) {
+      } else if (top < 2 * seg2) {
         setActiveSection(1)
-      } else if (top < 0.75 * vh) {
+      } else if (top < 3 * seg2) {
         setActiveSection(2)
       } else {
         setActiveSection(3)
@@ -181,18 +171,21 @@ export default function App() {
       const direction = Math.sign(e.deltaY)
       const vh = scroller.clientHeight || 1
       
-      // Determine target scroll position
-      let targetScroll = scroller.scrollTop + direction * (0.25 * vh)
+      // Snap to the next/prev section boundary (each section = 0.60 * vh)
+      const seg = 0.60 * vh
+      const currentSection = Math.round(scroller.scrollTop / seg)
+      const targetSection = Math.max(0, Math.min(3, currentSection + direction))
+      let targetScroll = targetSection * seg
       
       // Bound it
-      const maxScroll = 0.95 * vh
+      const maxScroll = 3 * seg
       targetScroll = Math.max(0, Math.min(maxScroll, targetScroll))
 
       isScrolling = true
       gsap.to(scroller, {
         scrollTo: { y: targetScroll, autoKill: false },
-        duration: 0.6,
-        ease: 'power2.out',
+        duration: 1.5,
+        ease: 'power2.inOut',
         onComplete: () => {
           isScrolling = false
         }
@@ -207,11 +200,11 @@ export default function App() {
   // ─── Navigation ──────────────────────────────────────────────────────────
   // Scroll positions (multiples of viewport height) that land at the VERY
   // START of each pinned section — before any progress accumulates.
-  // S1 hero:    pinned for 25%  → spans [0, 0.25vh]
-  // S2 portal:  pinned for 25%  → spans [0.25, 0.50vh]
-  // S3 camera:  pinned for 25%  → spans [0.50, 0.75vh]
-  // S4 black:   pinned for 20%  → spans [0.75, 0.95vh]
-  const SECTION_FACTORS = [0, 0.25, 0.50, 0.75]
+  // S1 hero:   spans [0, 0.60vh]
+  // S2 portal: spans [0.60, 1.20vh]
+  // S3 camera: spans [1.20, 1.80vh]
+  // S4 black:  spans [1.80, 2.40vh]
+  const SECTION_FACTORS = [0, 0.60, 1.20, 1.80]
 
   const scrollToSection = useCallback((idx) => {
     const scroller = scrollContainerRef.current
@@ -270,14 +263,13 @@ export default function App() {
       <div className="canvas-container">
         <SceneCanvas
           heroProgress={heroProgress}
-          // Combined progress: Section 1 is [0, 0.25vh], Section 2 is [0.25vh, 0.50vh]. Total scroll is 0.50vh.
-          // Section 1 represents 0.25 / 0.50 = 50% of the total scroll span.
-          // Section 2 represents 0.25 / 0.50 = 50% of the total scroll span.
+          // Combined progress: S1 = [0, 0.60vh], S2 = [0.60, 1.20vh]. Total = 1.20vh.
+          // Each spans 50% of the combined range, so coefficients remain 0.5/0.5.
           portalFormProgress={
             activeSection === 0
-              ? (heroProgress * 0.25) / 0.50
+              ? heroProgress * 0.5
               : activeSection === 1
-              ? 0.5 + (portalFormProgress * 0.25) / 0.50
+              ? 0.5 + portalFormProgress * 0.5
               : 1
           }
           cameraProgress={cameraProgress}
@@ -376,9 +368,8 @@ export default function App() {
           </div>
         </section>
 
-        {/* Spacer to simulate scrollable height for stacked elements: 
-            S1 (0.25) + S2 (0.25) + S3 (0.25) + S4 (0.20) + 1.0 (initial viewport) = 1.95vh */}
-        <div style={{ height: '195vh', pointerEvents: 'none' }} />
+        {/* Spacer: 4 sections × 0.60vh each = 2.40vh + 1.00vh initial = 340vh */}
+        <div style={{ height: '340vh', pointerEvents: 'none' }} />
 
       </div>
     </div>
