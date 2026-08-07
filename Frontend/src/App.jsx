@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { ScrollToPlugin }  from 'gsap/ScrollToPlugin'
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity } from 'lucide-react'
@@ -27,10 +27,10 @@ export default function App() {
   const scrollContainerRef = useRef(null)
 
   // Independent progress values for each section (0 → 1)
-  const [heroProgress,       setHeroProgress]       = useState(0)   // S1
+  const [heroProgress, setHeroProgress] = useState(0)   // S1
   const [portalFormProgress, setPortalFormProgress] = useState(0)   // S2
-  const [cameraProgress,     setCameraProgress]     = useState(0)   // S3
-  const [blackProgress,      setBlackProgress]      = useState(0)   // S4
+  const [cameraProgress, setCameraProgress] = useState(0)   // S3
+  const [blackProgress, setBlackProgress] = useState(0)   // S4
 
   // Active section for UI labels (0-3)
   const [activeSection, setActiveSection] = useState(0)
@@ -44,53 +44,53 @@ export default function App() {
 
       // ── Section 1: Hero (sculpture rotates) ────────────────────────────
       ScrollTrigger.create({
-        trigger:  '#section-hero',
+        trigger: '#section-hero',
         scroller: scroller,
-        start:    'top top',
-        end:      '+=150%',          // pin lasts 1.5× vh of scroll
-        pin:      true,
-        scrub:    0.6,
+        start: 'top top',
+        end: '+=150%',          // pin lasts 1.5× vh of scroll
+        pin: true,
+        scrub: 0.6,
         onUpdate: (self) => setHeroProgress(self.progress),
-        onEnter:     () => setActiveSection(0),
+        onEnter: () => setActiveSection(0),
         onEnterBack: () => setActiveSection(0),
       })
 
       // ── Section 2: Portal Formation (sculpture → frame) ────────────────
       ScrollTrigger.create({
-        trigger:  '#section-portal',
+        trigger: '#section-portal',
         scroller: scroller,
-        start:    'top top',
-        end:      '+=200%',
-        pin:      true,
-        scrub:    0.8,
+        start: 'top top',
+        end: '+=200%',
+        pin: true,
+        scrub: 0.8,
         onUpdate: (self) => setPortalFormProgress(self.progress),
-        onEnter:     () => setActiveSection(1),
+        onEnter: () => setActiveSection(1),
         onEnterBack: () => setActiveSection(1),
       })
 
       // ── Section 3: Camera Dolly (approach + enter portal) ──────────────
       ScrollTrigger.create({
-        trigger:  '#section-camera',
+        trigger: '#section-camera',
         scroller: scroller,
-        start:    'top top',
-        end:      '+=150%',
-        pin:      true,
-        scrub:    0.5,
+        start: 'top top',
+        end: '+=150%',
+        pin: true,
+        scrub: 0.5,
         onUpdate: (self) => setCameraProgress(self.progress),
-        onEnter:     () => setActiveSection(2),
+        onEnter: () => setActiveSection(2),
         onEnterBack: () => setActiveSection(2),
       })
 
       // ── Section 4: Black Transition ────────────────────────────────────
       ScrollTrigger.create({
-        trigger:  '#section-black',
+        trigger: '#section-black',
         scroller: scroller,
-        start:    'top top',
-        end:      '+=80%',
-        pin:      true,
-        scrub:    0.4,
+        start: 'top top',
+        end: '+=80%',
+        pin: true,
+        scrub: 0.4,
         onUpdate: (self) => setBlackProgress(self.progress),
-        onEnter:     () => setActiveSection(3),
+        onEnter: () => setActiveSection(3),
         onEnterBack: () => setActiveSection(3),
       })
 
@@ -124,7 +124,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); if (activeSection < 3) scrollToSection(activeSection + 1) }
-      if (e.key === 'ArrowUp')   { e.preventDefault(); if (activeSection > 0) scrollToSection(activeSection - 1) }
+      if (e.key === 'ArrowUp') { e.preventDefault(); if (activeSection > 0) scrollToSection(activeSection - 1) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
