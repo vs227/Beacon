@@ -153,6 +153,8 @@ export default function Dashboard({ auth }) {
         const data = await res.json()
         setOrgs(data)
         localStorage.setItem('beacon_cached_orgs', JSON.stringify(data))
+      } else if (res.status === 401) {
+        auth.logout()
       } else {
         const data = await res.json()
         setErrorMsg(data.detail || 'Failed to fetch organizations')
@@ -162,7 +164,7 @@ export default function Dashboard({ auth }) {
     } finally {
       setLoadingOrgs(false)
     }
-  }, [auth.token])
+  }, [auth])
 
   useEffect(() => {
     fetchOrgs()

@@ -16,16 +16,49 @@ function readUser() {
   }
 }
 
+function isTokenExpired(token) {
+  if (!token || token === 'beacon_session_active' || token.startsWith('demo_')) {
+    return false
+  }
+  try {
+    const parts = token.split('.')
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        return true
+      }
+    }
+  } catch {
+    // Ignore parsing issues, rely on backend check
+  }
+  return false
+}
+
 /**
  * Hook that:
  *   1. On mount, reads ?token= from the URL (GitHub OAuth redirect)
  *      → saves to localStorage, cleans the URL so it doesn't linger
  *   2. Exposes token, user, login(), logout(), register(), githubLogin()
  *   3. Auto-fetches /me whenever a token is present (to keep user info fresh)
+ *   4. Automatically logs out user if token is expired or responds with 401
  */
 export function useAuth() {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '')
-  const [user, setUser] = useState(() => readUser())
+  const [token, setToken] = useState(() => {
+    const saved = localStorage.getItem(TOKEN_KEY) || ''
+    if (saved && isTokenExpired(saved)) {
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
+      return ''
+    }
+    return saved
+  })
+  const [user, setUser] = useState(() => {
+    const savedToken = localStorage.getItem(TOKEN_KEY) || ''
+    if (savedToken && isTokenExpired(savedToken)) {
+      return null
+    }
+    return readUser()
+  })
   const [pending, setPending] = useState(false)
   const [lastError, setLastError] = useState('')
   const [justLoggedIn, setJustLoggedIn] = useState(false)
@@ -62,16 +95,23 @@ export function useAuth() {
     setJustLoggedIn(false)
   }, [])
 
-  // 2) Keep user info fresh by hitting /me when we have a token
+  // 2) Validate token & keep user info fresh by hitting /me when we have a token
   useEffect(() => {
     if (!token) { 
       setUser(null) 
       return 
     }
+
+    if (isTokenExpired(token)) {
+      logout()
+      return
+    }
+
     // Skip /me network check for local dev/synthetic session tokens
     if (token === 'beacon_session_active' || token.startsWith('demo_')) {
       return
     }
+
     let cancelled = false
     ;(async () => {
       try {
@@ -85,13 +125,16 @@ export function useAuth() {
             setUser(data.user)
             localStorage.setItem(USER_KEY, JSON.stringify(data.user))
           }
+        } else if (res.status === 401) {
+          // Token expired or invalid — automatically log out
+          if (!cancelled) logout()
         }
       } catch {
         // Network issues: retain cached session token & user
       }
     })()
     return () => { cancelled = true }
-  }, [token])
+  }, [token, logout])
 
   const register = useCallback(async ({ username, email, password }) => {
     setPending(true)
