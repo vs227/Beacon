@@ -89,8 +89,7 @@ export default function AuthOverlay({ heroProgress = 0 }) {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       >
-      <div className="auth-logo">Beacon</div>
-      <div className="auth-subtitle">Developer Authentication</div>
+      <div className="auth-logo" style={{ marginBottom: '14px' }}>Sign in to Beacon</div>
 
       <div className="auth-tabs">
         <button className={`auth-tab${tab === 'register' ? ' active' : ''}`} onClick={() => setTab('register')}>Register</button>

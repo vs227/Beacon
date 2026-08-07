@@ -315,30 +315,6 @@ body {
   font-weight: 500;
 }
 
-/* Glowing dot indicator below the active nav item */
-.nav-active-dot {
-  display: block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--bronze-base);
-  box-shadow: 0 0 6px 2px rgba(182, 122, 70, 0.6);
-  animation: dot-pulse 2s ease-in-out infinite;
-}
-
-@keyframes dot-pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.6;
-    transform: scale(0.7);
-  }
-}
 
 /* Loader Styles */
 .loader-container {

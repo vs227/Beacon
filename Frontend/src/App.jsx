@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Activity } from 'lucide-react'
 import SceneCanvas from './components/SceneCanvas'
 import AuthOverlay from './components/AuthOverlay'
 
@@ -103,7 +102,6 @@ export default function App() {
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100 }}>
         <div className="logo-text">
-          <Activity size={18} style={{ color: activeSection >= 2 ? '#52A88B' : '#B67A46' }} />
           <span>Beacon</span>
         </div>
         <ul className="nav-links">
@@ -120,7 +118,6 @@ export default function App() {
                 }}
               >
                 {label}
-                {activeSection === i && <span className="nav-active-dot" />}
               </button>
             </li>
           ))}
