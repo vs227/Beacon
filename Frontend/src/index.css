@@ -1,0 +1,333 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Color Specifications */
+  --bg-dark: #181512;
+  --concrete-color: #2A2725;
+  --warm-tint: #E3D5C6;
+  --bronze-base: #B67A46;
+  --bronze-highlight: #F4D1A6;
+  --bronze-shadow: #8A5C34;
+  --accent-terracotta: #c86f52;
+  --accent-cyan: #F4D1A6; /* Using warm highlight or gold for synapses */
+  --accent-gold: #FFF6EA; /* Warm white */
+
+  --text-primary: #E3D5C6;
+  --text-secondary: #a8a29e;
+  --text-muted: #57534e;
+  
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  background-color: #0d0b0a; /* Dark outer background */
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: #0d0b0a;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Rounded card showroom container (24px border radius) */
+.app-frame {
+  width: calc(100% - 48px);
+  height: calc(100vh - 48px);
+  border-radius: 24px;
+  background-color: var(--bg-dark);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Custom Scrollbar inside frame */
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-container::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+.scroll-container::-webkit-scrollbar-thumb {
+  background: #272320;
+  border-radius: 3px;
+}
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #3c3530;
+}
+
+/* Scroll Container inside frame */
+.scroll-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.scroll-section {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  pointer-events: none; /* Pass clicks to canvas behind */
+  padding: 2rem 6%;
+}
+
+/* Content within sections must re-enable pointer events if clickable */
+.interactive-content {
+  pointer-events: auto;
+  margin-bottom: 2rem;
+}
+
+/* 3D Canvas container embedded in frame */
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Left Aligned Info Column (40% width) */
+.info-column {
+  width: 40%;
+  max-width: 480px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  height: 70%;
+}
+
+.tag-label {
+  font-family: var(--font-sans);
+  color: var(--accent-terracotta);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.title-serif {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 4.5vw, 4rem);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.description-text {
+  font-family: var(--font-sans);
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 420px;
+  text-align: left;
+  margin-bottom: 2.2rem;
+}
+
+/* Terracotta Clay Button */
+.btn-terracotta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  background: var(--accent-terracotta);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(200, 111, 82, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.btn-terracotta:hover {
+  background: #db7d5f;
+  box-shadow: 0 6px 24px rgba(200, 111, 82, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Stats Footer */
+.stats-container {
+  display: flex;
+  gap: 3.5rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stat-value {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--warm-tint);
+  font-weight: 500;
+  margin-top: 0.2rem;
+}
+
+/* Floor labels (bottom right) */
+.floor-labels {
+  position: absolute;
+  bottom: 2rem;
+  right: 6%;
+  display: flex;
+  gap: 2rem;
+  z-index: 100;
+  pointer-events: none;
+  align-items: center;
+}
+
+.floor-label-item {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: all 0.4s ease;
+}
+
+.floor-label-item.active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.floor-label-item.terracotta.active {
+  color: var(--accent-terracotta);
+}
+
+/* Nav Header overlay inside frame */
+.nav-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 6%;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2.5rem;
+  list-style: none;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #fff;
+}
+
+/* Loader Styles */
+.loader-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-dark);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.loader-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.2rem;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.loader-bar {
+  width: 160px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1px;
+}
+.loader-fill {
+  height: 100%;
+  background: var(--text-primary);
+  width: 0%;
+  transition: width 0.3s ease;
+}
