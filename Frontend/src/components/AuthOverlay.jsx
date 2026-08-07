@@ -38,7 +38,14 @@ export default function AuthOverlay({ heroProgress = 0 }) {
         body: JSON.stringify({ username: regUsername, email: regEmail, password: regPassword }),
       })
       const data = await res.json()
-      show(res.ok ? '✓ Account created!' : (data.detail || 'Registration failed'), !res.ok)
+      if (res.ok) {
+        setLoginEmail(regEmail)
+        setLoginPassword(regPassword)
+        setTab('login')
+        show('✓ Account created! Log in below.', false)
+      } else {
+        show(data.detail || 'Registration failed', true)
+      }
     } catch (err) { show('Request failed: ' + err.message, true) }
     finally { setLoading(false) }
   }
@@ -63,19 +70,25 @@ export default function AuthOverlay({ heroProgress = 0 }) {
   if (isHidden) return null
 
   return (
-    <motion.div
-      key="auth-overlay"
-      className="auth-overlay"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    <div
+      className="auth-overlay-wrapper"
       style={{
+        position: 'absolute',
+        top: '50%',
+        right: '6%',
+        transform: 'translateY(-50%)',
+        zIndex: 200,
         opacity,
-        top: '25%',
-        transform: `translateY(calc(-50% + ${translateY}px))`,
         pointerEvents: opacity < 0.15 ? 'none' : 'auto',
       }}
     >
+      <motion.div
+        key="auth-overlay"
+        className="auth-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
       <div className="auth-logo">Beacon</div>
       <div className="auth-subtitle">Developer Authentication</div>
 
@@ -123,5 +136,6 @@ export default function AuthOverlay({ heroProgress = 0 }) {
       {/* Always pinned at bottom — visible on both tabs */}
       <div className="auth-scroll-hint">Scroll to explore ↓</div>
     </motion.div>
+    </div>
   )
 }

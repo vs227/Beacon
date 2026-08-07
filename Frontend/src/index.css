@@ -15,18 +15,21 @@
   --bronze-highlight: #F4D1A6;
   --bronze-shadow: #8A5C34;
   --accent-terracotta: #c86f52;
-  --accent-cyan: #F4D1A6; /* Using warm highlight or gold for synapses */
-  --accent-gold: #FFF6EA; /* Warm white */
+  --accent-cyan: #F4D1A6;
+  /* Using warm highlight or gold for synapses */
+  --accent-gold: #FFF6EA;
+  /* Warm white */
 
   --text-primary: #E3D5C6;
   --text-secondary: #a8a29e;
   --text-muted: #57534e;
-  
+
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: 'Instrument Serif', Georgia, serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  
-  background-color: #0d0b0a; /* Dark outer background */
+
+  background-color: #0d0b0a;
+  /* Dark outer background */
   color: var(--text-primary);
   font-family: var(--font-sans);
   overflow: hidden;
@@ -53,29 +56,32 @@ body {
   align-items: center;
 }
 
-/* Rounded card showroom container (24px border radius) */
+/* Fullscreen container (bezel removed) */
 .app-frame {
-  width: calc(100% - 48px);
-  height: calc(100vh - 48px);
-  border-radius: 24px;
+  width: 100%;
+  height: 100vh;
+  border-radius: 0;
   background-color: var(--bg-dark);
   overflow: hidden;
   position: relative;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  border: none;
 }
 
 /* Custom Scrollbar inside frame */
 .scroll-container::-webkit-scrollbar {
   width: 6px;
 }
+
 .scroll-container::-webkit-scrollbar-track {
   background: var(--bg-dark);
 }
+
 .scroll-container::-webkit-scrollbar-thumb {
   background: #272320;
   border-radius: 3px;
 }
+
 .scroll-container::-webkit-scrollbar-thumb:hover {
   background: #3c3530;
 }
@@ -100,7 +106,8 @@ body {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  pointer-events: none; /* Pass clicks to canvas behind */
+  pointer-events: none;
+  /* Pass clicks to canvas behind */
   padding: 2rem 6%;
 }
 
@@ -320,8 +327,17 @@ body {
 }
 
 @keyframes dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(0.7); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(0.7);
+  }
 }
 
 /* Loader Styles */
@@ -338,6 +354,7 @@ body {
   justify-content: center;
   align-items: center;
 }
+
 .loader-title {
   font-family: var(--font-display);
   font-size: 1.3rem;
@@ -347,6 +364,7 @@ body {
   color: #fff;
   margin-bottom: 0.5rem;
 }
+
 .loader-bar {
   width: 160px;
   height: 2px;
@@ -355,6 +373,7 @@ body {
   overflow: hidden;
   border-radius: 1px;
 }
+
 .loader-fill {
   height: 100%;
   background: var(--text-primary);
@@ -364,12 +383,8 @@ body {
 
 /* ── Auth Overlay ──────────────────────────────────────────────────────────── */
 .auth-overlay {
-  position: absolute;
-  top: 50%;
-  right: 6%;
-  transform: translateY(-50%);
   width: 340px;
-  max-height: calc(100% - 80px);   /* never exceed viewport inside frame */
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
   background: rgba(24, 21, 18, 0.86);
   backdrop-filter: blur(24px) saturate(1.6);
@@ -377,13 +392,14 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 18px;
   padding: 22px 22px 16px;
-  z-index: 200;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(182, 122, 70, 0.08);
   pointer-events: auto;
-  /* Hide scrollbar inside overlay */
   scrollbar-width: none;
 }
-.auth-overlay::-webkit-scrollbar { display: none; }
+
+.auth-overlay::-webkit-scrollbar {
+  display: none;
+}
 
 .auth-logo {
   font-family: var(--font-display);
@@ -510,8 +526,14 @@ body {
   height: 1px;
   background: rgba(255, 255, 255, 0.07);
 }
-.auth-divider::before { left: 0; }
-.auth-divider::after  { right: 0; }
+
+.auth-divider::before {
+  left: 0;
+}
+
+.auth-divider::after {
+  right: 0;
+}
 
 .auth-btn-github {
   width: 100%;
@@ -559,8 +581,17 @@ body {
 }
 
 @keyframes bounce-hint {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50%       { transform: translateY(3px); opacity: 1; }
+
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
 }
 
 /* ── Beyond Section ─────────────────────────────────────────────────────────── */
