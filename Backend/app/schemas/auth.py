@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
+
 class RegisterUser(BaseModel):
     username: str = Field(
         ...,
@@ -15,14 +16,17 @@ class RegisterUser(BaseModel):
         min_length=8
     )
 
+
 class LoginUser(BaseModel):
     email: EmailStr
     password: str
+
 
 class TokenResponse(BaseModel):
     message: str
     access_token: str
     token_type: str = "bearer"
+
 
 class UserResponse(BaseModel):
     id: str
