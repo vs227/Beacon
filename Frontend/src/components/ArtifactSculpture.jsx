@@ -125,24 +125,37 @@ export default function ArtifactSculpture({
     const time = state.clock.getElapsedTime()
     const mouse = state.mouse
 
-    // ── Rotation: driven by heroProgress (Section 1 only) ──────────────
-    // Rotates during hero section; smoothly decelerates as portal forms
-    const rotActive = clamp01(1 - portalFormProgress / 0.15)  // stops at 15% portal
-    accumRot.current += delta * (Math.PI * 2 / 40) * rotActive
+    // ── Smooth progress values via lerping in useFrame ──
+    if (!groupRef.current) return
+    if (groupRef.current.userData.smoothHero === undefined) {
+      groupRef.current.userData.smoothHero = heroProgress
+      groupRef.current.userData.smoothPortal = portalFormProgress
+    }
+    // Smooth progress values to ease start/stop stutter
+    groupRef.current.userData.smoothHero = THREE.MathUtils.lerp(groupRef.current.userData.smoothHero, heroProgress, 0.08)
+    groupRef.current.userData.smoothPortal = THREE.MathUtils.lerp(groupRef.current.userData.smoothPortal, portalFormProgress, 0.08)
+
+    const sh = groupRef.current.userData.smoothHero
+    const sp = groupRef.current.userData.smoothPortal
+
+    // ── Rotation: derived directly and smoothly from scroll progress ──
+    const baseRotation = sh * (Math.PI * 3)
+    const rotationLock = 1 - easeInOutCubic(sp)
+    const currentScrollRot = baseRotation * rotationLock
 
     // ── Mouse parallax — only when hero is fully active, fades with portal ──
     if (groupRef.current) {
-      const tilt = clamp01(1 - portalFormProgress / 0.12)
+      const tilt = clamp01(1 - sp / 0.12)
       groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, mouse.y * 0.035 * tilt, 0.07)
       groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, -mouse.x * 0.035 * tilt, 0.07)
     }
 
     // ── Float — fades out as portal transformation starts ───────────────
-    const floatMult = clamp01(1 - portalFormProgress / 0.12)
+    const floatMult = clamp01(1 - sp / 0.12)
     const floatY = Math.sin(time * 1.26) * 0.022 * floatMult
 
     // ── Portal formation: entirely driven by Section 2 progress ─────────
-    const portalFormT = portalFormProgress  // 0 → 1
+    const portalFormT = sp  // 0 → 1 smoothed
 
     blocks.forEach((block) => {
       const mesh = meshesRef.current[block.id]
@@ -155,7 +168,7 @@ export default function ArtifactSculpture({
         mesh.scale.copy(block.baseScale)
         mesh.rotation.set(
           block.baseRot.x,
-          block.baseRot.y + accumRot.current,
+          block.baseRot.y + currentScrollRot,
           block.baseRot.z
         )
       } else {
@@ -169,7 +182,7 @@ export default function ArtifactSculpture({
         mesh.position.lerpVectors(startPos, block.portalPos, et)
         mesh.scale.lerpVectors(block.baseScale, block.portalScale, et)
 
-        const fromRotY = block.baseRot.y + accumRot.current
+        const fromRotY = block.baseRot.y + currentScrollRot
         mesh.rotation.x = THREE.MathUtils.lerp(block.baseRot.x, 0, et)
         mesh.rotation.y = THREE.MathUtils.lerp(fromRotY, 0, et)
         mesh.rotation.z = THREE.MathUtils.lerp(block.baseRot.z, 0, et)

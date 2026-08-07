@@ -3,137 +3,242 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 
-import { motion, AnimatePresence } from 'framer-motion'
 import { Activity } from 'lucide-react'
 import SceneCanvas from './components/SceneCanvas'
+import AuthOverlay from './components/AuthOverlay'
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 
-// ─── Scroll Architecture ───────────────────────────────────────────────────
-// 4 independent pinned sections, each with its own ScrollTrigger.
-// Each section controls exactly one animation phase via a progress value (0→1).
-//
-// Section 1 (100vh pinned × 1.5):  Hero — sculpture rotates, camera fixed
-// Section 2 (100vh pinned × 2.0):  Portal formation — sculpture → frame
-// Section 3 (100vh pinned × 1.5):  Camera dolly — approaches + enters portal
-// Section 4 (100vh pinned × 0.8):  Black transition — hold before next section
-//
-// The 3D canvas receives 4 independent progress values.
-// Even if the user scrolls fast, ScrollTrigger scrubs each section's
-// progress correctly — no animation phase is ever skipped.
+// ─── Direct DOM text updater ──────────────────────────────────────────────────
+// Called directly from GSAP onUpdate — zero React re-renders for text.
+// Animates section text in-place:
+// - Section i text enters as scroll goes from section (i-1) to section i.
+// - It is fully visible (opacity 1, blur 0) when stabilized at section i.
+// - It exits (fades out, blurs, slides right) as scroll goes from section i to section i+1.
+// Each section spans 0.60 * vh of scroll distance, giving ample room for
+// smooth fade-in and fade-out transitions that are clearly visible.
+// S1: 0.00 – 0.60vh,  S2: 0.60 – 1.20vh,  S3: 1.20 – 1.80vh,  S4: 1.80 – 2.40vh
+const SECTION_SPAN = 0.60 // fraction of viewport height each section occupies
 
+function applyTextStyle(el, sectionIndex, currentScroll, vh) {
+  if (!el) return
+
+  const span = SECTION_SPAN * vh
+  const start = sectionIndex * span
+  const end = start + span
+
+  let opacity = 0
+  let blurVal = 8
+  let tx = 0
+
+  if (currentScroll < start) {
+    opacity = 0; blurVal = 8; tx = 0
+  } else if (currentScroll > end) {
+    opacity = 0; blurVal = 8; tx = 60
+  } else {
+    const rel = currentScroll - start
+
+    // Enter: first 15% of the span  →  fade + unblur in
+    // Hold:  middle 70% fully visible
+    // Exit:  last 15% of the span   →  fade + blur + slide right
+    const enterZone = 0.15 * span
+    const exitZone = 0.85 * span
+
+    if (sectionIndex === 3) {
+      // Beyond — never fades out, stays fully visible to the end
+      if (rel <= enterZone) {
+        const t = rel / enterZone
+        opacity = t
+        blurVal = (1 - t) * 8
+      } else {
+        opacity = 1
+        blurVal = 0
+      }
+      tx = 0
+    } else {
+      if (rel < enterZone) {
+        const t = rel / enterZone
+        opacity = t
+        blurVal = (1 - t) * 8
+        tx = 0
+      } else if (rel > exitZone) {
+        const t = (rel - exitZone) / (span - exitZone)
+        opacity = 1 - t
+        blurVal = t * 8
+        tx = t * 60
+      } else {
+        opacity = 1; blurVal = 0; tx = 0
+      }
+    }
+  }
+
+  el.style.opacity = opacity
+  el.style.filter = blurVal > 0.1 ? `blur(${blurVal}px)` : 'none'
+  el.style.transform = `translate3d(${tx}px, 0, 0)`
+  el.style.pointerEvents = opacity > 0.15 ? 'auto' : 'none'
+  el.style.visibility = opacity <= 0.001 ? 'hidden' : 'visible'
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const wrapperRef = useRef(null)
   const scrollContainerRef = useRef(null)
 
-  // Independent progress values for each section (0 → 1)
-  const [heroProgress, setHeroProgress] = useState(0)   // S1
-  const [portalFormProgress, setPortalFormProgress] = useState(0)   // S2
-  const [cameraProgress, setCameraProgress] = useState(0)   // S3
-  const [blackProgress, setBlackProgress] = useState(0)   // S4
+  // DOM refs for text — mutated directly, no React re-renders
+  const heroColRef = useRef(null)
+  const portalColRef = useRef(null)
+  const cameraColRef = useRef(null)
+  const beyondColRef = useRef(null)
 
-  // Active section for UI labels (0-3)
+  // React state for SceneCanvas props + nav (React 18 auto-batches multiple setStates)
+  const [heroProgress, setHeroProgress] = useState(0)
+  const [portalFormProgress, setPortalFormProgress] = useState(0)
+  const [cameraProgress, setCameraProgress] = useState(0)
+  const [blackProgress, setBlackProgress] = useState(0)
   const [activeSection, setActiveSection] = useState(0)
 
-  // ─── Build scroll triggers once DOM is mounted ─────────────────────────
+  // ─── Continuous Scroll Progress Tracking ─────────────────────────────────
+  // Instead of individual pins that shift elements vertically, we stack the sections
+  // absolutely and calculate their progress values directly from the scroller's scrollTop.
   useEffect(() => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
 
-    const ctx = gsap.context(() => {
+    const onScroll = () => {
+      const top = scroller.scrollTop
+      const vh = scroller.clientHeight || 1
 
-      // ── Section 1: Hero (sculpture rotates) ────────────────────────────
-      ScrollTrigger.create({
-        trigger: '#section-hero',
-        scroller: scroller,
-        start: 'top top',
-        end: '+=150%',          // pin lasts 1.5× vh of scroll
-        pin: true,
-        scrub: 0.6,
-        onUpdate: (self) => setHeroProgress(self.progress),
-        onEnter: () => setActiveSection(0),
-        onEnterBack: () => setActiveSection(0),
-      })
+      // Each section spans 0.60 * vh; 4 sections = 2.40 * vh total
+      const seg = 0.60 * vh
 
-      // ── Section 2: Portal Formation (sculpture → frame) ────────────────
-      ScrollTrigger.create({
-        trigger: '#section-portal',
-        scroller: scroller,
-        start: 'top top',
-        end: '+=200%',
-        pin: true,
-        scrub: 0.8,
-        onUpdate: (self) => setPortalFormProgress(self.progress),
-        onEnter: () => setActiveSection(1),
-        onEnterBack: () => setActiveSection(1),
-      })
+      // S1 progress: spans [0, 0.60 * vh]
+      const s1Prog = Math.max(0, Math.min(1, top / seg))
+      // S2 progress: spans [0.60 * vh, 1.20 * vh]
+      const s2Prog = Math.max(0, Math.min(1, (top - seg) / seg))
+      // S3 progress: spans [1.20 * vh, 1.80 * vh]
+      const s3Prog = Math.max(0, Math.min(1, (top - 2 * seg) / seg))
+      // S4 progress: spans [1.80 * vh, 2.40 * vh]
+      const s4Prog = Math.max(0, Math.min(1, (top - 3 * seg) / seg))
 
-      // ── Section 3: Camera Dolly (approach + enter portal) ──────────────
-      ScrollTrigger.create({
-        trigger: '#section-camera',
-        scroller: scroller,
-        start: 'top top',
-        end: '+=150%',
-        pin: true,
-        scrub: 0.5,
-        onUpdate: (self) => setCameraProgress(self.progress),
-        onEnter: () => setActiveSection(2),
-        onEnterBack: () => setActiveSection(2),
-      })
+      setHeroProgress(s1Prog)
+      setPortalFormProgress(s2Prog)
+      setCameraProgress(s3Prog)
+      setBlackProgress(s4Prog)
 
-      // ── Section 4: Black Transition ────────────────────────────────────
-      ScrollTrigger.create({
-        trigger: '#section-black',
-        scroller: scroller,
-        start: 'top top',
-        end: '+=80%',
-        pin: true,
-        scrub: 0.4,
-        onUpdate: (self) => setBlackProgress(self.progress),
-        onEnter: () => setActiveSection(3),
-        onEnterBack: () => setActiveSection(3),
-      })
+      applyTextStyle(heroColRef.current, 0, top, vh)
+      applyTextStyle(portalColRef.current, 1, top, vh)
+      applyTextStyle(cameraColRef.current, 2, top, vh)
+      applyTextStyle(beyondColRef.current, 3, top, vh)
 
-      ScrollTrigger.refresh()
-    }, wrapperRef)
+      // Determine active section index (based on which segment we're in)
+      const seg2 = 0.60 * vh
+      if (top < seg2) {
+        setActiveSection(0)
+      } else if (top < 2 * seg2) {
+        setActiveSection(1)
+      } else if (top < 3 * seg2) {
+        setActiveSection(2)
+      } else {
+        setActiveSection(3)
+      }
+    }
 
-    return () => ctx.revert()
+    scroller.addEventListener('scroll', onScroll)
+    // Initialize
+    onScroll()
+    return () => scroller.removeEventListener('scroll', onScroll)
   }, [])
 
-  // ─── Programmatic scroll to section ───────────────────────────────────
-  const scrollToSection = useCallback((idx) => {
+  // ─── Mouse Wheel Interception ─────────────────────────────────────────────
+  // The 3D canvas absorbs pointer events, so we intercept wheel on window
+  // and forward them to the scroll container manually.
+  // We scroll by exactly one full section segment (0.45 * clientHeight) on every wheel scroll
+  // so that every single scroll input directly and cleanly transitions to the next/prev section.
+  useEffect(() => {
     const scroller = scrollContainerRef.current
-    if (scroller) {
-      const vh = scroller.clientHeight
-      const factors = [0, 2.5, 5.5, 8.0]
-      const targetY = factors[idx] * vh
+    if (!scroller) return
 
-      // Set active section immediately for instant navigation highlight
-      setActiveSection(idx)
+    let isScrolling = false
 
-      // Stop any active ScrollTrigger/user scrolls during animation
+    const onWheel = (e) => {
+      // Don't intercept if a native scrollable element (input, textarea) is the target
+      const tag = e.target?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+
+      e.preventDefault()
+      if (isScrolling) return
+
+      const direction = Math.sign(e.deltaY)
+      const vh = scroller.clientHeight || 1
+
+      // Snap to the next/prev section boundary (each section = 0.60 * vh)
+      const seg = 0.60 * vh
+      const currentSection = Math.round(scroller.scrollTop / seg)
+      const targetSection = Math.max(0, Math.min(3, currentSection + direction))
+      let targetScroll = targetSection * seg
+
+      // Bound it
+      const maxScroll = 3 * seg
+      targetScroll = Math.max(0, Math.min(maxScroll, targetScroll))
+
+      isScrolling = true
       gsap.to(scroller, {
-        scrollTo: { y: targetY, autoKill: false },
-        duration: 1.4,
+        scrollTo: { y: targetScroll, autoKill: false },
+        duration: 1.5,
         ease: 'power2.inOut',
+        onComplete: () => {
+          isScrolling = false
+        }
       })
     }
+
+    // Use { passive: false } so we can call preventDefault
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
   }, [])
 
-  // ─── Keyboard navigation ──────────────────────────────────────────────
+  // ─── Navigation ──────────────────────────────────────────────────────────
+  // Scroll positions (multiples of viewport height) that land at the VERY
+  // START of each pinned section — before any progress accumulates.
+  // S1 hero:   spans [0, 0.60vh]
+  // S2 portal: spans [0.60, 1.20vh]
+  // S3 camera: spans [1.20, 1.80vh]
+  // S4 black:  spans [1.80, 2.40vh]
+  const SECTION_FACTORS = [0, 0.60, 1.20, 1.80]
+
+  const scrollToSection = useCallback((idx) => {
+    const scroller = scrollContainerRef.current
+    if (!scroller) return
+    setActiveSection(idx)
+    gsap.to(scroller, {
+      scrollTo: { y: SECTION_FACTORS[idx] * scroller.clientHeight, autoKill: false },
+      duration: 1.4, ease: 'power2.inOut',
+    })
+  }, [])
+
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); if (activeSection < 3) scrollToSection(activeSection + 1) }
-      if (e.key === 'ArrowUp') { e.preventDefault(); if (activeSection > 0) scrollToSection(activeSection - 1) }
+      // Skip if focus is inside a form field
+      const tag = document.activeElement?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault()
+        if (activeSection < 3) scrollToSection(activeSection + 1)
+      }
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault()
+        if (activeSection > 0) scrollToSection(activeSection - 1)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [activeSection, scrollToSection])
 
+  // ─── Render ──────────────────────────────────────────────────────────────
   return (
     <div ref={wrapperRef} className="app-frame">
 
-      {/* ── Navigation header (always visible) ─────────────────────────── */}
       <header className="nav-header" style={{ zIndex: 100 }}>
         <div className="logo-text">
           <Activity size={18} style={{ color: activeSection >= 2 ? '#52A88B' : '#B67A46' }} />
@@ -144,120 +249,129 @@ export default function App() {
             <li key={i}>
               <button
                 onClick={() => scrollToSection(i)}
-                className="nav-link"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeSection === i ? '#fff' : '' }}
+                className={`nav-link${activeSection === i ? ' nav-link--active' : ''}`}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 {label}
+                {activeSection === i && <span className="nav-active-dot" />}
               </button>
             </li>
           ))}
         </ul>
       </header>
 
-      {/* ── Fixed 3D Canvas (behind all sections) ───────────────────────── */}
       <div className="canvas-container">
         <SceneCanvas
           heroProgress={heroProgress}
-          portalFormProgress={portalFormProgress}
+          // Combined progress: S1 = [0, 0.60vh], S2 = [0.60, 1.20vh]. Total = 1.20vh.
+          // Each spans 50% of the combined range, so coefficients remain 0.5/0.5.
+          portalFormProgress={
+            activeSection === 0
+              ? heroProgress * 0.5
+              : activeSection === 1
+                ? 0.5 + portalFormProgress * 0.5
+                : 1
+          }
           cameraProgress={cameraProgress}
           blackProgress={blackProgress}
         />
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════
-          Scroll Sections — stacked vertically inside scroll-container.
-          Each section is pinned by ScrollTrigger above.
-          Content overlaid on the fixed 3D canvas.
-      ══════════════════════════════════════════════════════════════════ */}
+      <AuthOverlay heroProgress={heroProgress} />
+
       <div ref={scrollContainerRef} className="scroll-container">
-        {/* Section 1: Hero */}
+
+        {/* S1: Hero — starts fully visible */}
         <section id="section-hero" className="scroll-section">
-          <AnimatePresence mode="wait">
-            {activeSection === 0 && (
-              <motion.div
-                key="hero"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="info-column"
-              >
-                <span className="tag-label">Beacon — 3D Experience</span>
-                <h1 className="title-serif">Analog Intelligence for Modern RAG.</h1>
-                <p className="description-text">
-                  High-performance, auditable infrastructure for enterprise AI. Designed to merge
-                  physical structure with distributed synapse memory.
-                </p>
-                <div className="interactive-content">
-                  <button className="btn-terracotta" onClick={() => scrollToSection(1)}>
-                    Enter
-                  </button>
-                </div>
-                <div className="stats-container">
-                  <div className="stat-item">
-                    <span className="stat-label">Nodes Active</span>
-                    <span className="stat-value">1,245</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Uptime</span>
-                    <span className="stat-value">99.99%</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div
+            ref={heroColRef}
+            className="info-column"
+            style={{ opacity: 1, transform: 'translateX(0px)', willChange: 'opacity, transform' }}
+          >
+            <span className="tag-label">Beacon — 3D Experience</span>
+            <h1 className="title-serif">Analog Intelligence for Modern RAG.</h1>
+            <p className="description-text">
+              High-performance, auditable infrastructure for enterprise AI. Designed to merge
+              physical structure with distributed synapse memory.
+            </p>
+            <div className="interactive-content">
+              <button className="btn-terracotta" onClick={() => scrollToSection(1)}>Enter</button>
+            </div>
+            <div className="stats-container">
+              <div className="stat-item">
+                <span className="stat-label">Nodes Active</span>
+                <span className="stat-value">1,245</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Uptime</span>
+                <span className="stat-value">99.99%</span>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Section 2: Portal Formation */}
+        {/* S2: Portal — immediately visible on enter, fades out at end */}
         <section id="section-portal" className="scroll-section">
-          <AnimatePresence mode="wait">
-            {activeSection === 1 && (
-              <motion.div
-                key="portal"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="info-column"
-              >
-                <span className="tag-label" style={{ color: '#52A88B' }}>01. Transformation</span>
-                <h1 className="title-serif">Stone Becomes Gateway.</h1>
-                <p className="description-text">
-                  Thirteen interlocking stone slabs intelligently realign into a monumental portal.
-                  Each block moves with architectural precision.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div
+            ref={portalColRef}
+            className="info-column"
+            style={{ opacity: 1, transform: 'translateX(0px)', willChange: 'opacity, transform' }}
+          >
+            <span className="tag-label" style={{ color: '#52A88B' }}>01. Transformation</span>
+            <h1 className="title-serif">Stone Becomes Gateway.</h1>
+            <p className="description-text">
+              Thirteen interlocking stone slabs intelligently realign into a monumental portal.
+              Each block moves with architectural precision.
+            </p>
+          </div>
         </section>
 
-        {/* Section 3: Camera Entry */}
+        {/* S3: Camera — immediately visible on enter, fades out at end */}
         <section id="section-camera" className="scroll-section">
-          <AnimatePresence mode="wait">
-            {activeSection === 2 && (
-              <motion.div
-                key="camera"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="info-column"
-              >
-                <span className="tag-label" style={{ color: '#52A88B' }}>02. Portal Entry</span>
-                <h1 className="title-serif">Walking Through.</h1>
-                <p className="description-text">
-                  A cinematic approach into the emerald void. The portal remains fixed —
-                  only the camera moves forward.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div
+            ref={cameraColRef}
+            className="info-column"
+            style={{ opacity: 1, transform: 'translateX(0px)', willChange: 'opacity, transform' }}
+          >
+            <span className="tag-label" style={{ color: '#52A88B' }}>02. Portal Entry</span>
+            <h1 className="title-serif">Walking Through.</h1>
+            <p className="description-text">
+              A cinematic approach into the emerald void. The portal remains fixed —
+              only the camera moves forward.
+            </p>
+          </div>
         </section>
 
-        {/* Section 4: Black Transition (no UI content — pure cinematic hold) */}
-        <section id="section-black" className="scroll-section" />
-      </div>
+        {/* S4: Beyond — the void beyond the portal */}
+        <section id="section-black" className="scroll-section">
+          <div
+            ref={beyondColRef}
+            className="info-column beyond-column"
+            style={{ opacity: 1, transform: 'translateX(0px)', willChange: 'opacity, transform' }}
+          >
+            <span className="tag-label beyond-label">03. Beyond</span>
+            <h1 className="title-serif beyond-title">The Void Awaits.</h1>
+            <p className="description-text beyond-text">
+              Past the threshold, silence. Beacon's neural lattice expands into
+              infinite, uncharted memory — ready to be shaped by your data.
+            </p>
+            <div className="interactive-content">
+              <a
+                href="https://github.com"
+                className="btn-void"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Begin Your Journey
+              </a>
+            </div>
+          </div>
+        </section>
 
+        {/* Spacer: 4 sections × 0.60vh each = 2.40vh + 1.00vh initial = 340vh */}
+        <div style={{ height: '340vh', pointerEvents: 'none' }} />
+
+      </div>
     </div>
   )
 }
