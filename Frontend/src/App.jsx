@@ -10,12 +10,11 @@ gsap.registerPlugin(ScrollToPlugin)
 const SECTIONS_DATA = [
   {
     id: 'genesis',
-    tag: 'Beacon — 3D Experience',
+    tag: '',
     tagColor: '#C86F52',
     title: 'Analog Intelligence for Modern RAG.',
     desc: 'High-performance, auditable infrastructure for enterprise AI. Designed to merge physical structure with distributed synapse memory.',
     showStats: true,
-    showEnterBtn: true,
   },
   {
     id: 'portal',
@@ -157,19 +156,15 @@ export default function App() {
             className="info-column"
             style={{ width: '100%', height: 'auto', pointerEvents: 'auto' }}
           >
-            <span className="tag-label" style={{ color: section.tagColor }}>
-              {section.tag}
-            </span>
+            {section.tag && (
+              <span className="tag-label" style={{ color: section.tagColor }}>
+                {section.tag}
+              </span>
+            )}
             <h1 className="title-serif">{section.title}</h1>
             <p className="description-text">{section.desc}</p>
 
-            {section.showEnterBtn && (
-              <div className="interactive-content">
-                <button className="btn-terracotta" onClick={() => scrollToSection(1)}>
-                  Enter
-                </button>
-              </div>
-            )}
+
 
             {section.showStats && (
               <div className="stats-container">
