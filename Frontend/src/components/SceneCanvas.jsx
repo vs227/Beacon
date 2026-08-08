@@ -72,11 +72,7 @@ function CameraController({ heroProgress, cameraProgress, onReady }) {
 }
 
 // ─── Scene Contents ───────────────────────────────────────────────────────
-<<<<<<< HEAD
-function SceneContents({ heroProgress, portalFormProgress, cameraProgress, onReady }) {
-=======
-function SceneContents({ heroProgress, portalFormProgress, cameraProgress, hideSculpture = false }) {
->>>>>>> c33ea35ac2b5caf87a7d7bbfe80408bac17eafb6
+function SceneContents({ heroProgress, portalFormProgress, cameraProgress, onReady, hideSculpture = false }) {
   // Emerald point light — appears once portal is ≥ 70% formed
   const emeraldIntensity = clamp01((portalFormProgress - 0.70) / 0.30) * 20
 
@@ -151,11 +147,8 @@ export default function SceneCanvas({
   portalFormProgress = 0,
   cameraProgress = 0,
   blackProgress = 0,
-<<<<<<< HEAD
-  onReady,
-=======
   hideSculpture = false,
->>>>>>> c33ea35ac2b5caf87a7d7bbfe80408bac17eafb6
+  onReady,
 }) {
   // Black overlay driven purely by Section 4 progress (0→1)
   // Starts fading at camera 85% through (cameraProgress > 0.85)
@@ -180,11 +173,8 @@ export default function SceneCanvas({
           heroProgress={heroProgress}
           portalFormProgress={portalFormProgress}
           cameraProgress={cameraProgress}
-<<<<<<< HEAD
-          onReady={onReady}
-=======
           hideSculpture={hideSculpture}
->>>>>>> c33ea35ac2b5caf87a7d7bbfe80408bac17eafb6
+          onReady={onReady}
         />
       </Canvas>
 

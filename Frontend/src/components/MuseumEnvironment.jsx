@@ -9,7 +9,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
   // ─── DUST PARTICLES (inside spotlight cone) ──────────────────────────────────
   const particleCount = 900
   const [positions, velocities, noiseSeeds] = useMemo(() => {
-    const pos  = new Float32Array(particleCount * 3)
+    const pos = new Float32Array(particleCount * 3)
     const vels = new Float32Array(particleCount * 3)
     const seeds = new Float32Array(particleCount)
     for (let i = 0; i < particleCount; i++) {
@@ -17,10 +17,10 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       const t = Math.random()
       const coneRadius = 1.8 * (1 - t * 0.55)
       const theta = Math.random() * Math.PI * 2
-      pos[i3]     = 3.5 + Math.cos(theta) * coneRadius * (Math.random() * 0.9 + 0.1)
+      pos[i3] = 3.5 + Math.cos(theta) * coneRadius * (Math.random() * 0.9 + 0.1)
       pos[i3 + 1] = t * 5.0
       pos[i3 + 2] = -2.3 + Math.sin(theta) * coneRadius * (Math.random() * 0.9 + 0.1)
-      vels[i3]     = (Math.random() - 0.5) * 0.002
+      vels[i3] = (Math.random() - 0.5) * 0.002
       vels[i3 + 1] = 0.008 + Math.random() * 0.012
       vels[i3 + 2] = (Math.random() - 0.5) * 0.002
       seeds[i] = Math.random() * 100
@@ -39,7 +39,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       const x = Math.random() * 512
       const y = Math.random() * 512
       const l = (Math.random() - 0.5) * 6
-      ctx.fillStyle = `rgba(${24+l|0},${22+l|0},${21+l|0},0.18)`
+      ctx.fillStyle = `rgba(${24 + l | 0},${22 + l | 0},${21 + l | 0},0.18)`
       ctx.fillRect(x, y, Math.random() * 1.2 + 0.4, Math.random() * 1.2 + 0.4)
     }
     const tex = new THREE.CanvasTexture(canvas)
@@ -69,25 +69,25 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       // Center-area highlight cluster (behind sculpture — most illuminated)
       { x: 0.50, y: 0.45, r: 0.38, v: 105, a: 0.28 },
       { x: 0.48, y: 0.55, r: 0.30, v: 118, a: 0.22 },
-      { x: 0.55, y: 0.38, r: 0.25, v:  95, a: 0.20 },
+      { x: 0.55, y: 0.38, r: 0.25, v: 95, a: 0.20 },
       { x: 0.42, y: 0.60, r: 0.22, v: 108, a: 0.18 },
       // Secondary patches — slightly off-center
-      { x: 0.35, y: 0.42, r: 0.20, v:  82, a: 0.14 },
-      { x: 0.62, y: 0.50, r: 0.18, v:  78, a: 0.12 },
-      { x: 0.58, y: 0.65, r: 0.15, v:  72, a: 0.10 },
-      { x: 0.30, y: 0.55, r: 0.14, v:  68, a: 0.09 },
+      { x: 0.35, y: 0.42, r: 0.20, v: 82, a: 0.14 },
+      { x: 0.62, y: 0.50, r: 0.18, v: 78, a: 0.12 },
+      { x: 0.58, y: 0.65, r: 0.15, v: 72, a: 0.10 },
+      { x: 0.30, y: 0.55, r: 0.14, v: 68, a: 0.09 },
       // Edge patches — very faint (in shadow)
-      { x: 0.20, y: 0.40, r: 0.16, v:  48, a: 0.07 },
-      { x: 0.78, y: 0.45, r: 0.14, v:  42, a: 0.06 },
-      { x: 0.45, y: 0.20, r: 0.18, v:  40, a: 0.06 },
-      { x: 0.52, y: 0.78, r: 0.16, v:  38, a: 0.05 },
+      { x: 0.20, y: 0.40, r: 0.16, v: 48, a: 0.07 },
+      { x: 0.78, y: 0.45, r: 0.14, v: 42, a: 0.06 },
+      { x: 0.45, y: 0.20, r: 0.18, v: 40, a: 0.06 },
+      { x: 0.52, y: 0.78, r: 0.16, v: 38, a: 0.05 },
     ]
     lightPatches.forEach(({ x, y, r, v, a }) => {
       const cx = x * W, cy = y * H, rad = r * W
       const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
       // Warm highlight tones: #6A625C → #8A8078 at peak
-      grd.addColorStop(0.0, `rgba(${v},${v-8},${v-14},${a})`)
-      grd.addColorStop(0.4, `rgba(${v-18},${v-24},${v-28},${a * 0.55})`)
+      grd.addColorStop(0.0, `rgba(${v},${v - 8},${v - 14},${a})`)
+      grd.addColorStop(0.4, `rgba(${v - 18},${v - 24},${v - 28},${a * 0.55})`)
       grd.addColorStop(1.0, `rgba(42,39,37,0)`)
       ctx.fillStyle = grd
       ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill()
@@ -101,7 +101,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       const dark = Math.random() > 0.35
       const g = dark ? (6 + Math.random() * 10 | 0) : (44 + Math.random() * 28 | 0)
       const a = Math.random() * 0.20 + 0.03
-      grd.addColorStop(0, `rgba(${g},${g-2},${g-3},${a})`)
+      grd.addColorStop(0, `rgba(${g},${g - 2},${g - 3},${a})`)
       grd.addColorStop(1, `rgba(42,39,37,0)`)
       ctx.fillStyle = grd
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
@@ -115,7 +115,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       const x1 = x0 + Math.cos(angle) * len, y1 = y0 + Math.sin(angle) * len
       const v = 50 + (Math.random() * 30 | 0)
       const a = Math.random() * 0.10 + 0.03
-      ctx.strokeStyle = `rgba(${v},${v-3},${v-5},${a})`
+      ctx.strokeStyle = `rgba(${v},${v - 3},${v - 5},${a})`
       ctx.lineWidth = Math.random() * 3 + 0.8
       ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke()
     }
@@ -124,7 +124,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
     for (let i = 0; i < 70000; i++) {
       const x = Math.random() * W, y = Math.random() * H
       const g = 22 + (Math.random() * 24 | 0)
-      ctx.fillStyle = `rgba(${g},${g-2},${g-3},0.06)`
+      ctx.fillStyle = `rgba(${g},${g - 2},${g - 3},0.06)`
       ctx.fillRect(x, y, Math.random() * 0.9 + 0.3, Math.random() * 0.9 + 0.3)
     }
 
@@ -194,12 +194,12 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3
         attr.array[i3 + 1] += velocities[i3 + 1] * 0.1
-        attr.array[i3]     += Math.sin(time * 0.7 + noiseSeeds[i]) * 0.0012
+        attr.array[i3] += Math.sin(time * 0.7 + noiseSeeds[i]) * 0.0012
         attr.array[i3 + 2] += Math.cos(time * 0.7 + noiseSeeds[i]) * 0.0012
         if (attr.array[i3 + 1] > 5.0) {
           attr.array[i3 + 1] = 0.05
           const t = Math.random(); const cr = 1.8 * (1 - t * 0.55); const th = Math.random() * Math.PI * 2
-          attr.array[i3]     = 3.5 + Math.cos(th) * cr * (Math.random() * 0.9 + 0.1)
+          attr.array[i3] = 3.5 + Math.cos(th) * cr * (Math.random() * 0.9 + 0.1)
           attr.array[i3 + 2] = -2.3 + Math.sin(th) * cr * (Math.random() * 0.9 + 0.1)
         }
       }

@@ -52,6 +52,11 @@ export default function LandingPage({ auth }) {
   const [cameraProgress, setCameraProgress] = useState(0)
   const [blackProgress, setBlackProgress] = useState(0)
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [canvasMounted, setCanvasMounted] = useState(false)
+  const [isSceneReady, setIsSceneReady] = useState(false)
+  const [loadPercent, setLoadPercent] = useState(0)
+
   useEffect(() => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
@@ -60,9 +65,10 @@ export default function LandingPage({ auth }) {
       const top = scroller.scrollTop
       const vh = scroller.clientHeight || 1
 
-      // Each section spans 0.9 * vh
+      // Each section spans 0.9 * vh. Shift the text transitions by 0.6 * sectionSpan
+      // so the transition starts exactly when the auth overlay is fully gone (at 0.4 * sectionSpan)
       const sectionSpan = vh * 0.9
-      const sectionIdx = Math.min(3, Math.floor(top / sectionSpan))
+      const sectionIdx = Math.min(3, Math.floor((top + 0.6 * sectionSpan) / sectionSpan))
       setActiveSection(sectionIdx)
 
       // Calculate smooth progress for each section
@@ -107,10 +113,93 @@ export default function LandingPage({ auth }) {
     }
   }, [auth, scrollToSection])
 
+  useEffect(() => {
+    // Mount the heavy canvas 100ms after the initial paint so the loader displays immediately
+    const mountTimeout = setTimeout(() => {
+      setCanvasMounted(true)
+    }, 100)
+
+    // Safety timeout fallback: if WebGL or ThreeJS fails to load, fill to 100 and hide at 4.5s
+    const fallbackTimeout = setTimeout(() => {
+      let fb = 0
+      setLoadPercent(prev => { fb = prev; return prev })
+      const fillFallback = () => {
+        fb += 2
+        if (fb >= 100) { setLoadPercent(100); setTimeout(() => setIsLoading(false), 600) }
+        else { setLoadPercent(fb); setTimeout(fillFallback, 20) }
+      }
+      setTimeout(fillFallback, 30)
+    }, 4500)
+
+    // Drive a fake percentage counter 0→95 over ~3.5s, then real completion jumps it to 100
+    let pct = 0
+    const pctInterval = setInterval(() => {
+      pct += Math.random() * 4 + 1
+      if (pct >= 95) { pct = 95; clearInterval(pctInterval) }
+      setLoadPercent(Math.round(pct))
+    }, 120)
+
+    return () => {
+      clearTimeout(mountTimeout)
+      clearTimeout(fallbackTimeout)
+      clearInterval(pctInterval)
+    }
+  }, [])
+
+  // When Three.js is ready: smoothly fill the bar to 100%, pause 600ms, then fade out
+  useEffect(() => {
+    if (!isSceneReady) return
+    let current = 0
+    // Capture current percent using a ref trick via callback form of setState
+    setLoadPercent(prev => { current = prev; return prev })
+
+    // Tiny delay to read the current value then start animating
+    const startFill = setTimeout(() => {
+      const step = () => {
+        current += 2
+        if (current >= 100) {
+          setLoadPercent(100)
+          // Pause 600ms at 100% so user clearly sees completion
+          setTimeout(() => setIsLoading(false), 600)
+        } else {
+          setLoadPercent(current)
+          setTimeout(step, 20) // ~50fps fill animation
+        }
+      }
+      step()
+    }, 30)
+
+    return () => clearTimeout(startFill)
+  }, [isSceneReady])
+
   const section = SECTIONS_DATA[activeSection]
 
   return (
     <div ref={wrapperRef} className="app-frame">
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            key="loader"
+            className="loader-container"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+          >
+            <div className="loader-wrapper">
+              <span className="loader-percent">{loadPercent}%</span>
+              <span className="loader">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`loader-dot${i < Math.round(loadPercent / 100 * 16) ? ' filled' : ''}`}
+                  />
+                ))}
+              </span>
+              <span className="loader-label">Loading Content</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="logo-text" onClick={() => auth?.isLoggedIn && navigate('/dashboard/organizations')} style={{ cursor: auth?.isLoggedIn ? 'pointer' : 'default' }}>
@@ -158,8 +247,8 @@ export default function LandingPage({ auth }) {
               <span style={{ opacity: 0.7 }}>➔</span>
             </button>
 
-            <button 
-              className="user-avatar-btn" 
+            <button
+              className="user-avatar-btn"
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               aria-label="User menu"
             >
@@ -171,11 +260,11 @@ export default function LandingPage({ auth }) {
             <AnimatePresence>
               {showProfileDropdown && (
                 <>
-                  <div 
-                    className="dropdown-overlay" 
-                    onClick={() => setShowProfileDropdown(false)} 
+                  <div
+                    className="dropdown-overlay"
+                    onClick={() => setShowProfileDropdown(false)}
                   />
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -188,35 +277,35 @@ export default function LandingPage({ auth }) {
                       <span className="dropdown-email">{auth.user?.email}</span>
                     </div>
                     <div className="dropdown-divider" />
-                    <button 
-                      className="dropdown-item" 
+                    <button
+                      className="dropdown-item"
                       onClick={() => {
                         setShowProfileDropdown(false)
                         navigate('/dashboard')
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>
                       <span>Console Dashboard</span>
                     </button>
-                    <button 
-                      className="dropdown-item" 
+                    <button
+                      className="dropdown-item"
                       onClick={() => {
                         setShowProfileDropdown(false)
                         navigate('/dashboard/settings')
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                       <span>Account Settings</span>
                     </button>
                     <div className="dropdown-divider" />
-                    <button 
-                      className="dropdown-item logout" 
+                    <button
+                      className="dropdown-item logout"
                       onClick={() => {
                         setShowProfileDropdown(false)
                         auth.logout()
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
                       <span>Sign Out</span>
                     </button>
                   </motion.div>
@@ -229,12 +318,15 @@ export default function LandingPage({ auth }) {
 
       {/* Fixed 3D Canvas */}
       <div className="canvas-container">
-        <SceneCanvas
-          heroProgress={heroProgress}
-          portalFormProgress={portalFormProgress}
-          cameraProgress={cameraProgress}
-          blackProgress={blackProgress}
-        />
+        {canvasMounted && (
+          <SceneCanvas
+            heroProgress={heroProgress}
+            portalFormProgress={portalFormProgress}
+            cameraProgress={cameraProgress}
+            blackProgress={blackProgress}
+            onReady={() => setIsSceneReady(true)}
+          />
+        )}
       </div>
 
       {/* Fixed Left Information Panel */}
@@ -257,7 +349,7 @@ export default function LandingPage({ auth }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.4 }}
-            className="info-column"
+            className="info-column outfit-landing"
             style={{ width: '100%', height: 'auto', pointerEvents: 'auto' }}
           >
             {section.tag && (
