@@ -16,13 +16,13 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 def hash_password(password: str) -> str:
     # bcrypt supports max 72 bytes; truncate to avoid ValueError
-    return pwd_context.hash(password[:72].encode("utf-8"))
+    return pwd_context.hash(password[:72])
 
 def verify_password(
     plain_password: str,
     hashed_password: str
 ) -> bool:
-    return pwd_context.verify(plain_password[:72].encode("utf-8"), hashed_password)
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 def create_token(data: dict) -> str:
     payload = data.copy()

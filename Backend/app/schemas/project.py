@@ -3,28 +3,24 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class OrganizationBase(BaseModel):
+class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
 
 
-class OrganizationCreate(OrganizationBase):
-    pass
-
-
-class OrganizationUpdate(BaseModel):
+class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
 
 
-class OrganizationResponse(BaseModel):
+class ProjectResponse(BaseModel):
     id: str
+    organization_id: str
     name: str
     slug: str
-    owner_id: str
     description: Optional[str] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-

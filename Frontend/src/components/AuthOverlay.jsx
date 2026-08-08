@@ -174,8 +174,8 @@ export default function AuthOverlay({ heroProgress = 0, auth }) {
               Your session is active. Enter your console workspace anytime.
             </div>
 
-            <button 
-              className="auth-btn-primary" 
+            <button
+              className="auth-btn-primary"
               onClick={() => navigate('/dashboard')}
               style={{ marginBottom: '10px' }}
             >

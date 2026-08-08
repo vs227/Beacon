@@ -215,38 +215,35 @@ export default function Dashboard({ auth }) {
     }
   }, [location.pathname, orgs])
 
+  // Fetch projects for selected organization
+  const fetchProjects = useCallback(async (orgId) => {
+    if (!auth.token || !orgId) return
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setProjects(data)
+      } else if (res.status === 401) {
+        auth.logout()
+      }
+    } catch {
+      // silently fail — user can retry
+    }
+  }, [auth])
+
   // Scope project state changes to selected organization
   useEffect(() => {
     if (selectedOrg) {
       const orgId = selectedOrg.id || selectedOrg.organization_id
-      const saved = localStorage.getItem(`beacon_projects_${orgId}`)
-      if (saved) {
-        setProjects(JSON.parse(saved))
-      } else {
-        const defaults = [
-          {
-            id: 'p1',
-            name: 'Primary RAG Pipeline',
-            slug: 'primary-rag-pipeline',
-            description: 'Semantic vector store index connected to customer documentation data sources.',
-            created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-          },
-          {
-            id: 'p2',
-            name: 'Internal Agent Engine',
-            slug: 'internal-agent-engine',
-            description: 'LLM retrieval backend utilizing knowledge store assets.',
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-          }
-        ]
-        setProjects(defaults)
-        localStorage.setItem(`beacon_projects_${orgId}`, JSON.stringify(defaults))
-      }
+      fetchProjects(orgId)
       setActiveTab('projects')
     } else {
+      setProjects([])
       setActiveTab('organizations')
     }
-  }, [selectedOrg])
+  }, [selectedOrg, fetchProjects])
 
   // Create Organization
   const handleCreateOrg = async (e) => {
@@ -308,33 +305,57 @@ export default function Dashboard({ auth }) {
     }
   }
 
-  // Create Project Scoped to Current Organization
-  const handleCreateProject = (e) => {
+  // Create Project via API
+  const handleCreateProject = async (e) => {
     e.preventDefault()
     if (!newProjectName.trim() || !selectedOrg) return
     const orgId = selectedOrg.id || selectedOrg.organization_id
-    const newProj = {
-      id: 'proj_' + Math.random().toString(36).substring(2, 11),
-      name: newProjectName,
-      slug: newProjectName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      description: newProjectDesc,
-      created_at: new Date().toISOString(),
+    setErrorMsg('')
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          name: newProjectName,
+          description: newProjectDesc,
+        }),
+      })
+      if (res.ok) {
+        setNewProjectName('')
+        setNewProjectDesc('')
+        setShowProjectModal(false)
+        await fetchProjects(orgId)
+      } else {
+        const data = await res.json()
+        setErrorMsg(data.detail || 'Failed to create project')
+      }
+    } catch (err) {
+      setErrorMsg('Error creating project: ' + err.message)
     }
-    const updated = [...projects, newProj]
-    setProjects(updated)
-    localStorage.setItem(`beacon_projects_${orgId}`, JSON.stringify(updated))
-    setNewProjectName('')
-    setNewProjectDesc('')
-    setShowProjectModal(false)
   }
 
-  // Delete Scoped Project
-  const handleDeleteProject = (projId) => {
+  // Delete Project via API
+  const handleDeleteProject = async (projId) => {
     if (!confirm('Are you sure you want to delete this project?')) return
     const orgId = selectedOrg.id || selectedOrg.organization_id
-    const updated = projects.filter(p => p.id !== projId)
-    setProjects(updated)
-    localStorage.setItem(`beacon_projects_${orgId}`, JSON.stringify(updated))
+    setErrorMsg('')
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects/${projId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        await fetchProjects(orgId)
+      } else {
+        const data = await res.json()
+        setErrorMsg(data.detail || 'Failed to delete project')
+      }
+    } catch (err) {
+      setErrorMsg('Error deleting project: ' + err.message)
+    }
   }
 
   // Workspaces and Knowledge Bases State
@@ -447,8 +468,8 @@ export default function Dashboard({ auth }) {
             </button>
           )}
 
-          <button 
-            className="user-avatar-btn" 
+          <button
+            className="user-avatar-btn"
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             aria-label="User menu"
           >
@@ -460,11 +481,11 @@ export default function Dashboard({ auth }) {
           <AnimatePresence>
             {showProfileDropdown && (
               <>
-                <div 
-                  className="dropdown-overlay" 
-                  onClick={() => setShowProfileDropdown(false)} 
+                <div
+                  className="dropdown-overlay"
+                  onClick={() => setShowProfileDropdown(false)}
                 />
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -476,8 +497,8 @@ export default function Dashboard({ auth }) {
                     <span className="dropdown-email">{auth.user?.email}</span>
                   </div>
                   <div className="dropdown-divider" />
-                  <button 
-                    className="dropdown-item" 
+                  <button
+                    className="dropdown-item"
                     onClick={() => {
                       setShowProfileDropdown(false)
                       navigate('/dashboard/settings')
@@ -487,8 +508,8 @@ export default function Dashboard({ auth }) {
                     <span>Account Settings</span>
                   </button>
                   <div className="dropdown-divider" />
-                  <button 
-                    className="dropdown-item logout" 
+                  <button
+                    className="dropdown-item logout"
                     onClick={() => {
                       setShowProfileDropdown(false)
                       auth.logout()
