@@ -1,47 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { gsap } from 'gsap'
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
-import { motion, AnimatePresence } from 'framer-motion'
-import SceneCanvas from './components/SceneCanvas'
-import AuthOverlay from './components/AuthOverlay'
-
-gsap.registerPlugin(ScrollToPlugin)
-
-const SECTIONS_DATA = [
-  {
-    id: 'genesis',
-    tag: 'Beacon — 3D Experience',
-    tagColor: '#C86F52',
-    title: 'Analog Intelligence for Modern RAG.',
-    desc: 'High-performance, auditable infrastructure for enterprise AI. Designed to merge physical structure with distributed synapse memory.',
-    showStats: true,
-    showEnterBtn: true,
-  },
-  {
-    id: 'portal',
-    tag: '01. Transformation',
-    tagColor: '#52A88B',
-    title: 'Stone Becomes Gateway.',
-    desc: 'Thirteen interlocking stone slabs intelligently realign into a monumental portal. Each block moves with architectural precision.',
-  },
-  {
-    id: 'entry',
-    tag: '02. Portal Entry',
-    tagColor: '#52A88B',
-    title: 'Walking Through.',
-    desc: 'A cinematic approach into the emerald void. The portal remains fixed — only the camera moves forward.',
-  },
-  {
-    id: 'beyond',
-    tag: '03. Beyond',
-    tagColor: '#C86F52',
-    title: 'The Void Awaits.',
-    desc: "Past the threshold, silence. Beacon's neural lattice expands into infinite, uncharted memory — ready to be shaped by your data.",
-    showCta: true,
-  },
-]
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import LandingPage from './components/LandingPage'
+import Dashboard from './components/Dashboard'
+import { useAuth } from './hooks/useAuth'
 
 export default function App() {
+<<<<<<< HEAD
   const wrapperRef = useRef(null)
   const scrollContainerRef = useRef(null)
 
@@ -186,80 +149,31 @@ export default function App() {
           />
         )}
       </div>
+=======
+  const auth = useAuth()
 
-      {/* Fixed Left Information Panel */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '6%',
-          transform: 'translateY(-50%)',
-          width: '40%',
-          maxWidth: '480px',
-          zIndex: 50,
-          pointerEvents: 'none',
-        }}
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4 }}
-            className="info-column"
-            style={{ width: '100%', height: 'auto', pointerEvents: 'auto' }}
-          >
-            <span className="tag-label" style={{ color: section.tagColor }}>
-              {section.tag}
-            </span>
-            <h1 className="title-serif">{section.title}</h1>
-            <p className="description-text">{section.desc}</p>
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public landing route */}
+        <Route path="/" element={<LandingPage auth={auth} />} />
 
-            {section.showEnterBtn && (
-              <div className="interactive-content">
-                <button className="btn-terracotta" onClick={() => scrollToSection(1)}>
-                  Enter
-                </button>
-              </div>
-            )}
+        {/* Protected Dashboard console route with wildcard sub-routes */}
+        <Route
+          path="/dashboard/*"
+          element={
+            auth.isLoggedIn ? (
+              <Dashboard auth={auth} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+>>>>>>> c33ea35ac2b5caf87a7d7bbfe80408bac17eafb6
 
-            {section.showStats && (
-              <div className="stats-container">
-                <div className="stat-item">
-                  <span className="stat-label">Nodes Active</span>
-                  <span className="stat-value">1,245</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Uptime</span>
-                  <span className="stat-value">99.99%</span>
-                </div>
-              </div>
-            )}
-
-            {section.showCta && (
-              <div className="interactive-content">
-                <a
-                  href="https://github.com"
-                  className="btn-terracotta"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Begin Your Journey
-                </a>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Developer Auth Overlay (visible on landing section) */}
-      <AuthOverlay heroProgress={heroProgress} />
-
-      {/* Scrollable Container */}
-      <div ref={scrollContainerRef} className="scroll-container">
-        <div style={{ height: '360vh', pointerEvents: 'none' }} />
-      </div>
-    </div>
+        {/* Fallback redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }

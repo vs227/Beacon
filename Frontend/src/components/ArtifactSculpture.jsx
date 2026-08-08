@@ -13,8 +13,6 @@ export default function ArtifactSculpture({
 }) {
   const groupRef = useRef()
   const meshesRef = useRef([])
-  const accumRot = useRef(0)
-  const smoothProg = useRef(0)
 
   // ─── BASALT MATERIAL ─────────────────────────────────────────────────────
   const [colorMap, bumpMap] = useMemo(() => {
@@ -121,7 +119,7 @@ export default function ArtifactSculpture({
   }, [])
 
   // ─── ANIMATION LOOP ────────────────────────────────────────────────────────
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const time = state.clock.getElapsedTime()
     const mouse = state.mouse
 

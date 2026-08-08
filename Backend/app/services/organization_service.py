@@ -38,15 +38,19 @@ def generate_unique_slug(name: str, exclude_id: str | None = None) -> str:
 
 def create_organization(org_data: OrganizationCreate, owner_id: str) -> dict:
     slug = generate_unique_slug(org_data.name)
+    payload = {
+        "name": org_data.name,
+        "slug": slug,
+        "owner_id": owner_id,
+    }
+    if org_data.description:
+        payload["description"] = org_data.description
+
     try:
         result = (
             supabase
             .table("organizations")
-            .insert({
-                "name": org_data.name,
-                "slug": slug,
-                "owner_id": owner_id
-            })
+            .insert(payload)
             .execute()
         )
     except PostgrestAPIError as e:
