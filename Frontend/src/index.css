@@ -331,30 +331,57 @@ body {
   align-items: center;
 }
 
-.loader-title {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: 0.2rem;
-  text-transform: uppercase;
-  color: #fff;
-  margin-bottom: 0.5rem;
+.loader {
+  --color-1: #fff;
+  --color-2: #B09E32;
+  --size: 1px;
+
+  display: flex;
+  gap: calc(20 * var(--size));
+  width: calc(140 * var(--size));
+  height: calc(20 * var(--size));
 }
 
-.loader-bar {
-  width: 160px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.08);
+.loader-dot {
+  width: calc(20 * var(--size));
+  height: calc(20 * var(--size));
+  background-color: var(--color-1);
   position: relative;
-  overflow: hidden;
-  border-radius: 1px;
 }
 
-.loader-fill {
-  height: 100%;
-  background: var(--text-primary);
-  width: 0%;
-  transition: width 0.3s ease;
+.loader-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-2);
+  opacity: 0;
+  animation: dot-active 1s linear infinite;
+  will-change: opacity;
+}
+
+.loader-dot:nth-child(1)::after {
+  animation-delay: 0s;
+}
+
+.loader-dot:nth-child(2)::after {
+  animation-delay: -0.75s;
+}
+
+.loader-dot:nth-child(3)::after {
+  animation-delay: -0.5s;
+}
+
+.loader-dot:nth-child(4)::after {
+  animation-delay: -0.25s;
+}
+
+@keyframes dot-active {
+  0%, 100% {
+    opacity: 1;
+  }
+  24.99%, 75.01% {
+    opacity: 0;
+  }
 }
 
 /* ── Auth Overlay ──────────────────────────────────────────────────────────── */

@@ -15,11 +15,12 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x))
 // During Section 1 & 2: camera is COMPLETELY STILL at hero position.
 // During Section 3: smooth cinematic dolly toward and through portal.
 
-function CameraController({ heroProgress, cameraProgress }) {
+function CameraController({ heroProgress, cameraProgress, onReady }) {
   const { camera } = useThree()
   const lookAtRef = useRef(new THREE.Vector3(3.5, 1.55, -2.3))
   const smoothCam = useRef(0)
   const smoothHero = useRef(0)
+  const hasCalledReady = useRef(false)
 
   // Camera positions
   const P_HERO = new THREE.Vector3(-1.5, 0.85, 6.20)  // fixed during S1+S2
@@ -29,6 +30,10 @@ function CameraController({ heroProgress, cameraProgress }) {
   const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)  // looking into void
 
   useFrame((state) => {
+    if (onReady && !hasCalledReady.current) {
+      hasCalledReady.current = true
+      onReady()
+    }
     const mouse = state.mouse
 
     // Smooth the Section 3 progress for camera
@@ -67,7 +72,7 @@ function CameraController({ heroProgress, cameraProgress }) {
 }
 
 // ─── Scene Contents ───────────────────────────────────────────────────────
-function SceneContents({ heroProgress, portalFormProgress, cameraProgress }) {
+function SceneContents({ heroProgress, portalFormProgress, cameraProgress, onReady }) {
   // Emerald point light — appears once portal is ≥ 70% formed
   const emeraldIntensity = clamp01((portalFormProgress - 0.70) / 0.30) * 20
 
@@ -122,6 +127,7 @@ function SceneContents({ heroProgress, portalFormProgress, cameraProgress }) {
         <CameraController
           heroProgress={heroProgress}
           cameraProgress={cameraProgress}
+          onReady={onReady}
         />
       </Suspense>
 
@@ -139,6 +145,7 @@ export default function SceneCanvas({
   portalFormProgress = 0,
   cameraProgress = 0,
   blackProgress = 0,
+  onReady,
 }) {
   // Black overlay driven purely by Section 4 progress (0→1)
   // Starts fading at camera 85% through (cameraProgress > 0.85)
@@ -163,6 +170,7 @@ export default function SceneCanvas({
           heroProgress={heroProgress}
           portalFormProgress={portalFormProgress}
           cameraProgress={cameraProgress}
+          onReady={onReady}
         />
       </Canvas>
 

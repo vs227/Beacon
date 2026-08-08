@@ -51,6 +51,10 @@ export default function App() {
   const [cameraProgress, setCameraProgress] = useState(0)
   const [blackProgress, setBlackProgress] = useState(0)
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [canvasMounted, setCanvasMounted] = useState(false)
+  const [isSceneReady, setIsSceneReady] = useState(false)
+
   useEffect(() => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
@@ -81,6 +85,33 @@ export default function App() {
     return () => scroller.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    // Mount the heavy canvas 100ms after the initial paint so the loader displays immediately
+    const mountTimeout = setTimeout(() => {
+      setCanvasMounted(true)
+    }, 100)
+
+    // Safety timeout fallback: if WebGL or ThreeJS fails to load, force hide loader after 4.5 seconds
+    const fallbackTimeout = setTimeout(() => {
+      setIsLoading(false)
+    }, 4500)
+
+    return () => {
+      clearTimeout(mountTimeout)
+      clearTimeout(fallbackTimeout)
+    }
+  }, [])
+
+  // Fade out loader 300ms after ThreeJS has successfully rendered its first frame
+  useEffect(() => {
+    if (isSceneReady) {
+      const transitionTimeout = setTimeout(() => {
+        setIsLoading(false)
+      }, 300)
+      return () => clearTimeout(transitionTimeout)
+    }
+  }, [isSceneReady])
+
   const scrollToSection = useCallback((idx) => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
@@ -99,6 +130,25 @@ export default function App() {
 
   return (
     <div ref={wrapperRef} className="app-frame">
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            key="loader"
+            className="loader-container"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+          >
+            <span className="loader">
+              <span className="loader-dot"></span>
+              <span className="loader-dot"></span>
+              <span className="loader-dot"></span>
+              <span className="loader-dot"></span>
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100 }}>
         <div className="logo-text">
@@ -126,12 +176,15 @@ export default function App() {
 
       {/* Fixed 3D Canvas */}
       <div className="canvas-container">
-        <SceneCanvas
-          heroProgress={heroProgress}
-          portalFormProgress={portalFormProgress}
-          cameraProgress={cameraProgress}
-          blackProgress={blackProgress}
-        />
+        {canvasMounted && (
+          <SceneCanvas
+            heroProgress={heroProgress}
+            portalFormProgress={portalFormProgress}
+            cameraProgress={cameraProgress}
+            blackProgress={blackProgress}
+            onReady={() => setIsSceneReady(true)}
+          />
+        )}
       </div>
 
       {/* Fixed Left Information Panel */}
