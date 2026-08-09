@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
 import httpx
@@ -127,9 +128,31 @@ def login(user: LoginUser):
 def get_profile(
     current_user=Depends(get_current_user)
 ):
+    try:
+        result = (
+            supabase
+            .table("users")
+            .select("id, username, email, auth_provider")
+            .eq("id", current_user["user_id"])
+            .execute()
+        )
+    except PostgrestAPIError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {e.message}"
+        )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_user = result.data[0]
     return {
         "message": "Authenticated",
-        "user": current_user
+        "user": {
+            "user_id": db_user["id"],
+            "username": db_user.get("username", db_user["email"].split("@")[0]),
+            "email": db_user["email"],
+        }
     }
 
 
@@ -146,8 +169,7 @@ def github_login():
         "redirect_uri": callback,
         "scope": "read:user user:email"
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
-    return RedirectResponse(url=f"{GITHUB_AUTH_URL}?{query}")
+    return RedirectResponse(url=f"{GITHUB_AUTH_URL}?{urlencode(params)}")
 
 
 @router.get("/auth/github/callback")
@@ -263,7 +285,6 @@ async def github_callback(code: str | None = None, error: str | None = None):
     # Redirect the user back to the frontend with the JWT in the query string.
     # The React app picks this up on mount, stores it in localStorage, and
     # clears it from the URL so the token doesn't linger in history.
-    from urllib.parse import urlencode
     query = urlencode({
         "auth": "github",
         "token": jwt_token,

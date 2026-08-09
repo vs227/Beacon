@@ -124,6 +124,8 @@ def update_organization(organization_id: str, org_data: OrganizationUpdate, owne
     if org_data.name is not None and org_data.name != org.get("name"):
         update_payload["name"] = org_data.name
         update_payload["slug"] = generate_unique_slug(org_data.name, exclude_id=organization_id)
+    if org_data.description is not None and org_data.description != org.get("description"):
+        update_payload["description"] = org_data.description
 
     if not update_payload:
         return org
