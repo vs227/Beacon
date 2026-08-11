@@ -2,11 +2,138 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightColor = '#FFF5E0' }) {
+// ─── PLASTER TEXTURE GENERATOR ───────────────────────────────────────────────
+// Generates high-fidelity organic dark charcoal microcement plaster textures.
+// The rough plaster bump relief catches the spreading light beam naturally.
+function createPlasterTexturePair() {
+  const W = 1024, H = 1024
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')
+
+  // 1. Color Map: Dark Warm Charcoal Base (#1E1B19)
+  ctx.fillStyle = '#1E1B19'
+  ctx.fillRect(0, 0, W, H)
+
+  // Subtle plaster mass tonal variations (#252220, #2D2926, #35302C)
+  const tones = ['37,34,32', '45,41,38', '53,48,44']
+  for (let i = 0; i < 35; i++) {
+    const cx = Math.random() * W
+    const cy = Math.random() * H
+    const r = 180 + Math.random() * 280
+    const rgb = tones[Math.floor(Math.random() * tones.length)]
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    grd.addColorStop(0, `rgba(${rgb},0.35)`)
+    grd.addColorStop(0.6, `rgba(${rgb},0.12)`)
+    grd.addColorStop(1, 'rgba(30,27,25,0)')
+    ctx.fillStyle = grd
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+  }
+
+  // Directional hand-trowel sweeps (subtle albedo modulation)
+  ctx.save()
+  ctx.globalCompositeOperation = 'overlay'
+  ctx.globalAlpha = 0.18
+  for (let i = 0; i < 90; i++) {
+    const x0 = Math.random() * W
+    const y0 = Math.random() * H
+    const angle = (Math.random() - 0.5) * 0.35
+    const len = 160 + Math.random() * 280
+    const x1 = x0 + Math.cos(angle) * len
+    const y1 = y0 + Math.sin(angle) * len
+    const strokeWidth = 12 + Math.random() * 28
+
+    const val = 128 + Math.floor((Math.random() - 0.5) * 45)
+    ctx.strokeStyle = `rgb(${val},${val},${val})`
+    ctx.lineWidth = strokeWidth
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke()
+  }
+  ctx.restore()
+
+  // Fine micro-plaster stipple grain
+  ctx.save()
+  ctx.globalAlpha = 0.06
+  for (let i = 0; i < 45000; i++) {
+    const x = Math.random() * W, y = Math.random() * H
+    const g = 28 + Math.floor(Math.random() * 32)
+    ctx.fillStyle = `rgb(${g},${g - 2},${g - 4})`
+    ctx.fillRect(x, y, Math.random() * 1.5 + 0.4, Math.random() * 1.4 + 0.4)
+  }
+  ctx.restore()
+
+  const colorTex = new THREE.CanvasTexture(canvas)
+  colorTex.wrapS = colorTex.wrapT = THREE.RepeatWrapping
+  colorTex.repeat.set(1.0, 1.0)
+
+  // 2. Bump Map: High-contrast plaster height relief & trowel ridges
+  const bCanvas = document.createElement('canvas')
+  bCanvas.width = W; bCanvas.height = H
+  const bCtx = bCanvas.getContext('2d')
+  bCtx.fillStyle = '#808080'
+  bCtx.fillRect(0, 0, W, H)
+
+  // Plaster height mass variations
+  for (let i = 0; i < 180; i++) {
+    const cx = Math.random() * W
+    const cy = Math.random() * H
+    const r = Math.random() * 100 + 28
+    const isRaised = Math.random() > 0.42
+    const v = isRaised ? (150 + (Math.random() * 60 | 0)) : (50 + (Math.random() * 45 | 0))
+    const grd = bCtx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    grd.addColorStop(0, `rgba(${v},${v},${v},0.45)`)
+    grd.addColorStop(1, 'rgba(128,128,128,0)')
+    bCtx.fillStyle = grd
+    bCtx.beginPath(); bCtx.arc(cx, cy, r, 0, Math.PI * 2); bCtx.fill()
+  }
+
+  // Trowel drag mark ridges & valleys
+  for (let i = 0; i < 130; i++) {
+    const x0 = Math.random() * W
+    const y0 = Math.random() * H
+    const angle = (Math.random() - 0.5) * 0.40
+    const len = 140 + Math.random() * 300
+    const x1 = x0 + Math.cos(angle) * len
+    const y1 = y0 + Math.sin(angle) * len
+    const strokeWidth = 14 + Math.random() * 32
+    const offset = strokeWidth * 0.22
+
+    bCtx.save()
+    bCtx.globalAlpha = 0.40
+    bCtx.strokeStyle = 'rgb(55,55,55)'; bCtx.lineWidth = strokeWidth
+    bCtx.beginPath(); bCtx.moveTo(x0 - offset, y0 - offset); bCtx.lineTo(x1 - offset, y1 - offset); bCtx.stroke()
+    bCtx.strokeStyle = 'rgb(200,200,200)'; bCtx.lineWidth = strokeWidth
+    bCtx.beginPath(); bCtx.moveTo(x0 + offset, y0 + offset); bCtx.lineTo(x1 + offset, y1 + offset); bCtx.stroke()
+    bCtx.restore()
+  }
+
+  // Micro surface bump noise
+  for (let i = 0; i < 65000; i++) {
+    const x = Math.random() * W
+    const y = Math.random() * H
+    const v = 60 + (Math.random() * 135 | 0)
+    bCtx.fillStyle = `rgba(${v},${v},${v},0.18)`
+    bCtx.fillRect(x, y, Math.random() * 2.2 + 0.5, Math.random() * 2.2 + 0.5)
+  }
+
+  const bumpTex = new THREE.CanvasTexture(bCanvas)
+  bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping
+  bumpTex.repeat.set(1.0, 1.0)
+
+  return [colorTex, bumpTex]
+}
+
+export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightColor = '#F5F0EA' }) {
   const spotlightRef = useRef()
   const particlesRef = useRef()
 
-  // ─── DUST PARTICLES (inside spotlight cone) ──────────────────────────────────
+  // Target for the single spotlight
+  const spotlightTarget = useMemo(() => {
+    const obj = new THREE.Object3D()
+    obj.position.set(3.5, 0.4, -2.3)
+    return obj
+  }, [])
+
+  // ─── DUST PARTICLES ────────────────────────────────────────────────────────
   const particleCount = 900
   const [positions, velocities, noiseSeeds] = useMemo(() => {
     const pos = new Float32Array(particleCount * 3)
@@ -28,7 +155,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
     return [pos, vels, seeds]
   }, [])
 
-  // ─── FLOOR BUMP MAP ───────────────────────────────────────────────────────────
+  // ─── FLOOR BUMP MAP ─────────────────────────────────────────────────────────
   const floorBumpMap = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 512; canvas.height = 512
@@ -48,118 +175,11 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
     return tex
   }, [])
 
-  // ─── WALL TEXTURE: Hand-troweled microcement / architectural plaster ──────────
-  // Key: bake in large soft lighter patches that simulate grazing spotlight on
-  // textured plaster — those "cloudy" areas are NOT painted, they are the result
-  // of light interacting with the irregular troweled surface.
-  const [wallColorMap, wallBumpMap] = useMemo(() => {
-    const W = 1024, H = 1024
-    const canvas = document.createElement('canvas')
-    canvas.width = W; canvas.height = H
-    const ctx = canvas.getContext('2d')
+  // ─── WALL TEXTURES ─────────────────────────────────────────────────────────
+  const textureVer = useMemo(() => Date.now(), [])
+  const [wallColorMap, wallBumpMap] = useMemo(() => createPlasterTexturePair(), [textureVer])
 
-    // ── Base: warm dark charcoal plaster (#2A2725) ──────────────────────
-    ctx.fillStyle = '#2A2725'
-    ctx.fillRect(0, 0, W, H)
-
-    // ── Layer 1: Large soft highlighted plaster patches ─────────────────
-    // These are the "cloudy white" areas — light tones on a dark wall.
-    // Concentrated in the center (where spotlight spills) and sparse at edges.
-    const lightPatches = [
-      // Center-area highlight cluster (behind sculpture — most illuminated)
-      { x: 0.50, y: 0.45, r: 0.38, v: 105, a: 0.28 },
-      { x: 0.48, y: 0.55, r: 0.30, v: 118, a: 0.22 },
-      { x: 0.55, y: 0.38, r: 0.25, v: 95, a: 0.20 },
-      { x: 0.42, y: 0.60, r: 0.22, v: 108, a: 0.18 },
-      // Secondary patches — slightly off-center
-      { x: 0.35, y: 0.42, r: 0.20, v: 82, a: 0.14 },
-      { x: 0.62, y: 0.50, r: 0.18, v: 78, a: 0.12 },
-      { x: 0.58, y: 0.65, r: 0.15, v: 72, a: 0.10 },
-      { x: 0.30, y: 0.55, r: 0.14, v: 68, a: 0.09 },
-      // Edge patches — very faint (in shadow)
-      { x: 0.20, y: 0.40, r: 0.16, v: 48, a: 0.07 },
-      { x: 0.78, y: 0.45, r: 0.14, v: 42, a: 0.06 },
-      { x: 0.45, y: 0.20, r: 0.18, v: 40, a: 0.06 },
-      { x: 0.52, y: 0.78, r: 0.16, v: 38, a: 0.05 },
-    ]
-    lightPatches.forEach(({ x, y, r, v, a }) => {
-      const cx = x * W, cy = y * H, rad = r * W
-      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
-      // Warm highlight tones: #6A625C → #8A8078 at peak
-      grd.addColorStop(0.0, `rgba(${v},${v - 8},${v - 14},${a})`)
-      grd.addColorStop(0.4, `rgba(${v - 18},${v - 24},${v - 28},${a * 0.55})`)
-      grd.addColorStop(1.0, `rgba(42,39,37,0)`)
-      ctx.fillStyle = grd
-      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill()
-    })
-
-    // ── Layer 2: Irregular small tonal clouds (trowel mass variation) ───
-    for (let i = 0; i < 420; i++) {
-      const x = Math.random() * W, y = Math.random() * H
-      const r = Math.random() * 80 + 15
-      const grd = ctx.createRadialGradient(x, y, 0, x, y, r)
-      const dark = Math.random() > 0.35
-      const g = dark ? (6 + Math.random() * 10 | 0) : (44 + Math.random() * 28 | 0)
-      const a = Math.random() * 0.20 + 0.03
-      grd.addColorStop(0, `rgba(${g},${g - 2},${g - 3},${a})`)
-      grd.addColorStop(1, `rgba(42,39,37,0)`)
-      ctx.fillStyle = grd
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
-    }
-
-    // ── Layer 3: Trowel drag marks (directional strokes) ────────────────
-    for (let i = 0; i < 35; i++) {
-      const x0 = Math.random() * W, y0 = Math.random() * H
-      const angle = Math.random() * Math.PI
-      const len = Math.random() * 140 + 40
-      const x1 = x0 + Math.cos(angle) * len, y1 = y0 + Math.sin(angle) * len
-      const v = 50 + (Math.random() * 30 | 0)
-      const a = Math.random() * 0.10 + 0.03
-      ctx.strokeStyle = `rgba(${v},${v - 3},${v - 5},${a})`
-      ctx.lineWidth = Math.random() * 3 + 0.8
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke()
-    }
-
-    // ── Layer 4: Fine micro-plaster stipple ─────────────────────────────
-    for (let i = 0; i < 70000; i++) {
-      const x = Math.random() * W, y = Math.random() * H
-      const g = 22 + (Math.random() * 24 | 0)
-      ctx.fillStyle = `rgba(${g},${g - 2},${g - 3},0.06)`
-      ctx.fillRect(x, y, Math.random() * 0.9 + 0.3, Math.random() * 0.9 + 0.3)
-    }
-
-    const colorTex = new THREE.CanvasTexture(canvas)
-    colorTex.wrapS = colorTex.wrapT = THREE.RepeatWrapping
-    colorTex.repeat.set(1.0, 1.0)  // less repeat — patches scale naturally
-
-    // Bump map — strong bumpScale for grazing light micro-relief
-    const bCanvas = document.createElement('canvas')
-    bCanvas.width = W; bCanvas.height = H
-    const bCtx = bCanvas.getContext('2d')
-    bCtx.fillStyle = '#808080'; bCtx.fillRect(0, 0, W, H)
-    for (let i = 0; i < 180; i++) {
-      const x = Math.random() * W, y = Math.random() * H
-      const r = Math.random() * 80 + 20
-      const grd = bCtx.createRadialGradient(x, y, 0, x, y, r)
-      const v = 98 + (Math.random() * 52 | 0)
-      grd.addColorStop(0, `rgba(${v},${v},${v},0.30)`)
-      grd.addColorStop(1, 'rgba(128,128,128,0)')
-      bCtx.fillStyle = grd; bCtx.beginPath(); bCtx.arc(x, y, r, 0, Math.PI * 2); bCtx.fill()
-    }
-    for (let i = 0; i < 30000; i++) {
-      const x = Math.random() * W, y = Math.random() * H
-      const v = 92 + (Math.random() * 72 | 0)
-      bCtx.fillStyle = `rgba(${v},${v},${v},0.10)`
-      bCtx.fillRect(x, y, Math.random() * 2 + 0.5, Math.random() * 2 + 0.5)
-    }
-    const bumpTex = new THREE.CanvasTexture(bCanvas)
-    bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping
-    bumpTex.repeat.set(1.0, 1.0)
-
-    return [colorTex, bumpTex]
-  }, [])
-
-  // ─── CEILING TEXTURE (dark rough plaster) ────────────────────────────────────
+  // ─── CEILING TEXTURE ────────────────────────────────────────────────────────
   const ceilingTex = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 512; canvas.height = 512
@@ -182,13 +202,9 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
     return tex
   }, [])
 
-  // ─── FRAME UPDATE ─────────────────────────────────────────────────────────────
+  // ─── FRAME UPDATE ───────────────────────────────────────────────────────────
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
-    if (spotlightRef.current) {
-      spotlightRef.current.target.position.set(3.5, 0.0, -2.3)
-      spotlightRef.current.target.updateMatrixWorld()
-    }
     if (particlesRef.current) {
       const attr = particlesRef.current.geometry.attributes.position
       for (let i = 0; i < particleCount; i++) {
@@ -209,37 +225,46 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
 
   return (
     <group>
+      <primitive object={spotlightTarget} />
 
       {/* ─── ROOM WALLS ─────────────────────────────────────────── */}
-
-      {/* Back Wall — lower roughness + strong bumpScale for grazing light effect */}
+      {/* Back Wall — dark charcoal plaster with strong bump relief catching spreading light */}
       <mesh position={[0, 4, -4.8]} receiveShadow>
         <planeGeometry args={[18, 8]} />
         <meshStandardMaterial
+          key={`back-mat-${textureVer}`}
           map={wallColorMap}
           bumpMap={wallBumpMap}
-          bumpScale={0.055}
-          roughness={0.48}
-          metalness={0.04}
+          bumpScale={0.65}
+          roughness={0.88}
+          metalness={0.0}
         />
       </mesh>
 
-      {/* Left Wall — slightly more matte (receives less light) */}
+      {/* Left Wall */}
       <mesh position={[-4.8, 4, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[14, 8]} />
         <meshStandardMaterial
+          key={`left-mat-${textureVer}`}
           map={wallColorMap}
           bumpMap={wallBumpMap}
-          bumpScale={0.042}
-          roughness={0.55}
-          metalness={0.03}
+          bumpScale={0.60}
+          roughness={0.88}
+          metalness={0.0}
         />
       </mesh>
 
-      {/* Right Wall — mostly in shadow */}
+      {/* Right Wall */}
       <mesh position={[9.2, 4, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[14, 8]} />
-        <meshStandardMaterial color="#1A1816" roughness={0.96} metalness={0.0} />
+        <meshStandardMaterial
+          key={`right-mat-${textureVer}`}
+          map={wallColorMap}
+          bumpMap={wallBumpMap}
+          bumpScale={0.60}
+          roughness={0.88}
+          metalness={0.0}
+        />
       </mesh>
 
       {/* ─── FLOOR ──────────────────────────────────────────────── */}
@@ -248,21 +273,17 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
         <meshStandardMaterial color="#17150F" roughness={0.94} metalness={0.0} bumpMap={floorBumpMap} bumpScale={0.006} />
       </mesh>
 
-      {/* Perspective grid */}
       <gridHelper args={[18, 22, '#1a3030', '#1a3030']} position={[0, 0.002, 0]}>
         <lineBasicMaterial attach="material" transparent opacity={0.10} depthWrite={false} />
       </gridHelper>
 
       {/* ─── CEILING ────────────────────────────────────────────── */}
-      {/*
-        Full architectural ceiling at Y=8 (dark, mostly invisible but prevents sky bleed)
-      */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 8.0, 0]}>
         <planeGeometry args={[18, 14]} />
         <meshStandardMaterial color="#0F0E0C" roughness={0.98} metalness={0.0} />
       </mesh>
 
-      {/* Dropped ceiling soffit — extended to cover above the sculpture */}
+      {/* Dropped ceiling soffit */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[3.5, 5.0, -1.2]} receiveShadow>
         <planeGeometry args={[7, 6]} />
         <meshStandardMaterial map={ceilingTex} roughness={0.92} metalness={0.0} />
@@ -282,102 +303,81 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
         <meshStandardMaterial color="#111010" roughness={0.85} metalness={0.05} />
       </mesh>
 
-      {/* ─── SPOTLIGHT FIXTURE on the soffit ────────────────────── */}
-      {/*
-        Realistic track/recessed spotlight:
-        - Track rail (horizontal bar mounted on ceiling)
-        - Cylindrical housing (PAR can body)
-        - Inner reflector cone
-        - Glowing lens at bottom
-        - Bloom will add the real glow effect via post-processing
-      */}
-
-      {/* Track rail — runs along Z axis above the sculpture */}
+      {/* ─── SPOTLIGHT FIXTURE on soffit ─────────────────────────── */}
       <mesh position={[3.5, 4.96, -1.8]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.022, 0.022, 4.8, 8]} />
         <meshStandardMaterial color="#2C2A28" roughness={0.35} metalness={0.75} />
       </mesh>
 
-      {/* Track connector clip — directly above sculpture */}
       <mesh position={[3.5, 4.88, -2.3]}>
         <boxGeometry args={[0.08, 0.16, 0.08]} />
         <meshStandardMaterial color="#252321" roughness={0.4} metalness={0.7} />
       </mesh>
 
-      {/* Main spotlight housing body */}
       <mesh position={[3.5, 4.60, -2.3]}>
         <cylinderGeometry args={[0.22, 0.18, 0.56, 24]} />
         <meshStandardMaterial color="#1E1D1B" roughness={0.28} metalness={0.82} />
       </mesh>
 
-      {/* Housing top cap */}
       <mesh position={[3.5, 4.89, -2.3]}>
         <cylinderGeometry args={[0.22, 0.22, 0.04, 24]} />
         <meshStandardMaterial color="#252321" roughness={0.3} metalness={0.8} />
       </mesh>
 
-      {/* Inner reflector cone — brushed aluminum */}
       <mesh position={[3.5, 4.60, -2.3]}>
         <coneGeometry args={[0.17, 0.48, 24, 1, true]} />
         <meshStandardMaterial color="#B8A890" roughness={0.12} metalness={0.92} side={THREE.BackSide} />
       </mesh>
 
-      {/* Glowing lens disc — pure white so bloom captures it */}
+      {/* Glowing lens disc */}
       <mesh position={[3.5, 4.325, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.22, 32]} />
         <meshBasicMaterial color="#FFFFFF" toneMapped={false} />
       </mesh>
 
-      {/* Warm halo ring around lens */}
       <mesh position={[3.5, 4.32, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.22, 0.32, 32]} />
         <meshBasicMaterial color="#7A5A2A" toneMapped={false} transparent opacity={0.65} />
       </mesh>
 
-      {/* Tiny emissive point at lens — makes the bulb glow into nearby soffit */}
-      <pointLight position={[3.5, 4.32, -2.3]} intensity={18} color="#FFF3CC" distance={1.8} decay={2.5} />
+      <pointLight position={[3.5, 4.32, -2.3]} intensity={14} color="#FFF3CC" distance={1.8} decay={2.0} />
 
-
-      {/* PEDESTAL — Dark charcoal concrete, matte, minimal reflection */}
+      {/* PEDESTAL — Dark charcoal concrete */}
       <mesh position={[3.5, 0.38, -2.3]} castShadow receiveShadow>
         <boxGeometry args={[4.2, 0.76, 2.8]} />
         <meshStandardMaterial color="#1C1A18" roughness={0.92} metalness={0.01} />
       </mesh>
 
+      {/* ─── SINGLE SPOTLIGHT ILLUMINATING THE ROOM ALONE ─────────── */}
 
-      {/* ─── LIGHTING SYSTEM ─────────────────────────────────────── */}
-
-      {/* All auxiliary lights OFF */}
-      <ambientLight intensity={0.0} />
+      {/* Minimal ambient ground fill for realistic deep shadow detail */}
+      <hemisphereLight skyColor="#1A1816" groundColor="#050404" intensity={0.06} />
 
       {/*
-        PRIMARY SPOTLIGHT
-        - Position moved to match fixture body at [3.2, 4.32, -0.6]
-        - Wide 55° cone, penumbra=1.0 (fully feathered)
-        - Warm 5200K white
-        - decay=1.8 → bright center pool, natural fade to dark corners
+        THE SINGLE SPOTLIGHT
+        - Positioned inside the ceiling track fixture body at [3.5, 4.4, -1.8]
+        - Wide 68° beam angle spreading light across sculpture, floor, & plaster walls
+        - Soft 1.0 penumbra falloff
+        - Physical decay=1.4 so spreading light reveals wall plaster roughness clearly
       */}
       <spotLight
         ref={spotlightRef}
-        position={[3.5, 4.32, -2.3]}
-        angle={(55 * Math.PI) / 180}
+        position={[3.5, 4.4, -1.8]}
+        target={spotlightTarget}
+        angle={(68 * Math.PI) / 180}
         penumbra={1.0}
         intensity={spotlightIntensity}
         color={spotlightColor}
-        distance={24}
-        decay={1.5}
+        distance={28}
+        decay={1.4}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0003}
-        shadow-radius={4}
+        shadow-bias={-0.0002}
+        shadow-radius={3.5}
         shadow-camera-near={0.5}
-        shadow-camera-far={24}
-        shadow-camera-fov={60}
+        shadow-camera-far={28}
+        shadow-camera-fov={72}
       />
-
-      {/* Very dim warm floor bounce (indirect fill) */}
-      {/* No indirect fill — light comes from bulb only */}
-
 
       {/* ─── VOLUMETRIC DUST (inside spotlight cone) ─────────────── */}
       <points ref={particlesRef}>
@@ -385,33 +385,11 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.028} color="#FFE8C8" transparent opacity={0.18}
+          size={0.028} color="#FFE8C8" transparent opacity={0.16}
           sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending}
         />
       </points>
 
-      {/* ─── INDIRECT BOUNCE LIGHT ──────────────────────────────────────
-          Simulates indirect spill from the ceiling spotlight reflecting
-          off the floor and pedestal back toward the walls.
-          This creates the characteristic soft warm glow behind the sculpture
-          and the "cloudy patch" appearance on the back wall plaster.
-      */}
-      {/* Warm ceiling bounce — diffuse spill from fixture area onto back wall */}
-      <pointLight
-        position={[3.5, 6.0, -2.8]}
-        intensity={55}
-        color="#C8A870"
-        distance={12}
-        decay={1.8}
-      />
-      {/* Secondary floor bounce — warm reflected light rising from pedestal */}
-      <pointLight
-        position={[3.5, 1.0, -2.3]}
-        intensity={22}
-        color="#B8955A"
-        distance={7}
-        decay={2.2}
-      />
     </group>
   )
 }

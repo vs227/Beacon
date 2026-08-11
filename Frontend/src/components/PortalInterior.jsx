@@ -8,9 +8,9 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x))
 // Visible once portal is ≥ 60% formed (scrollProgress ≈ 0.37+)
 // Portal opening: X[-0.60..+0.60], Y[-1.08..+1.08] in local group space
 
-export default function PortalInterior({ portalFormProgress = 0 }) {
-  // Interior fades in once portal is ≥60% formed
-  const interiorFade = clamp01((portalFormProgress - 0.60) / 0.40)
+export default function PortalInterior() {
+  // Interior dark emerald void is active from initial page load
+  const interiorFade = 1.0
 
   const voidLayerRefs = useRef([])
   const ringRefs      = useRef([])

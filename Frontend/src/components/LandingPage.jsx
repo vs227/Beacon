@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { motion, AnimatePresence } from 'framer-motion'
 import SceneCanvas from './SceneCanvas'
 import AuthOverlay from './AuthOverlay'
 
-gsap.registerPlugin(ScrollToPlugin)
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 
 const SECTIONS_DATA = [
   {
@@ -17,22 +18,15 @@ const SECTIONS_DATA = [
     desc: 'Eliminate bottlenecked vector search at scale. We solve the challenge of high-latency semantic lookups across billions of nodes, delivering sub-millisecond retrieval speeds to serve as a real-time backbone for production RAG.',
   },
   {
-    id: 'portal',
-    tag: '01. Data Synthesis',
-    tagColor: '#52A88B',
-    title: 'Real-Time Enterprise Synchronization.',
-    desc: 'Bridge fragmented databases and document silos. We solve index staleness by continuously syncing structured tables and unstructured text in real-time, delivering unified, high-density context directly to your LLM query interface.',
-  },
-  {
     id: 'entry',
-    tag: '02. Ingestion Pipeline',
+    tag: '01. Ingestion Pipeline',
     tagColor: '#52A88B',
     title: 'Autonomous Chunking & Embedding.',
     desc: 'End manual data prep and bad chunking. We solve parsing errors and context loss by automating the entire ingestion pipeline, intelligently chunking and embedding multi-format files while preserving core semantic boundaries.',
   },
   {
     id: 'beyond',
-    tag: '03. Generation Engine',
+    tag: '02. Generation Engine',
     tagColor: '#C86F52',
     title: 'Hallucination-Free Synthesis.',
     desc: "Eradicate LLM hallucinations and data privacy risks. We solve the lack of auditable facts in production by validating every output against secure, citation-verified semantic records, guaranteeing 99.9% ground-truth accuracy.",
@@ -44,11 +38,13 @@ export default function LandingPage({ auth }) {
   const navigate = useNavigate()
   const wrapperRef = useRef(null)
   const scrollContainerRef = useRef(null)
+  const sec1Ref = useRef(null)
+  const sec2Ref = useRef(null)
+  const sec3Ref = useRef(null)
 
   const [activeSection, setActiveSection] = useState(0)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [heroProgress, setHeroProgress] = useState(0)
-  const [portalFormProgress, setPortalFormProgress] = useState(0)
   const [cameraProgress, setCameraProgress] = useState(0)
   const [blackProgress, setBlackProgress] = useState(0)
 
@@ -57,46 +53,78 @@ export default function LandingPage({ auth }) {
   const [isSceneReady, setIsSceneReady] = useState(false)
   const [loadPercent, setLoadPercent] = useState(0)
 
+  // ── GSAP ScrollTrigger Architecture (Separate Pinned Sections) ──
   useEffect(() => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
 
-    const handleScroll = () => {
-      const top = scroller.scrollTop
-      const vh = scroller.clientHeight || 1
+    const ctx = gsap.context(() => {
+      // Section 1: Stationary Portal + Static Camera
+      ScrollTrigger.create({
+        trigger: sec1Ref.current,
+        scroller: scroller,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        onUpdate: (self) => {
+          if (self.isActive || self.progress > 0) {
+            setHeroProgress(self.progress)
+          }
+          if (self.isActive) {
+            setActiveSection(0)
+            setCameraProgress(0)
+            setBlackProgress(0)
+          }
+        },
+      })
 
-      // Each section spans 0.9 * vh. Shift the text transitions by 0.6 * sectionSpan
-      // so the transition starts exactly when the auth overlay is fully gone (at 0.4 * sectionSpan)
-      const sectionSpan = vh * 0.9
-      const sectionIdx = Math.min(3, Math.floor((top + 0.6 * sectionSpan) / sectionSpan))
-      setActiveSection(sectionIdx)
+      // Section 2: Camera moves through portal into 100% black
+      ScrollTrigger.create({
+        trigger: sec2Ref.current,
+        scroller: scroller,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        onUpdate: (self) => {
+          if (self.isActive) {
+            setActiveSection(1)
+            setCameraProgress(self.progress)
+            setBlackProgress(self.progress >= 0.98 ? 1 : 0)
+          }
+        },
+      })
 
-      // Calculate smooth progress for each section
-      const hProg = Math.max(0, Math.min(1, top / sectionSpan))
-      const pProg = Math.max(0, Math.min(1, (top - sectionSpan) / sectionSpan))
-      const cProg = Math.max(0, Math.min(1, (top - 2 * sectionSpan) / sectionSpan))
-      const bProg = Math.max(0, Math.min(1, (top - 3 * sectionSpan) / sectionSpan))
+      // Section 3: Completely Black / Next Content
+      ScrollTrigger.create({
+        trigger: sec3Ref.current,
+        scroller: scroller,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        onUpdate: (self) => {
+          if (self.isActive) {
+            setActiveSection(2)
+            setCameraProgress(1)
+            setBlackProgress(1)
+          }
+        },
+      })
+    }, scrollContainerRef)
 
-      setHeroProgress(hProg)
-      setPortalFormProgress(pProg)
-      setCameraProgress(cProg)
-      setBlackProgress(bProg)
-    }
-
-    scroller.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-    return () => scroller.removeEventListener('scroll', handleScroll)
+    return () => ctx.revert()
   }, [])
 
   const scrollToSection = useCallback((idx) => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
-    const vh = scroller.clientHeight || 1
-    const targetY = idx * (vh * 0.9)
+
+    const targets = [sec1Ref.current, sec2Ref.current, sec3Ref.current]
+    const targetEl = targets[idx]
+    if (!targetEl) return
 
     setActiveSection(idx)
     gsap.to(scroller, {
-      scrollTo: { y: targetY, autoKill: false },
+      scrollTo: { y: targetEl.offsetTop, autoKill: false },
       duration: 1.2,
       ease: 'power2.inOut',
     })
@@ -107,19 +135,18 @@ export default function LandingPage({ auth }) {
   useEffect(() => {
     if (auth.justLoggedIn) {
       scrollToSection(0)
-      // Dismiss the flag so future auth state changes don't jump the user
       const t = setTimeout(() => auth.dismissJustLoggedIn(), 1200)
       return () => clearTimeout(t)
     }
   }, [auth, scrollToSection])
 
   useEffect(() => {
-    // Mount the heavy canvas 100ms after the initial paint so the loader displays immediately
+    // Mount the heavy canvas 100ms after initial paint
     const mountTimeout = setTimeout(() => {
       setCanvasMounted(true)
     }, 100)
 
-    // Safety timeout fallback: if WebGL or ThreeJS fails to load, fill to 100 and hide at 4.5s
+    // Safety timeout fallback
     const fallbackTimeout = setTimeout(() => {
       let fb = 0
       setLoadPercent(prev => { fb = prev; return prev })
@@ -131,7 +158,7 @@ export default function LandingPage({ auth }) {
       setTimeout(fillFallback, 30)
     }, 4500)
 
-    // Drive a fake percentage counter 0→95 over ~3.5s, then real completion jumps it to 100
+    // Fake percentage counter
     let pct = 0
     const pctInterval = setInterval(() => {
       pct += Math.random() * 4 + 1
@@ -146,24 +173,20 @@ export default function LandingPage({ auth }) {
     }
   }, [])
 
-  // When Three.js is ready: smoothly fill the bar to 100%, pause 600ms, then fade out
   useEffect(() => {
     if (!isSceneReady) return
     let current = 0
-    // Capture current percent using a ref trick via callback form of setState
     setLoadPercent(prev => { current = prev; return prev })
 
-    // Tiny delay to read the current value then start animating
     const startFill = setTimeout(() => {
       const step = () => {
         current += 2
         if (current >= 100) {
           setLoadPercent(100)
-          // Pause 600ms at 100% so user clearly sees completion
           setTimeout(() => setIsLoading(false), 600)
         } else {
           setLoadPercent(current)
-          setTimeout(step, 20) // ~50fps fill animation
+          setTimeout(step, 20)
         }
       }
       step()
@@ -172,7 +195,7 @@ export default function LandingPage({ auth }) {
     return () => clearTimeout(startFill)
   }, [isSceneReady])
 
-  const section = SECTIONS_DATA[activeSection]
+  const section = SECTIONS_DATA[activeSection] || SECTIONS_DATA[0]
 
   return (
     <div ref={wrapperRef} className="app-frame">
@@ -200,13 +223,14 @@ export default function LandingPage({ auth }) {
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="logo-text" onClick={() => auth?.isLoggedIn && navigate('/dashboard/organizations')} style={{ cursor: auth?.isLoggedIn ? 'pointer' : 'default' }}>
           <span>Beacon</span>
         </div>
         <ul className="nav-links">
-          {['Genesis', 'Portal', 'Entry', 'Beyond'].map((label, i) => (
+          {['Genesis', 'Entry', 'Beyond'].map((label, i) => (
             <li key={i}>
               <button
                 onClick={() => scrollToSection(i)}
@@ -320,8 +344,6 @@ export default function LandingPage({ auth }) {
       <div className="canvas-container">
         {canvasMounted && (
           <SceneCanvas
-            heroProgress={heroProgress}
-            portalFormProgress={portalFormProgress}
             cameraProgress={cameraProgress}
             blackProgress={blackProgress}
             onReady={() => setIsSceneReady(true)}
@@ -390,9 +412,16 @@ export default function LandingPage({ auth }) {
       {/* Developer Auth Overlay (visible on landing section) */}
       <AuthOverlay heroProgress={heroProgress} auth={auth} />
 
-      {/* Scrollable Container */}
+      {/* Scrollable Container with Separate Pinned Sections */}
       <div ref={scrollContainerRef} className="scroll-container">
-        <div style={{ height: '360vh', pointerEvents: 'none' }} />
+        {/* Section 1: Portal + static camera */}
+        <div ref={sec1Ref} className="scroll-section-trigger" style={{ height: '100vh', pointerEvents: 'none' }} />
+
+        {/* Section 2: Camera moves through portal */}
+        <div ref={sec2Ref} className="scroll-section-trigger" style={{ height: '180vh', pointerEvents: 'none' }} />
+
+        {/* Section 3: Completely black / next content */}
+        <div ref={sec3Ref} className="scroll-section-trigger" style={{ height: '120vh', pointerEvents: 'none' }} />
       </div>
     </div>
   )

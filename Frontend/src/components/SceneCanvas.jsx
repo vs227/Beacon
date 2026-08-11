@@ -1,7 +1,6 @@
 import { Suspense, useRef } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { ContactShadows } from '@react-three/drei'
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import MuseumEnvironment from './MuseumEnvironment'
 import ArtifactSculpture from './ArtifactSculpture'
@@ -11,23 +10,22 @@ const easeInOutCubic = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2,
 const clamp01 = (x) => Math.max(0, Math.min(1, x))
 
 // ─── Camera Controller ────────────────────────────────────────────────────
-// Driven entirely by cameraProgress (Section 3, 0→1).
-// During Section 1 & 2: camera is COMPLETELY STILL at hero position.
-// During Section 3: smooth cinematic dolly toward and through portal.
+// Section 1: Stationary camera at hero position looking at portal center.
+// Section 2: Smooth cinematic dolly straight forward through portal opening into void.
+// Section 3: Stopped inside portal void, screen 100% black.
 
-function CameraController({ heroProgress, cameraProgress, onReady }) {
+function CameraController({ cameraProgress = 0, onReady }) {
   const { camera } = useThree()
   const lookAtRef = useRef(new THREE.Vector3(3.5, 1.55, -2.3))
   const smoothCam = useRef(0)
-  const smoothHero = useRef(0)
   const hasCalledReady = useRef(false)
 
-  // Camera positions
-  const P_HERO = new THREE.Vector3(-1.5, 0.85, 6.20)  // fixed during S1+S2
-  const P_NEAR = new THREE.Vector3(3.5, 1.55, -0.20)  // at portal entrance
-  const P_INSIDE = new THREE.Vector3(3.5, 1.55, -4.50)  // fully through
-  const L_PORTAL = new THREE.Vector3(3.5, 1.55, -2.30)  // portal world center
-  const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)  // looking into void
+  // Camera keyframe positions
+  const P_HERO = new THREE.Vector3(-1.5, 0.85, 6.20)   // Section 1 hero view
+  const P_NEAR = new THREE.Vector3(3.5, 1.55, -0.20)   // Approach portal entrance
+  const P_INSIDE = new THREE.Vector3(3.5, 1.55, -4.50) // Pass completely through
+  const L_PORTAL = new THREE.Vector3(3.5, 1.55, -2.30) // Portal center target
+  const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)   // Void target
 
   useFrame((state) => {
     if (onReady && !hasCalledReady.current) {
@@ -36,14 +34,12 @@ function CameraController({ heroProgress, cameraProgress, onReady }) {
     }
     const mouse = state.mouse
 
-    // Smooth the Section 3 progress for camera
+    // Smooth cameraProgress (Section 2: 0 → 1)
     smoothCam.current = THREE.MathUtils.lerp(smoothCam.current, cameraProgress, 0.055)
-    smoothHero.current = THREE.MathUtils.lerp(smoothHero.current, heroProgress, 0.08)
-
     const cp = smoothCam.current
 
     if (cp < 0.001) {
-      // ── S1 + S2: Camera completely still, subtle mouse parallax ─────
+      // ── Section 1 — Hero: Camera completely stationary with subtle mouse parallax ──
       camera.position.set(
         P_HERO.x + mouse.x * 0.28,
         P_HERO.y + mouse.y * 0.18,
@@ -51,13 +47,13 @@ function CameraController({ heroProgress, cameraProgress, onReady }) {
       )
       lookAtRef.current.lerp(L_PORTAL, 0.06)
     } else if (cp <= 0.80) {
-      // ── S3 Phase A: Cinematic dolly toward portal (0%→80%) ──────────
+      // ── Section 2 Phase A: Slow cinematic dolly toward portal (0 → 80%) ──
       const t = clamp01(cp / 0.80)
       const et = easeInOutCubic(t)
       camera.position.lerpVectors(P_HERO, P_NEAR, et)
       lookAtRef.current.lerp(L_PORTAL, 0.06)
     } else {
-      // ── S3 Phase B: Pass through portal opening (80%→100%) ──────────
+      // ── Section 2 Phase B: Pass through portal opening into void (80% → 100%) ──
       const t = clamp01((cp - 0.80) / 0.20)
       const et = easeInOutCubic(t)
       camera.position.lerpVectors(P_NEAR, P_INSIDE, et)
@@ -72,9 +68,9 @@ function CameraController({ heroProgress, cameraProgress, onReady }) {
 }
 
 // ─── Scene Contents ───────────────────────────────────────────────────────
-function SceneContents({ heroProgress, portalFormProgress, cameraProgress, onReady, hideSculpture = false }) {
-  // Emerald point light — appears once portal is ≥ 70% formed
-  const emeraldIntensity = clamp01((portalFormProgress - 0.70) / 0.30) * 20
+function SceneContents({ cameraProgress = 0, onReady }) {
+  // Constant subtle emerald point light from inside portal void
+  const emeraldIntensity = 18.0
 
   return (
     <>
@@ -89,73 +85,44 @@ function SceneContents({ heroProgress, portalFormProgress, cameraProgress, onRea
           opacity={0.80} width={8} height={8} blur={2.2} far={2.8}
         />
 
-        {/* Sculpture + Portal share the same world group position */}
+        {/* Portal structure + interior */}
         <group
           position={[3.5, 1.55, -2.3]}
           rotation={[(-5 * Math.PI) / 180, (18 * Math.PI) / 180, 0]}
         >
-          {/*
-            ArtifactSculpture driven by TWO props:
-            - heroProgress (0→1):       section 1 — slow rotation speed
-            - portalFormProgress (0→1): section 2 — blocks slide to portal frame
-          */}
-          {!hideSculpture && (
-            <ArtifactSculpture
-              heroProgress={heroProgress}
-              portalFormProgress={portalFormProgress}
-              metalness={0.14}
-              roughness={0.50}
-            />
-          )}
-
-          {/*
-            PortalInterior driven by portalFormProgress only.
-            Visible once frame is ≥ 60% assembled, frozen thereafter.
-          */}
-          <PortalInterior portalFormProgress={portalFormProgress} />
+          <ArtifactSculpture metalness={0.14} roughness={0.50} />
+          <PortalInterior />
         </group>
 
         {/* Soft emerald point light from portal void */}
-        {emeraldIntensity > 0.01 && (
-          <pointLight
-            position={[3.5, 1.55, -2.3]}
-            intensity={emeraldIntensity}
-            color="#1E6F5C"
-            distance={5}
-            decay={2.0}
-          />
-        )}
+        <pointLight
+          position={[3.5, 1.55, -2.3]}
+          intensity={emeraldIntensity}
+          color="#1E6F5C"
+          distance={5}
+          decay={2.0}
+        />
 
         <CameraController
-          heroProgress={heroProgress}
           cameraProgress={cameraProgress}
           onReady={onReady}
         />
       </Suspense>
-
-      <EffectComposer frameBufferType={THREE.HalfFloatType} multisampling={8}>
-        <Bloom luminanceThreshold={0.38} luminanceSmoothing={0.92} intensity={0.85} mipmapBlur />
-        <Vignette eskil={false} offset={0.12} darkness={1.20} />
-      </EffectComposer>
     </>
   )
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────
 export default function SceneCanvas({
-  heroProgress = 0,
-  portalFormProgress = 0,
   cameraProgress = 0,
   blackProgress = 0,
-  hideSculpture = false,
   onReady,
 }) {
-  // Black overlay driven purely by Section 4 progress (0→1)
-  // Starts fading at camera 85% through (cameraProgress > 0.85)
-  // completes with blackProgress
-  const overlayFromCamera = clamp01((cameraProgress - 0.85) / 0.15)
-  const overlayFromBlack = blackProgress
-  const blackOpacity = Math.max(overlayFromCamera, overlayFromBlack)
+  // Black transition overlay:
+  // Starts fading as camera passes through portal (cameraProgress 0.80 → 1.0)
+  // Reaches 100% solid black at End of Section 2 and remains 100% black in Section 3 (blackProgress)
+  const overlayFromCamera = clamp01((cameraProgress - 0.80) / 0.20)
+  const blackOpacity = Math.max(overlayFromCamera, blackProgress)
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -170,20 +137,12 @@ export default function SceneCanvas({
         dpr={Math.max(window.devicePixelRatio || 1, 2)}
       >
         <SceneContents
-          heroProgress={heroProgress}
-          portalFormProgress={portalFormProgress}
           cameraProgress={cameraProgress}
-          hideSculpture={hideSculpture}
           onReady={onReady}
         />
       </Canvas>
 
-      {/*
-        Black transition overlay.
-        Begins fading as camera passes through portal (cameraProgress 0.85→1.0).
-        Reaches solid black during Section 4 (blackProgress 0→1).
-        Hides all scene geometry during and after pass-through.
-      */}
+      {/* Solid black transition overlay — complete black when inside portal */}
       {blackOpacity > 0.001 && (
         <div
           style={{
