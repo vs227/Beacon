@@ -36,7 +36,6 @@ const SECTIONS_DATA = [
 
 export default function LandingPage({ auth }) {
   const navigate = useNavigate()
-  const wrapperRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const sec1Ref = useRef(null)
   const sec2Ref = useRef(null)
@@ -130,8 +129,7 @@ export default function LandingPage({ auth }) {
     })
   }, [])
 
-  // After login (email/password OR GitHub OAuth redirect) →
-  // ensure we're on the home / hero section (Genesis).
+  // After login -> ensure on Genesis section
   useEffect(() => {
     if (auth.justLoggedIn) {
       scrollToSection(0)
@@ -141,64 +139,31 @@ export default function LandingPage({ auth }) {
   }, [auth, scrollToSection])
 
   useEffect(() => {
-    // Mount the heavy canvas 100ms after initial paint
-    const mountTimeout = setTimeout(() => {
-      setCanvasMounted(true)
-    }, 100)
-
-    // Safety timeout fallback
-    const fallbackTimeout = setTimeout(() => {
-      let fb = 0
-      setLoadPercent(prev => { fb = prev; return prev })
-      const fillFallback = () => {
-        fb += 2
-        if (fb >= 100) { setLoadPercent(100); setTimeout(() => setIsLoading(false), 600) }
-        else { setLoadPercent(fb); setTimeout(fillFallback, 20) }
-      }
-      setTimeout(fillFallback, 30)
-    }, 4500)
-
-    // Fake percentage counter
+    const mountTimeout = setTimeout(() => setCanvasMounted(true), 100)
     let pct = 0
     const pctInterval = setInterval(() => {
-      pct += Math.random() * 4 + 1
+      pct += Math.random() * 5 + 2
       if (pct >= 95) { pct = 95; clearInterval(pctInterval) }
       setLoadPercent(Math.round(pct))
-    }, 120)
+    }, 100)
 
     return () => {
       clearTimeout(mountTimeout)
-      clearTimeout(fallbackTimeout)
       clearInterval(pctInterval)
     }
   }, [])
 
   useEffect(() => {
     if (!isSceneReady) return
-    let current = 0
-    setLoadPercent(prev => { current = prev; return prev })
-
-    const startFill = setTimeout(() => {
-      const step = () => {
-        current += 2
-        if (current >= 100) {
-          setLoadPercent(100)
-          setTimeout(() => setIsLoading(false), 600)
-        } else {
-          setLoadPercent(current)
-          setTimeout(step, 20)
-        }
-      }
-      step()
-    }, 30)
-
-    return () => clearTimeout(startFill)
+    setLoadPercent(100)
+    const finishTimeout = setTimeout(() => setIsLoading(false), 500)
+    return () => clearTimeout(finishTimeout)
   }, [isSceneReady])
 
   const section = SECTIONS_DATA[activeSection] || SECTIONS_DATA[0]
 
   return (
-    <div ref={wrapperRef} className="app-frame">
+    <div className="app-frame">
       <AnimatePresence>
         {isLoading && (
           <motion.div
@@ -214,7 +179,7 @@ export default function LandingPage({ auth }) {
                 {Array.from({ length: 16 }).map((_, i) => (
                   <span
                     key={i}
-                    className={`loader-dot${i < Math.round(loadPercent / 100 * 16) ? ' filled' : ''}`}
+                    className={`loader-dot${i < Math.round((loadPercent / 100) * 16) ? ' filled' : ''}`}
                   />
                 ))}
               </span>

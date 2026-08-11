@@ -1,16 +1,30 @@
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useMemo } from 'react'
 import * as THREE from 'three'
 
-const easeInOutCubic = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
-const clamp01 = (x) => Math.max(0, Math.min(1, x))
+// Static portal frame stone slabs forming stationary rectangular gateway
+// Frame inner opening: X[-0.60..+0.60], Y[-1.08..+1.08] (1.20w × 2.16h)
+const PORTAL_BLOCKS = [
+  { id: 0, pos: new THREE.Vector3(-0.77, -0.81, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 1, pos: new THREE.Vector3(-0.77, -0.27, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 2, pos: new THREE.Vector3(0.77, -0.81, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 3, pos: new THREE.Vector3(-0.22, 1.17, 0), scale: new THREE.Vector3(1.00, 0.22, 0.38) },
+  { id: 4, pos: new THREE.Vector3(-0.77, 0.27, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 5, pos: new THREE.Vector3(0.77, -0.27, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 6, pos: new THREE.Vector3(0.77, 0.27, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 7, pos: new THREE.Vector3(-0.77, 0.81, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 8, pos: new THREE.Vector3(0.77, 0.81, 0), scale: new THREE.Vector3(0.34, 0.54, 0.38) },
+  { id: 9, pos: new THREE.Vector3(0.60, 1.17, 0), scale: new THREE.Vector3(0.44, 0.22, 0.38) },
+  { id: 10, pos: new THREE.Vector3(0.00, 1.39, 0), scale: new THREE.Vector3(1.88, 0.20, 0.38) },
+  { id: 11, pos: new THREE.Vector3(-0.22, -1.17, 0), scale: new THREE.Vector3(1.20, 0.18, 0.38) },
+  { id: 12, pos: new THREE.Vector3(0.55, -1.17, 0), scale: new THREE.Vector3(0.44, 0.18, 0.38) },
+]
+
+const BOX_GEOMETRY = new THREE.BoxGeometry(1, 1, 1)
 
 export default function ArtifactSculpture({
   metalness = 0.14,
   roughness = 0.50,
 }) {
-  const groupRef = useRef()
-
   // ─── BASALT MATERIAL ─────────────────────────────────────────────────────
   const [colorMap, bumpMap] = useMemo(() => {
     const W = 512, H = 512
@@ -66,46 +80,18 @@ export default function ArtifactSculpture({
     emissive: new THREE.Color('#000000'),
   }), [metalness, roughness, colorMap, bumpMap])
 
-  // ─── FULLY FORMED RECTANGULAR STONE PORTAL (13 SLABS) ────────────────────
-  const blocks = useMemo(() => {
-    // Portal frame stone slabs forming stationary rectangular gateway
-    // Frame inner opening: X[-0.60..+0.60], Y[-1.08..+1.08] (1.20w × 2.16h)
-    const PORTAL = [
-      { p: [-0.77, -0.81, 0], s: [0.34, 0.54, 0.38] }, // [0]  left col, bottom
-      { p: [-0.77, -0.27, 0], s: [0.34, 0.54, 0.38] }, // [1]  left col, lower-mid
-      { p: [0.77, -0.81, 0], s: [0.34, 0.54, 0.38] },  // [2]  right col, bottom
-      { p: [-0.22, 1.17, 0], s: [1.00, 0.22, 0.38] },  // [3]  top bar, left
-      { p: [-0.77, 0.27, 0], s: [0.34, 0.54, 0.38] },  // [4]  left col, upper-mid
-      { p: [0.77, -0.27, 0], s: [0.34, 0.54, 0.38] },  // [5]  right col, lower-mid
-      { p: [0.77, 0.27, 0], s: [0.34, 0.54, 0.38] },   // [6]  right col, upper-mid
-      { p: [-0.77, 0.81, 0], s: [0.34, 0.54, 0.38] },  // [7]  left col, top
-      { p: [0.77, 0.81, 0], s: [0.34, 0.54, 0.38] },   // [8]  right col, top
-      { p: [0.60, 1.17, 0], s: [0.44, 0.22, 0.38] },   // [9]  top bar, right
-      { p: [0.00, 1.39, 0], s: [1.88, 0.20, 0.38] },   // [10] crown bar
-      { p: [-0.22, -1.17, 0], s: [1.20, 0.18, 0.38] }, // [11] bottom bar, left
-      { p: [0.55, -1.17, 0], s: [0.44, 0.18, 0.38] },  // [12] bottom bar, right
-    ]
-
-    return PORTAL.map((b, i) => ({
-      id: i,
-      pos: new THREE.Vector3(...b.p),
-      scale: new THREE.Vector3(...b.s),
-    }))
-  }, [])
-
   return (
-    <group ref={groupRef}>
-      {blocks.map((b) => (
+    <group>
+      {PORTAL_BLOCKS.map((b) => (
         <mesh
           key={b.id}
           position={b.pos}
           scale={b.scale}
+          geometry={BOX_GEOMETRY}
           material={stoneMat}
           castShadow
           receiveShadow
-        >
-          <boxGeometry args={[1, 1, 1]} />
-        </mesh>
+        />
       ))}
     </group>
   )

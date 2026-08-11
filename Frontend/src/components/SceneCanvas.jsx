@@ -9,23 +9,19 @@ import PortalInterior from './PortalInterior'
 const easeInOutCubic = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
 const clamp01 = (x) => Math.max(0, Math.min(1, x))
 
-// ─── Camera Controller ────────────────────────────────────────────────────
-// Section 1: Stationary camera at hero position looking at portal center.
-// Section 2: Smooth cinematic dolly straight forward through portal opening into void.
-// Section 3: Stopped inside portal void, screen 100% black.
+// Camera keyframe positions
+const P_HERO = new THREE.Vector3(-1.5, 0.85, 6.20)   // Section 1 hero view
+const P_NEAR = new THREE.Vector3(3.5, 1.55, -0.20)   // Approach portal entrance
+const P_INSIDE = new THREE.Vector3(3.5, 1.55, -4.50) // Pass completely through
+const L_PORTAL = new THREE.Vector3(3.5, 1.55, -2.30) // Portal center target
+const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)   // Void target
 
+// ─── Camera Controller ────────────────────────────────────────────────────
 function CameraController({ cameraProgress = 0, onReady }) {
   const { camera } = useThree()
   const lookAtRef = useRef(new THREE.Vector3(3.5, 1.55, -2.3))
   const smoothCam = useRef(0)
   const hasCalledReady = useRef(false)
-
-  // Camera keyframe positions
-  const P_HERO = new THREE.Vector3(-1.5, 0.85, 6.20)   // Section 1 hero view
-  const P_NEAR = new THREE.Vector3(3.5, 1.55, -0.20)   // Approach portal entrance
-  const P_INSIDE = new THREE.Vector3(3.5, 1.55, -4.50) // Pass completely through
-  const L_PORTAL = new THREE.Vector3(3.5, 1.55, -2.30) // Portal center target
-  const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)   // Void target
 
   useFrame((state) => {
     if (onReady && !hasCalledReady.current) {
@@ -69,9 +65,6 @@ function CameraController({ cameraProgress = 0, onReady }) {
 
 // ─── Scene Contents ───────────────────────────────────────────────────────
 function SceneContents({ cameraProgress = 0, onReady }) {
-  // Constant subtle emerald point light from inside portal void
-  const emeraldIntensity = 18.0
-
   return (
     <>
       <color attach="background" args={['#0F0E0C']} />
@@ -97,7 +90,7 @@ function SceneContents({ cameraProgress = 0, onReady }) {
         {/* Soft emerald point light from portal void */}
         <pointLight
           position={[3.5, 1.55, -2.3]}
-          intensity={emeraldIntensity}
+          intensity={18.0}
           color="#1E6F5C"
           distance={5}
           decay={2.0}
@@ -118,9 +111,6 @@ export default function SceneCanvas({
   blackProgress = 0,
   onReady,
 }) {
-  // Black transition overlay:
-  // Starts fading as camera passes through portal (cameraProgress 0.80 → 1.0)
-  // Reaches 100% solid black at End of Section 2 and remains 100% black in Section 3 (blackProgress)
   const overlayFromCamera = clamp01((cameraProgress - 0.80) / 0.20)
   const blackOpacity = Math.max(overlayFromCamera, blackProgress)
 
@@ -142,7 +132,7 @@ export default function SceneCanvas({
         />
       </Canvas>
 
-      {/* Solid black transition overlay — complete black when inside portal */}
+      {/* Solid black transition overlay */}
       {blackOpacity > 0.001 && (
         <div
           style={{
