@@ -1,0 +1,386 @@
+﻿diff --git a/Frontend/src/components/MuseumEnvironment.jsx b/Frontend/src/components/MuseumEnvironment.jsx
+index ce6aa9a..4b44535 100644
+--- a/Frontend/src/components/MuseumEnvironment.jsx
++++ b/Frontend/src/components/MuseumEnvironment.jsx
+@@ -48,110 +48,264 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
+     return tex
+   }, [])
+ 
+-  // ─── WALL TEXTURE: Hand-troweled microcement / architectural plaster ──────────
+-  // Key: bake in large soft lighter patches that simulate grazing spotlight on
+-  // textured plaster — those "cloudy" areas are NOT painted, they are the result
+-  // of light interacting with the irregular troweled surface.
++  // ─── WALL TEXTURE: Aged dark charcoal plaster / microcement ──────────
++  // Natural weathering only: dark charcoal base, faded chalky gray zones,
++  // subtle brown-gray discoloration, shallow cracks, and worn plaster texture.
+   const [wallColorMap, wallBumpMap] = useMemo(() => {
+     const W = 1024, H = 1024
+     const canvas = document.createElement('canvas')
+     canvas.width = W; canvas.height = H
+     const ctx = canvas.getContext('2d')
+ 
+-    // ── Base: warm dark charcoal plaster (#2A2725) ──────────────────────
+-    ctx.fillStyle = '#2A2725'
++    // ── Base: dark neutral charcoal plaster (#1F1D1A) ──────
++    ctx.fillStyle = '#201E1B'
+     ctx.fillRect(0, 0, W, H)
+ 
+-    // ── Layer 1: Large soft highlighted plaster patches ─────────────────
+-    // These are the "cloudy white" areas — light tones on a dark wall.
+-    // Concentrated in the center (where spotlight spills) and sparse at edges.
+-    const lightPatches = [
+-      // Center-area highlight cluster (behind sculpture — most illuminated)
+-      { x: 0.50, y: 0.45, r: 0.38, v: 105, a: 0.28 },
+-      { x: 0.48, y: 0.55, r: 0.30, v: 118, a: 0.22 },
+-      { x: 0.55, y: 0.38, r: 0.25, v: 95, a: 0.20 },
+-      { x: 0.42, y: 0.60, r: 0.22, v: 108, a: 0.18 },
+-      // Secondary patches — slightly off-center
+-      { x: 0.35, y: 0.42, r: 0.20, v: 82, a: 0.14 },
+-      { x: 0.62, y: 0.50, r: 0.18, v: 78, a: 0.12 },
+-      { x: 0.58, y: 0.65, r: 0.15, v: 72, a: 0.10 },
+-      { x: 0.30, y: 0.55, r: 0.14, v: 68, a: 0.09 },
+-      // Edge patches — very faint (in shadow)
+-      { x: 0.20, y: 0.40, r: 0.16, v: 48, a: 0.07 },
+-      { x: 0.78, y: 0.45, r: 0.14, v: 42, a: 0.06 },
+-      { x: 0.45, y: 0.20, r: 0.18, v: 40, a: 0.06 },
+-      { x: 0.52, y: 0.78, r: 0.16, v: 38, a: 0.05 },
++    // ── Large irregular pale chalky plaster fields ─────────
++    const fadedFields = [
++      { x: 0.36, y: 0.44, r: 0.38, c: [96, 90, 84], a: 0.22 },
++      { x: 0.60, y: 0.50, r: 0.28, c: [108, 102, 96], a: 0.18 },
++      { x: 0.72, y: 0.32, r: 0.24, c: [118, 110, 104], a: 0.16 },
++      { x: 0.28, y: 0.62, r: 0.26, c: [104, 98, 92], a: 0.16 },
+     ]
+-    lightPatches.forEach(({ x, y, r, v, a }) => {
++    fadedFields.forEach(({ x, y, r, c, a }) => {
+       const cx = x * W, cy = y * H, rad = r * W
+       const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
+-      // Warm highlight tones: #6A625C → #8A8078 at peak
+-      grd.addColorStop(0.0, `rgba(${v},${v - 8},${v - 14},${a})`)
+-      grd.addColorStop(0.4, `rgba(${v - 18},${v - 24},${v - 28},${a * 0.55})`)
+-      grd.addColorStop(1.0, `rgba(42,39,37,0)`)
++      grd.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${a})`)
++      grd.addColorStop(0.42, `rgba(${Math.max(c[0] - 26, 0)},${Math.max(c[1] - 30, 0)},${Math.max(c[2] - 34, 0)},${a * 0.48})`)
++      grd.addColorStop(1, 'rgba(32,30,28,0)')
+       ctx.fillStyle = grd
+       ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill()
++
++      for (let s = 0; s < 5; s++) {
++        ctx.strokeStyle = `rgba(${c[0] - 20},${c[1] - 24},${c[2] - 28},${a * 0.18})`
++        ctx.lineWidth = 1 + Math.random() * 1.6
++        ctx.beginPath()
++        const angle = Math.random() * Math.PI * 2
++        const sx = cx + Math.cos(angle) * rad * (0.6 + Math.random() * 0.12)
++        const sy = cy + Math.sin(angle) * rad * (0.6 + Math.random() * 0.12)
++        ctx.moveTo(sx, sy)
++        ctx.lineTo(sx + (Math.random() - 0.5) * 32, sy + (Math.random() - 0.5) * 18)
++        ctx.stroke()
++      }
+     })
+ 
+-    // ── Layer 2: Irregular small tonal clouds (trowel mass variation) ───
+-    for (let i = 0; i < 420; i++) {
+-      const x = Math.random() * W, y = Math.random() * H
+-      const r = Math.random() * 80 + 15
++    // ── Subtle neutral sheen and hand-trowel texture ──────
++    for (let i = 0; i < 26; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const len = Math.random() * 200 + 90
++      const angle = Math.random() * Math.PI * 2
++      const x1 = x0 + Math.cos(angle) * len
++      const y1 = y0 + Math.sin(angle) * len
++      ctx.strokeStyle = `rgba(50,46,44,${0.06 + Math.random() * 0.03})`
++      ctx.lineWidth = 2 + Math.random() * 1.3
++      ctx.beginPath()
++      ctx.moveTo(x0, y0)
++      const segments = 2 + (Math.random() * 3 | 0)
++      for (let s = 1; s <= segments; s++) {
++        const t = s / segments
++        ctx.lineTo(
++          x0 + (x1 - x0) * t + (Math.random() - 0.5) * 14,
++          y0 + (y1 - y0) * t + (Math.random() - 0.5) * 10
++        )
++      }
++      ctx.stroke()
++    }
++
++    // ── Low chalk haze and soft tonal clouding ───────────
++    for (let i = 0; i < 20; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const r = Math.random() * 100 + 60
++      const alpha = 0.05 + Math.random() * 0.06
++      const c = 96 + (Math.random() * 20 | 0)
+       const grd = ctx.createRadialGradient(x, y, 0, x, y, r)
+-      const dark = Math.random() > 0.35
+-      const g = dark ? (6 + Math.random() * 10 | 0) : (44 + Math.random() * 28 | 0)
+-      const a = Math.random() * 0.20 + 0.03
+-      grd.addColorStop(0, `rgba(${g},${g - 2},${g - 3},${a})`)
+-      grd.addColorStop(1, `rgba(42,39,37,0)`)
++      grd.addColorStop(0, `rgba(${c},${c - 8},${c - 14},${alpha})`)
++      grd.addColorStop(0.45, `rgba(${Math.max(c - 32, 0)},${Math.max(c - 36, 0)},${Math.max(c - 42, 0)},${alpha * 0.44})`)
++      grd.addColorStop(1, 'rgba(32,30,28,0)')
+       ctx.fillStyle = grd
+       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+     }
+ 
+-    // ── Layer 3: Trowel drag marks (directional strokes) ────────────────
+-    for (let i = 0; i < 35; i++) {
+-      const x0 = Math.random() * W, y0 = Math.random() * H
+-      const angle = Math.random() * Math.PI
+-      const len = Math.random() * 140 + 40
+-      const x1 = x0 + Math.cos(angle) * len, y1 = y0 + Math.sin(angle) * len
+-      const v = 50 + (Math.random() * 30 | 0)
+-      const a = Math.random() * 0.10 + 0.03
+-      ctx.strokeStyle = `rgba(${v},${v - 3},${v - 5},${a})`
+-      ctx.lineWidth = Math.random() * 3 + 0.8
++    // ── Crack lines and surface fissures ────────────────
++    for (let i = 0; i < 20; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const len = Math.random() * 160 + 40
++      const angle = Math.random() * Math.PI * 2
++      const x1 = x0 + Math.cos(angle) * len
++      const y1 = y0 + Math.sin(angle) * len
++      const alpha = 0.05 + Math.random() * 0.05
++      ctx.strokeStyle = `rgba(48,44,40,${alpha})`
++      ctx.lineWidth = Math.random() * 1.2 + 0.35
++      ctx.beginPath()
++      ctx.moveTo(x0, y0)
++      const segments = 3 + (Math.random() * 3 | 0)
++      for (let s = 1; s <= segments; s++) {
++        const t = s / segments
++        ctx.lineTo(
++          x0 + (x1 - x0) * t + (Math.random() - 0.5) * 10,
++          y0 + (y1 - y0) * t + (Math.random() - 0.5) * 10
++        )
++      }
++      ctx.stroke()
++    }
++
++    // ── Fine tonal texture and plaster grain ─────────────
++    for (let i = 0; i < 72000; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const tone = 18 + (Math.random() * 26 | 0)
++      ctx.fillStyle = `rgba(${tone},${tone},${tone},0.05)`
++      ctx.fillRect(x, y, Math.random() * 1.8 + 0.4, Math.random() * 1.8 + 0.4)
++    }
++
++    // ── Chalky surface blemishes and softened repair edges ─
++    for (let i = 0; i < 32; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const r = Math.random() * 28 + 10
++      const alpha = 0.03 + Math.random() * 0.05
++      ctx.fillStyle = `rgba(144,138,132,${alpha})`
++      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
++    }
++
++    // ── Old repair seams and scrawled patch lines ─────────────
++    for (let i = 0; i < 20; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const angle = Math.random() * Math.PI * 0.92 - Math.PI * 0.46
++      const length = Math.random() * 210 + 80
++      const width = Math.random() * 14 + 4
++      const x1 = x0 + Math.cos(angle) * length
++      const y1 = y0 + Math.sin(angle) * length
++      const v = 98 + (Math.random() * 24 | 0)
++      const a = 0.04 + Math.random() * 0.06
++      ctx.strokeStyle = `rgba(${v},${v - 20},${v - 34},${a})`
++      ctx.lineWidth = width
+       ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke()
+     }
+ 
+-    // ── Layer 4: Fine micro-plaster stipple ─────────────────────────────
+-    for (let i = 0; i < 70000; i++) {
+-      const x = Math.random() * W, y = Math.random() * H
+-      const g = 22 + (Math.random() * 24 | 0)
+-      ctx.fillStyle = `rgba(${g},${g - 2},${g - 3},0.06)`
+-      ctx.fillRect(x, y, Math.random() * 0.9 + 0.3, Math.random() * 0.9 + 0.3)
++    // ── Networked cracks and aged fissures ────────────────────
++    for (let i = 0; i < 28; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const angle = Math.random() * Math.PI * 2
++      const length = Math.random() * 190 + 40
++      const x1 = x0 + Math.cos(angle) * length
++      const y1 = y0 + Math.sin(angle) * length
++      const alpha = 0.07 + Math.random() * 0.05
++      ctx.strokeStyle = `rgba(50,46,42,${alpha})`
++      ctx.lineWidth = Math.random() * 1.8 + 0.45
++      ctx.beginPath()
++      ctx.moveTo(x0, y0)
++      const segments = 3 + (Math.random() * 4 | 0)
++      for (let s = 1; s <= segments; s++) {
++        const t = s / segments
++        const nx = x0 + (x1 - x0) * t + (Math.random() - 0.5) * 12
++        const ny = y0 + (y1 - y0) * t + (Math.random() - 0.5) * 12
++        ctx.lineTo(nx, ny)
++      }
++      ctx.stroke()
++    }
++
++    // ── Chalk bloom and patched plaster halos ──────────────────
++    for (let i = 0; i < 40; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const r = Math.random() * 42 + 12
++      const alpha = 0.04 + Math.random() * 0.06
++      ctx.fillStyle = `rgba(192,184,172,${alpha})`
++      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
++    }
++
++    // ── Fine plaster grain, chalk dust, and pitted surface ────
++    for (let i = 0; i < 74000; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const g = 14 + (Math.random() * 34 | 0)
++      ctx.fillStyle = `rgba(${g},${g},${g},0.06)`
++      ctx.fillRect(x, y, Math.random() * 1.8 + 0.4, Math.random() * 1.8 + 0.4)
+     }
+ 
++    for (let i = 0; i < 42; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const r = Math.random() * 36 + 12
++      const alpha = 0.05 + Math.random() * 0.08
++      ctx.fillStyle = `rgba(192,188,176,${alpha})`
++      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
++    }
++
++    ctx.globalCompositeOperation = 'multiply'
++    ctx.fillStyle = 'rgba(14,10,8,0.10)'
++    ctx.fillRect(0, 0, W, H)
++    ctx.globalCompositeOperation = 'source-over'
++
+     const colorTex = new THREE.CanvasTexture(canvas)
+     colorTex.wrapS = colorTex.wrapT = THREE.RepeatWrapping
+-    colorTex.repeat.set(1.0, 1.0)  // less repeat — patches scale naturally
++    colorTex.repeat.set(1.0, 1.0)
+ 
+-    // Bump map — strong bumpScale for grazing light micro-relief
++    // Bump map — low-frequency plaster relief with deeper weathered texture
+     const bCanvas = document.createElement('canvas')
+     bCanvas.width = W; bCanvas.height = H
+     const bCtx = bCanvas.getContext('2d')
+     bCtx.fillStyle = '#808080'; bCtx.fillRect(0, 0, W, H)
++
+     for (let i = 0; i < 180; i++) {
+-      const x = Math.random() * W, y = Math.random() * H
+-      const r = Math.random() * 80 + 20
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const r = Math.random() * 96 + 28
+       const grd = bCtx.createRadialGradient(x, y, 0, x, y, r)
+-      const v = 98 + (Math.random() * 52 | 0)
+-      grd.addColorStop(0, `rgba(${v},${v},${v},0.30)`)
++      const v = 120 + (Math.random() * 36 | 0)
++      grd.addColorStop(0, `rgba(${v},${v},${v},0.28)`)
+       grd.addColorStop(1, 'rgba(128,128,128,0)')
+-      bCtx.fillStyle = grd; bCtx.beginPath(); bCtx.arc(x, y, r, 0, Math.PI * 2); bCtx.fill()
++      bCtx.fillStyle = grd
++      bCtx.beginPath(); bCtx.arc(x, y, r, 0, Math.PI * 2); bCtx.fill()
+     }
+-    for (let i = 0; i < 30000; i++) {
+-      const x = Math.random() * W, y = Math.random() * H
+-      const v = 92 + (Math.random() * 72 | 0)
++
++    for (let i = 0; i < 36000; i++) {
++      const x = Math.random() * W
++      const y = Math.random() * H
++      const v = 84 + (Math.random() * 44 | 0)
+       bCtx.fillStyle = `rgba(${v},${v},${v},0.10)`
+-      bCtx.fillRect(x, y, Math.random() * 2 + 0.5, Math.random() * 2 + 0.5)
++      bCtx.fillRect(x, y, Math.random() * 2.5 + 0.4, Math.random() * 2.5 + 0.4)
+     }
++
++    for (let i = 0; i < 28; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const angle = Math.random() * Math.PI
++      const len = Math.random() * 170 + 40
++      const x1 = x0 + Math.cos(angle) * len
++      const y1 = y0 + Math.sin(angle) * len
++      bCtx.strokeStyle = `rgba(150,150,150,0.10)`
++      bCtx.lineWidth = Math.random() * 3.5 + 0.8
++      bCtx.beginPath(); bCtx.moveTo(x0, y0); bCtx.lineTo(x1, y1); bCtx.stroke()
++    }
++
++    for (let i = 0; i < 36; i++) {
++      const x0 = Math.random() * W
++      const y0 = Math.random() * H
++      const angle = Math.random() * Math.PI * 2
++      const len = Math.random() * 130 + 30
++      const x1 = x0 + Math.cos(angle) * len
++      const y1 = y0 + Math.sin(angle) * len
++      bCtx.strokeStyle = `rgba(98,98,98,0.08)`
++      bCtx.lineWidth = Math.random() * 2 + 0.6
++      bCtx.beginPath()
++      bCtx.moveTo(x0, y0)
++      const segments = 3 + (Math.random() * 4 | 0)
++      for (let s = 1; s <= segments; s++) {
++        const t = s / segments
++        const nx = x0 + (x1 - x0) * t + (Math.random() - 0.5) * 8
++        const ny = y0 + (y1 - y0) * t + (Math.random() - 0.5) * 8
++        bCtx.lineTo(nx, ny)
++      }
++      bCtx.stroke()
++    }
++
+     const bumpTex = new THREE.CanvasTexture(bCanvas)
+     bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping
+     bumpTex.repeat.set(1.0, 1.0)
+@@ -212,34 +366,40 @@ export default function MuseumEnvironment({ spotlightIntensity = 180, spotlightC
+ 
+       {/* ─── ROOM WALLS ─────────────────────────────────────────── */}
+ 
+-      {/* Back Wall — lower roughness + strong bumpScale for grazing light effect */}
++      {/* Back Wall — low sheen aged charcoal plaster for grazing light */}
+       <mesh position={[0, 4, -4.8]} receiveShadow>
+         <planeGeometry args={[18, 8]} />
+         <meshStandardMaterial
+           map={wallColorMap}
+           bumpMap={wallBumpMap}
+-          bumpScale={0.055}
+-          roughness={0.48}
+-          metalness={0.04}
++          bumpScale={0.44}
++          roughness={0.98}
++          metalness={0.0}
+         />
+       </mesh>
+ 
+-      {/* Left Wall — slightly more matte (receives less light) */}
++      {/* Left Wall — slightly more matte and cooler in shadow */}
+       <mesh position={[-4.8, 4, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+         <planeGeometry args={[14, 8]} />
+         <meshStandardMaterial
+           map={wallColorMap}
+           bumpMap={wallBumpMap}
+-          bumpScale={0.042}
+-          roughness={0.55}
+-          metalness={0.03}
++          bumpScale={0.70}
++          roughness={0.98}
++          metalness={0.0}
+         />
+       </mesh>
+ 
+-      {/* Right Wall — mostly in shadow */}
++      {/* Right Wall — mostly in shadow, same charcoal plaster material */}
+       <mesh position={[9.2, 4, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+         <planeGeometry args={[14, 8]} />
+-        <meshStandardMaterial color="#1A1816" roughness={0.96} metalness={0.0} />
++        <meshStandardMaterial
++          map={wallColorMap}
++          bumpMap={wallBumpMap}
++          bumpScale={0.40}
++          roughness={0.98}
++          metalness={0.0}
++        />
+       </mesh>
+ 
+       {/* ─── FLOOR ──────────────────────────────────────────────── */}
