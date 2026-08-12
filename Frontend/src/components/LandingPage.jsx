@@ -12,24 +12,24 @@ gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 const SECTIONS_DATA = [
   {
     id: 'genesis',
-    tag: '00. Coastal Telemetry',
+    tag: '00. Autonomous Telemetry',
     tagColor: '#38BDF8',
-    title: 'Autonomous Vehicle & Edge Signal Telemetry.',
-    desc: 'Stream zero-latency telemetry directly from edge nodes and high-performance connected vehicles like the BMW M5 CS. Beacon aggregates real-time metrics across mobile clusters with sub-millisecond precision.',
+    title: 'Autonomous AI Observability & Edge Control.',
+    desc: 'Stream real-time telemetry directly from edge nodes, autonomous systems, and high-performance models. Beacon aggregates live metrics across clusters with sub-millisecond precision.',
   },
   {
     id: 'entry',
-    tag: '01. Beacon Signal Tower',
+    tag: '01. Signal Tower',
     tagColor: '#FDE047',
-    title: '360° Real-Time Guidance & Observability.',
-    desc: 'Illuminate every corner of your infrastructure. Our rotating beacon engine scans microservices and vector pipelines to deliver instant anomaly detection and ground-truth visibility.',
+    title: '360° Real-Time Guidance & Model Reliability.',
+    desc: 'Illuminate every layer of your infrastructure. Our rotating signal engine scans microservices, vector pipelines, and LLM routes to deliver instant anomaly detection and ground-truth visibility.',
   },
   {
     id: 'beyond',
-    tag: '02. Ocean Horizon',
+    tag: '02. Fleet Control',
     tagColor: '#22C55E',
-    title: 'Maritime & Enterprise Fleet Intelligence.',
-    desc: 'Unify fleet operations across land and sea. Beacon connects distant cargo vessels, edge sensors, and autonomous systems under a single hallucination-free AI control plane.',
+    title: 'Enterprise AI & Model Control Plane.',
+    desc: 'Unify fleet operations across cloud and edge. Beacon connects distributed AI workloads, edge sensors, and autonomous agents under a single hallucination-free control plane.',
     showCta: true,
   },
 ]

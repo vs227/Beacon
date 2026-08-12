@@ -6,10 +6,12 @@ import * as THREE from 'three'
 import roadUrl from '../3dAssets/american_road.glb?url'
 import bmwUrl from '../3dAssets/bmw_m5_cs_f90/scene.gltf?url'
 import lighthouseUrl from '../3dAssets/lighthouse__village_-_lowpoly_scene/scene.gltf?url'
+import cargoShipUrl from '../3dAssets/cargo_ship.glb?url'
 
 useGLTF.preload(roadUrl)
 useGLTF.preload(bmwUrl)
 useGLTF.preload(lighthouseUrl)
+useGLTF.preload(cargoShipUrl)
 
 class ModelErrorBoundary extends Component {
   state = { hasError: false }
@@ -194,6 +196,90 @@ function BMWCarOnRoad({ progress = 0, isVisible = true }) {
   ) : null
 }
 
+// ─── ANIMATED OCEAN WATER PLANE ───────────────────────────────────────────
+
+function Ocean() {
+  const meshRef = useRef()
+  const materialRef = useRef()
+
+  const uniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uColor1: { value: new THREE.Color('#020a18') },
+    uColor2: { value: new THREE.Color('#0a1628') },
+    uHighlight: { value: new THREE.Color('#1a3a5c') },
+  }), [])
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
+    }
+  })
+
+  const vertexShader = `
+    uniform float uTime;
+    varying vec2 vUv;
+    varying float vElevation;
+    
+    void main() {
+      vUv = uv;
+      vec3 pos = position;
+      
+      // Gentle wave motion
+      float wave1 = sin(pos.x * 0.8 + uTime * 0.4) * 0.15;
+      float wave2 = sin(pos.z * 0.6 + uTime * 0.3) * 0.12;
+      float wave3 = sin((pos.x + pos.z) * 0.5 + uTime * 0.5) * 0.08;
+      
+      pos.y += wave1 + wave2 + wave3;
+      vElevation = wave1 + wave2 + wave3;
+      
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `
+
+  const fragmentShader = `
+    uniform float uTime;
+    uniform vec3 uColor1;
+    uniform vec3 uColor2;
+    uniform vec3 uHighlight;
+    varying vec2 vUv;
+    varying float vElevation;
+    
+    void main() {
+      // Blend between deep and mid ocean colors
+      vec3 color = mix(uColor1, uColor2, vUv.y * 0.5 + 0.5);
+      
+      // Add subtle moonlit highlights on wave peaks
+      float highlight = smoothstep(0.08, 0.35, vElevation);
+      color = mix(color, uHighlight, highlight * 0.25);
+      
+      // Subtle shimmer
+      float shimmer = sin(vUv.x * 40.0 + uTime * 0.8) * sin(vUv.y * 40.0 + uTime * 0.6);
+      color += uHighlight * shimmer * 0.03;
+      
+      // Fade edges to background color for seamless blending
+      float edgeFade = 1.0 - smoothstep(0.3, 0.5, max(abs(vUv.x - 0.5), abs(vUv.y - 0.5)));
+      float alpha = edgeFade * 0.92;
+      
+      gl_FragColor = vec4(color, alpha);
+    }
+  `
+
+  return (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.0, 0]}>
+      <planeGeometry args={[200, 200, 128, 128]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
+        transparent={true}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
 // ─── 3D LIGHTHOUSE SIGNAL TOWER SCENE ─────────────────────────────────────
 
 function LighthouseSceneView({ isVisible = false, activeSection = 1 }) {
@@ -276,8 +362,101 @@ function LighthouseSceneView({ isVisible = false, activeSection = 1 }) {
   return processedLighthouse ? (
     <group ref={groupRef} position={[10.5, -1.85, -4]} scale={0.24}>
       <primitive object={processedLighthouse} />
+      {/* Animated ocean water surrounding the lighthouse island */}
+      <Ocean />
     </group>
   ) : null
+}
+
+// ─── CARGO SHIP MODEL (SAILS INTO VIEW IN SECTION 02) ─────────────────────
+
+function CargoShipView({ activeSection = 0, shipPosition = [8.0, -1.35, 2.0], shipRotation = [0, -Math.PI * 0.3, 0], shipScale = 3.0, bobOffset = 0 }) {
+  const { scene } = useGLTF(cargoShipUrl)
+  const groupRef = useRef()
+  const opacityRef = useRef(0)
+
+  const processedShip = useMemo(() => {
+    if (!scene) return null
+    const cloned = scene.clone(true)
+
+    cloned.traverse((child) => {
+      if (child.isLight) {
+        child.visible = false
+        child.intensity = 0
+      }
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        if (child.material) {
+          child.material = child.material.clone()
+          child.material.transparent = true
+          child.material.opacity = 0
+          child.material.roughness = 0.7
+          child.material.needsUpdate = true
+        }
+      }
+    })
+
+    // Center and normalize scale
+    const box = new THREE.Box3().setFromObject(cloned)
+    const center = new THREE.Vector3()
+    const size = new THREE.Vector3()
+    box.getCenter(center)
+    box.getSize(size)
+
+    const wrapper = new THREE.Group()
+    cloned.position.set(-center.x, -box.min.y, -center.z)
+    wrapper.add(cloned)
+
+    const maxDim = Math.max(size.x, size.y, size.z)
+    if (maxDim > 0) {
+      wrapper.scale.setScalar(shipScale / maxDim)
+    }
+
+    return wrapper
+  }, [scene, shipScale])
+
+  // Smooth fade-in/fade-out & gentle glide transition when entering/exiting Section 02
+  useFrame((state, delta) => {
+    if (!groupRef.current) return
+
+    const isTargetSection = activeSection === 2
+    const targetOpacity = isTargetSection ? 1.0 : 0.0
+
+    // Smoothly damp opacity
+    opacityRef.current = THREE.MathUtils.damp(opacityRef.current, targetOpacity, 3.5, delta)
+
+    // Toggle visibility based on opacity threshold to optimize rendering
+    groupRef.current.visible = opacityRef.current > 0.01
+
+    // Apply smooth opacity to all materials
+    groupRef.current.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material.opacity = opacityRef.current
+      }
+    })
+
+    // Gentle ocean bob with offset + subtle glide offset during entrance from mist
+    const time = state.clock.elapsedTime + bobOffset
+    const zGlideOffset = (1 - opacityRef.current) * -8.0
+    groupRef.current.position.x = shipPosition[0]
+    groupRef.current.position.y = shipPosition[1] + Math.sin(time * 0.5) * 0.06
+    groupRef.current.position.z = shipPosition[2] + zGlideOffset
+    groupRef.current.rotation.z = Math.sin(time * 0.4) * 0.015
+    groupRef.current.rotation.x = Math.sin(time * 0.3) * 0.01
+  })
+
+  return processedShip ? (
+    <group ref={groupRef} position={shipPosition} rotation={shipRotation} visible={false}>
+      <primitive object={processedShip} />
+    </group>
+  ) : null
+}
+
+// ─── ROTATING LIGHTHOUSE BEAM SPOTLIGHT & SLEEK VOLUMETRIC BEAM ───────────
+
+function LighthouseSpotlight({ activeSection }) {
+  return null
 }
 
 // ─── SECTION 0 GROUP (CLIFF + CAR SLIDES FAR OFF TO THE LEFT) ──────────────
@@ -397,14 +576,14 @@ export default function SceneCanvas({ activeSection = 0, heroProgress = 0, camer
   const isLighthouseActive = activeSection === 1 || activeSection === 2
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#010206' }}>
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#000000' }}>
       <Canvas
         camera={{ position: [4, -0.2, 7], fov: 44, near: 0.1, far: 500 }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: activeSection === 0 ? 1.02 : 1.1 }}
       >
-        <color attach="background" args={['#010206']} />
-        {/* Dynamic Fog: Expands far plane to 80 when in Section 1 so massive zoom-out stays crisp */}
-        <fog attach="fog" args={['#010206', activeSection === 0 ? 3.5 : 8, activeSection === 0 ? 16.5 : 80]} />
+        <color attach="background" args={['#000000']} />
+        {/* Dynamic Pure Pitch Black Fog */}
+        <fog attach="fog" args={['#000000', activeSection === 0 ? 3.5 : 8, activeSection === 0 ? 16.5 : 80]} />
 
         {/* Dynamic Clear Atmospheric Nighttime Lighting */}
         <ambientLight intensity={activeSection === 0 ? 0.08 : 0.18} color="#18181B" />
@@ -424,6 +603,16 @@ export default function SceneCanvas({ activeSection = 0, heroProgress = 0, camer
         <ModelErrorBoundary fallback={null}>
           <Suspense fallback={null}>
             <LighthouseSceneView isVisible={isLighthouseActive} activeSection={activeSection} />
+          </Suspense>
+        </ModelErrorBoundary>
+
+        {/* Dynamic Rotating Beacon Light Beam */}
+        <LighthouseSpotlight activeSection={activeSection} />
+
+        {/* Cargo Ship: Flanking left side of lighthouse island */}
+        <ModelErrorBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <CargoShipView activeSection={activeSection} shipPosition={[4.0, -1.35, -0.5]} shipRotation={[0, -Math.PI * 0.25, 0]} shipScale={4.2} bobOffset={0} />
           </Suspense>
         </ModelErrorBoundary>
 
