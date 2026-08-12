@@ -11,31 +11,31 @@ gsap.registerPlugin(ScrollToPlugin)
 const SECTIONS_DATA = [
   {
     id: 'genesis',
-    tag: '',
+    tag: '00. Infrastructure',
     tagColor: '#C86F52',
-    title: 'Analog Intelligence for Modern RAG.',
-    desc: 'High-performance, auditable infrastructure for enterprise AI. Designed to merge physical structure with distributed synapse memory.',
+    title: 'Zero-Latency Vector Infrastructure.',
+    desc: 'Eliminate bottlenecked vector search at scale. We solve the challenge of high-latency semantic lookups across billions of nodes, delivering sub-millisecond retrieval speeds to serve as a real-time backbone for production RAG.',
   },
   {
     id: 'portal',
-    tag: '01. Transformation',
+    tag: '01. Data Synthesis',
     tagColor: '#52A88B',
-    title: 'Stone Becomes Gateway.',
-    desc: 'Thirteen interlocking stone slabs intelligently realign into a monumental portal. Each block moves with architectural precision.',
+    title: 'Real-Time Enterprise Synchronization.',
+    desc: 'Bridge fragmented databases and document silos. We solve index staleness by continuously syncing structured tables and unstructured text in real-time, delivering unified, high-density context directly to your LLM query interface.',
   },
   {
     id: 'entry',
-    tag: '02. Portal Entry',
+    tag: '02. Ingestion Pipeline',
     tagColor: '#52A88B',
-    title: 'Walking Through.',
-    desc: 'A cinematic approach into the emerald void. The portal remains fixed — only the camera moves forward.',
+    title: 'Autonomous Chunking & Embedding.',
+    desc: 'End manual data prep and bad chunking. We solve parsing errors and context loss by automating the entire ingestion pipeline, intelligently chunking and embedding multi-format files while preserving core semantic boundaries.',
   },
   {
     id: 'beyond',
-    tag: '03. Beyond',
+    tag: '03. Generation Engine',
     tagColor: '#C86F52',
-    title: 'The Void Awaits.',
-    desc: "Past the threshold, silence. Beacon's neural lattice expands into infinite, uncharted memory — ready to be shaped by your data.",
+    title: 'Hallucination-Free Synthesis.',
+    desc: "Eradicate LLM hallucinations and data privacy risks. We solve the lack of auditable facts in production by validating every output against secure, citation-verified semantic records, guaranteeing 99.9% ground-truth accuracy.",
     showCta: true,
   },
 ]
@@ -52,6 +52,11 @@ export default function LandingPage({ auth }) {
   const [cameraProgress, setCameraProgress] = useState(0)
   const [blackProgress, setBlackProgress] = useState(0)
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [canvasMounted, setCanvasMounted] = useState(false)
+  const [isSceneReady, setIsSceneReady] = useState(false)
+  const [loadPercent, setLoadPercent] = useState(0)
+
   useEffect(() => {
     const scroller = scrollContainerRef.current
     if (!scroller) return
@@ -60,9 +65,10 @@ export default function LandingPage({ auth }) {
       const top = scroller.scrollTop
       const vh = scroller.clientHeight || 1
 
-      // Each section spans 0.9 * vh
+      // Each section spans 0.9 * vh. Shift the text transitions by 0.6 * sectionSpan
+      // so the transition starts exactly when the auth overlay is fully gone (at 0.4 * sectionSpan)
       const sectionSpan = vh * 0.9
-      const sectionIdx = Math.min(3, Math.floor(top / sectionSpan))
+      const sectionIdx = Math.min(3, Math.floor((top + 0.6 * sectionSpan) / sectionSpan))
       setActiveSection(sectionIdx)
 
       // Calculate smooth progress for each section
@@ -107,10 +113,93 @@ export default function LandingPage({ auth }) {
     }
   }, [auth, scrollToSection])
 
+  useEffect(() => {
+    // Mount the heavy canvas 100ms after the initial paint so the loader displays immediately
+    const mountTimeout = setTimeout(() => {
+      setCanvasMounted(true)
+    }, 100)
+
+    // Safety timeout fallback: if WebGL or ThreeJS fails to load, fill to 100 and hide at 4.5s
+    const fallbackTimeout = setTimeout(() => {
+      let fb = 0
+      setLoadPercent(prev => { fb = prev; return prev })
+      const fillFallback = () => {
+        fb += 2
+        if (fb >= 100) { setLoadPercent(100); setTimeout(() => setIsLoading(false), 600) }
+        else { setLoadPercent(fb); setTimeout(fillFallback, 20) }
+      }
+      setTimeout(fillFallback, 30)
+    }, 4500)
+
+    // Drive a fake percentage counter 0→95 over ~3.5s, then real completion jumps it to 100
+    let pct = 0
+    const pctInterval = setInterval(() => {
+      pct += Math.random() * 4 + 1
+      if (pct >= 95) { pct = 95; clearInterval(pctInterval) }
+      setLoadPercent(Math.round(pct))
+    }, 120)
+
+    return () => {
+      clearTimeout(mountTimeout)
+      clearTimeout(fallbackTimeout)
+      clearInterval(pctInterval)
+    }
+  }, [])
+
+  // When Three.js is ready: smoothly fill the bar to 100%, pause 600ms, then fade out
+  useEffect(() => {
+    if (!isSceneReady) return
+    let current = 0
+    // Capture current percent using a ref trick via callback form of setState
+    setLoadPercent(prev => { current = prev; return prev })
+
+    // Tiny delay to read the current value then start animating
+    const startFill = setTimeout(() => {
+      const step = () => {
+        current += 2
+        if (current >= 100) {
+          setLoadPercent(100)
+          // Pause 600ms at 100% so user clearly sees completion
+          setTimeout(() => setIsLoading(false), 600)
+        } else {
+          setLoadPercent(current)
+          setTimeout(step, 20) // ~50fps fill animation
+        }
+      }
+      step()
+    }, 30)
+
+    return () => clearTimeout(startFill)
+  }, [isSceneReady])
+
   const section = SECTIONS_DATA[activeSection]
 
   return (
     <div ref={wrapperRef} className="app-frame">
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            key="loader"
+            className="loader-container"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+          >
+            <div className="loader-wrapper">
+              <span className="loader-percent">{loadPercent}%</span>
+              <span className="loader">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`loader-dot${i < Math.round(loadPercent / 100 * 16) ? ' filled' : ''}`}
+                  />
+                ))}
+              </span>
+              <span className="loader-label">Loading Content</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="logo-text" onClick={() => auth?.isLoggedIn && navigate('/dashboard/organizations')} style={{ cursor: auth?.isLoggedIn ? 'pointer' : 'default' }}>
@@ -229,12 +318,15 @@ export default function LandingPage({ auth }) {
 
       {/* Fixed 3D Canvas */}
       <div className="canvas-container">
-        <SceneCanvas
-          heroProgress={heroProgress}
-          portalFormProgress={portalFormProgress}
-          cameraProgress={cameraProgress}
-          blackProgress={blackProgress}
-        />
+        {canvasMounted && (
+          <SceneCanvas
+            heroProgress={heroProgress}
+            portalFormProgress={portalFormProgress}
+            cameraProgress={cameraProgress}
+            blackProgress={blackProgress}
+            onReady={() => setIsSceneReady(true)}
+          />
+        )}
       </div>
 
       {/* Fixed Left Information Panel */}
@@ -257,7 +349,7 @@ export default function LandingPage({ auth }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.4 }}
-            className="info-column"
+            className="info-column outfit-landing"
             style={{ width: '100%', height: 'auto', pointerEvents: 'auto' }}
           >
             {section.tag && (
