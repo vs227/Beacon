@@ -12,27 +12,28 @@ gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 const SECTIONS_DATA = [
   {
     id: 'genesis',
-    tag: '00. Infrastructure',
-    tagColor: '#C86F52',
-    title: 'Zero-Latency Vector Infrastructure.',
-    desc: 'Eliminate bottlenecked vector search at scale. We solve the challenge of high-latency semantic lookups across billions of nodes, delivering sub-millisecond retrieval speeds to serve as a real-time backbone for production RAG.',
+    tag: '00. Coastal Telemetry',
+    tagColor: '#38BDF8',
+    title: 'Autonomous Vehicle & Edge Signal Telemetry.',
+    desc: 'Stream zero-latency telemetry directly from edge nodes and high-performance connected vehicles like the BMW M5 CS. Beacon aggregates real-time metrics across mobile clusters with sub-millisecond precision.',
   },
   {
     id: 'entry',
-    tag: '01. Ingestion Pipeline',
-    tagColor: '#52A88B',
-    title: 'Autonomous Chunking & Embedding.',
-    desc: 'End manual data prep and bad chunking. We solve parsing errors and context loss by automating the entire ingestion pipeline, intelligently chunking and embedding multi-format files while preserving core semantic boundaries.',
+    tag: '01. Beacon Signal Tower',
+    tagColor: '#FDE047',
+    title: '360° Real-Time Guidance & Observability.',
+    desc: 'Illuminate every corner of your infrastructure. Our rotating beacon engine scans microservices and vector pipelines to deliver instant anomaly detection and ground-truth visibility.',
   },
   {
     id: 'beyond',
-    tag: '02. Generation Engine',
-    tagColor: '#C86F52',
-    title: 'Hallucination-Free Synthesis.',
-    desc: "Eradicate LLM hallucinations and data privacy risks. We solve the lack of auditable facts in production by validating every output against secure, citation-verified semantic records, guaranteeing 99.9% ground-truth accuracy.",
+    tag: '02. Ocean Horizon',
+    tagColor: '#22C55E',
+    title: 'Maritime & Enterprise Fleet Intelligence.',
+    desc: 'Unify fleet operations across land and sea. Beacon connects distant cargo vessels, edge sensors, and autonomous systems under a single hallucination-free AI control plane.',
     showCta: true,
   },
 ]
+
 
 export default function LandingPage({ auth }) {
   const navigate = useNavigate()
@@ -139,24 +140,30 @@ export default function LandingPage({ auth }) {
   }, [auth, scrollToSection])
 
   useEffect(() => {
-    const mountTimeout = setTimeout(() => setCanvasMounted(true), 100)
+    const mountTimeout = setTimeout(() => setCanvasMounted(true), 50)
     let pct = 0
     const pctInterval = setInterval(() => {
-      pct += Math.random() * 5 + 2
+      pct += Math.random() * 8 + 4
       if (pct >= 95) { pct = 95; clearInterval(pctInterval) }
       setLoadPercent(Math.round(pct))
-    }, 100)
+    }, 80)
+
+    // Safety fallback: ensure scene ready after at most 1.8s
+    const safetyTimeout = setTimeout(() => {
+      setIsSceneReady(true)
+    }, 1800)
 
     return () => {
       clearTimeout(mountTimeout)
       clearInterval(pctInterval)
+      clearTimeout(safetyTimeout)
     }
   }, [])
 
   useEffect(() => {
     if (!isSceneReady) return
     setLoadPercent(100)
-    const finishTimeout = setTimeout(() => setIsLoading(false), 500)
+    const finishTimeout = setTimeout(() => setIsLoading(false), 400)
     return () => clearTimeout(finishTimeout)
   }, [isSceneReady])
 
@@ -309,6 +316,8 @@ export default function LandingPage({ auth }) {
       <div className="canvas-container">
         {canvasMounted && (
           <SceneCanvas
+            activeSection={activeSection}
+            heroProgress={heroProgress}
             cameraProgress={cameraProgress}
             blackProgress={blackProgress}
             onReady={() => setIsSceneReady(true)}
@@ -383,7 +392,7 @@ export default function LandingPage({ auth }) {
         <div ref={sec1Ref} className="scroll-section-trigger" style={{ height: '100vh', pointerEvents: 'none' }} />
 
         {/* Section 2: Camera moves through portal */}
-        <div ref={sec2Ref} className="scroll-section-trigger" style={{ height: '180vh', pointerEvents: 'none' }} />
+        <div ref={sec2Ref} className="scroll-section-trigger" style={{ height: '100vh', pointerEvents: 'none' }} />
 
         {/* Section 3: Completely black / next content */}
         <div ref={sec3Ref} className="scroll-section-trigger" style={{ height: '120vh', pointerEvents: 'none' }} />
