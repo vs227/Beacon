@@ -305,30 +305,8 @@ function Section0Group({ isVisible, progress, onReady }) {
 function CameraRig({ activeSection, cameraProgress = 0 }) {
   const { camera } = useThree()
   const controlsRef = useRef()
-  const prevSectionRef = useRef(activeSection)
-  const transitionTimeRef = useRef(1.0)
-
-  useEffect(() => {
-    if (prevSectionRef.current !== activeSection) {
-      // Trigger high-angle up-to-down swoop burst ONLY between Section 0 and Section 1
-      if ((prevSectionRef.current === 0 && activeSection === 1) || (prevSectionRef.current === 1 && activeSection === 0)) {
-        transitionTimeRef.current = 0.0
-      } else {
-        transitionTimeRef.current = 1.0 // No swoop arc for 01 -> 02 transition
-      }
-      prevSectionRef.current = activeSection
-    }
-  }, [activeSection])
 
   useFrame((_, delta) => {
-    if (transitionTimeRef.current < 1.0) {
-      transitionTimeRef.current = Math.min(1.0, transitionTimeRef.current + delta * 1.1)
-    }
-
-    // Smooth bell curve (0 -> 1 -> 0) during transition burst
-    const t = transitionTimeRef.current
-    const zoomFactor = Math.sin(t * Math.PI)
-
     let basePos = [4, -0.2, 7]
     let baseLook = [0, 0.4, 0]
     let baseFov = 44
@@ -366,17 +344,12 @@ function CameraRig({ activeSection, cameraProgress = 0 }) {
       baseFov = 44
     }
 
-    // Up-to-Down camera elevation trajectory during section transition (4th scroll step)
-    const targetX = basePos[0] + zoomFactor * 4.0
-    const targetY = basePos[1] + zoomFactor * 8.5
-    const targetZ = basePos[2] + zoomFactor * 8.5
-    const targetFov = baseFov + zoomFactor * 16
+    // Direct smooth camera movement — no up-to-down arc
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, basePos[0], 3.8, delta)
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, basePos[1], 3.8, delta)
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, basePos[2], 3.8, delta)
 
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, targetX, 3.8, delta)
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, targetY, 3.8, delta)
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 3.8, delta)
-
-    camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 3.8, delta)
+    camera.fov = THREE.MathUtils.damp(camera.fov, baseFov, 3.8, delta)
     camera.updateProjectionMatrix()
 
     if (controlsRef.current) {
