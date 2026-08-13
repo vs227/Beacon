@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import SceneCanvas from './SceneCanvas'
+
 
 // SVG Icons for horizontal navbar to keep things compact & modern
 
@@ -125,9 +125,13 @@ export default function Dashboard({ auth }) {
 
   // Projects State scoped by selected Org
   const [projects, setProjects] = useState([])
+  const [loadingProjects, setLoadingProjects] = useState(false)
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDesc, setNewProjectDesc] = useState('')
+  const [newProjectType, setNewProjectType] = useState('Customer Support')
+  const [customProjectType, setCustomProjectType] = useState('')
+  const [newProjectEnv, setNewProjectEnv] = useState('Development')
 
   const API_BASE = ''
 
@@ -218,6 +222,7 @@ export default function Dashboard({ auth }) {
   // Fetch projects for selected organization
   const fetchProjects = useCallback(async (orgId) => {
     if (!auth.token || !orgId) return
+    setLoadingProjects(true)
     try {
       const res = await fetch(`${API_BASE}/organizations/${orgId}/projects`, {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -230,6 +235,8 @@ export default function Dashboard({ auth }) {
       }
     } catch {
       // silently fail — user can retry
+    } finally {
+      setLoadingProjects(false)
     }
   }, [auth])
 
@@ -311,6 +318,7 @@ export default function Dashboard({ auth }) {
     if (!newProjectName.trim() || !selectedOrg) return
     const orgId = selectedOrg.id || selectedOrg.organization_id
     setErrorMsg('')
+    const finalProjectType = newProjectType === 'Custom' ? (customProjectType.trim() || 'Custom') : newProjectType
     try {
       const res = await fetch(`${API_BASE}/organizations/${orgId}/projects`, {
         method: 'POST',
@@ -321,11 +329,16 @@ export default function Dashboard({ auth }) {
         body: JSON.stringify({
           name: newProjectName,
           description: newProjectDesc,
+          project_type: finalProjectType,
+          environment: newProjectEnv,
         }),
       })
       if (res.ok) {
         setNewProjectName('')
         setNewProjectDesc('')
+        setNewProjectType('Customer Support')
+        setCustomProjectType('')
+        setNewProjectEnv('Development')
         setShowProjectModal(false)
         await fetchProjects(orgId)
       } else {
@@ -385,16 +398,7 @@ export default function Dashboard({ auth }) {
 
   return (
     <div className="dashboard-container">
-      {/* 3D Scene Canvas in background (hiding the stones sculpture) */}
-      <div className="canvas-container" style={{ opacity: 0.8, pointerEvents: 'none' }}>
-        <SceneCanvas
-          heroProgress={0.2}
-          portalFormProgress={0}
-          cameraProgress={0}
-          blackProgress={0}
-          hideSculpture={true}
-        />
-      </div>
+
 
       {/* Top Navbar */}
       <header className="dashboard-navbar">
@@ -700,7 +704,12 @@ export default function Dashboard({ auth }) {
 
             {activeTab === 'projects' && (
               <motion.div key="projects" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="dashboard-grid">
-                {projects.length === 0 ? (
+                {loadingProjects ? (
+                  <div className="spinner-container">
+                    <div className="dashboard-spinner"></div>
+                    <span>Loading projects...</span>
+                  </div>
+                ) : projects.length === 0 ? (
                   <div className="empty-state">
                     <h3>No Projects Found</h3>
                     <p>Create a project inside this organization to build indexing and knowledge bases.</p>
@@ -711,15 +720,35 @@ export default function Dashboard({ auth }) {
                   </div>
                 ) : (
                   projects.map((proj) => (
-                    <div className="dashboard-card" key={proj.id}>
+                    <div
+                      className="dashboard-card"
+                      key={proj.id}
+                      onClick={() => {
+                        const orgId = selectedOrg.id || selectedOrg.organization_id
+                        navigate(`/dashboard/org/${orgId}/project/${proj.id}`)
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="card-header">
                         <h2 className="card-name">{proj.name}</h2>
-                        <button className="btn-delete-card" onClick={() => handleDeleteProject(proj.id)}>
-                          <IconTrash />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {proj.environment && (
+                            <span className={`status-badge ${proj.environment.toLowerCase() === 'production' ? 'active' : 'type'}`}>
+                              {proj.environment}
+                            </span>
+                          )}
+                          <button className="btn-delete-card" onClick={(e) => { e.stopPropagation(); handleDeleteProject(proj.id) }}>
+                            <IconTrash />
+                          </button>
+                        </div>
                       </div>
+                      {proj.project_type && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--bronze-highlight)', fontWeight: 500, marginTop: '-4px', marginBottom: '8px' }}>
+                          {proj.project_type}
+                        </div>
+                      )}
                       <p className="card-desc">
-                        {proj.description || 'Enterprise project scoped for distributed secure synapses.'}
+                        {proj.description || 'AI assistant for answering queries from documentation.'}
                       </p>
                       <div className="card-footer">
                         <span className="card-label">Slug</span>
@@ -973,25 +1002,70 @@ export default function Dashboard({ auth }) {
             </header>
             <form onSubmit={handleCreateProject}>
               <div className="form-group">
-                <label className="form-label">Project Name</label>
+                <label className="form-label">Project Name *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. RAG Chat Assistant"
+                  placeholder="Example: Customer Support AI"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   required
                 />
               </div>
+
               <div className="form-group">
-                <label className="form-label">Description (Optional)</label>
+                <label className="form-label">Project Description</label>
                 <textarea
                   className="form-input textarea"
-                  placeholder="Goals, target systems, RAG indexes..."
+                  placeholder="Example: AI assistant for answering customer support queries from our documentation."
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
+                  rows={3}
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Project Type / Use Case</label>
+                <select
+                  className="form-input"
+                  value={newProjectType}
+                  onChange={(e) => setNewProjectType(e.target.value)}
+                >
+                  <option value="Customer Support">Customer Support</option>
+                  <option value="Documentation">Documentation</option>
+                  <option value="Internal Knowledge Base">Internal Knowledge Base</option>
+                  <option value="Research">Research</option>
+                  <option value="E-commerce">E-commerce</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+
+              {newProjectType === 'Custom' && (
+                <div className="form-group">
+                  <label className="form-label">Specify Custom Use Case *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Legal Document Search, Code Assistant..."
+                    value={customProjectType}
+                    onChange={(e) => setCustomProjectType(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">Environment</label>
+                <select
+                  className="form-input"
+                  value={newProjectEnv}
+                  onChange={(e) => setNewProjectEnv(e.target.value)}
+                >
+                  <option value="Development">Development</option>
+                  <option value="Production">Production</option>
+                </select>
+              </div>
+
               <footer className="modal-footer">
                 <button type="button" className="btn-modal-cancel" onClick={() => setShowProjectModal(false)}>
                   Cancel

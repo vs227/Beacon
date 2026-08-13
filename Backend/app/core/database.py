@@ -8,9 +8,10 @@ class Database:
     @classmethod
     def get_client(cls) -> Client:
         if cls._client is None:
+            key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_KEY
             cls._client = create_client(
                 settings.SUPABASE_URL,
-                settings.SUPABASE_KEY
+                key
             )
         return cls._client
 

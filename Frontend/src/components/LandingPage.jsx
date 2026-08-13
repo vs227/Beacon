@@ -133,11 +133,10 @@ export default function LandingPage({ auth }) {
   // After login -> ensure on Genesis section
   useEffect(() => {
     if (auth.justLoggedIn) {
-      scrollToSection(0)
-      const t = setTimeout(() => auth.dismissJustLoggedIn(), 1200)
-      return () => clearTimeout(t)
+      navigate('/dashboard/organizations')
+      auth.dismissJustLoggedIn()
     }
-  }, [auth, scrollToSection])
+  }, [auth, navigate])
 
   useEffect(() => {
     const mountTimeout = setTimeout(() => setCanvasMounted(true), 50)

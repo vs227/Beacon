@@ -71,6 +71,8 @@ def create_project(organization_id: str, project_data: ProjectCreate, owner_id: 
         "organization_id": organization_id,
         "name": project_data.name,
         "slug": slug,
+        "project_type": project_data.project_type or "Customer Support",
+        "environment": project_data.environment or "Development",
     }
     if project_data.description:
         payload["description"] = project_data.description
@@ -140,6 +142,10 @@ def update_project(project_id: str, project_data: ProjectUpdate, owner_id: str) 
         )
     if project_data.description is not None and project_data.description != project.get("description"):
         update_payload["description"] = project_data.description
+    if project_data.project_type is not None and project_data.project_type != project.get("project_type"):
+        update_payload["project_type"] = project_data.project_type
+    if project_data.environment is not None and project_data.environment != project.get("environment"):
+        update_payload["environment"] = project_data.environment
 
     if not update_payload:
         return project
