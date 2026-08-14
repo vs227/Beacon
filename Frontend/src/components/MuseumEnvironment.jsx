@@ -203,22 +203,104 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
   }, [])
 
   // ─── FRAME UPDATE ───────────────────────────────────────────────────────────
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const time = state.clock.getElapsedTime()
+    const dt = Math.min(delta || 0.016, 0.05)
+
+    // keep spotlight target aligned with fixture
+    if (spotlightRef.current) {
+      spotlightRef.current.target.position.set(3.5, 1.25, -2.3)
+      spotlightRef.current.target.updateMatrixWorld()
+    }
+
+    // Particle physics: gravity, wind/turbulence, drag, floor & wall collisions
     if (particlesRef.current) {
       const attr = particlesRef.current.geometry.attributes.position
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3
-        attr.array[i3 + 1] += velocities[i3 + 1] * 0.1
-        attr.array[i3] += Math.sin(time * 0.7 + noiseSeeds[i]) * 0.0012
-        attr.array[i3 + 2] += Math.cos(time * 0.7 + noiseSeeds[i]) * 0.0012
-        if (attr.array[i3 + 1] > 5.0) {
-          attr.array[i3 + 1] = 0.05
-          const t = Math.random(); const cr = 1.8 * (1 - t * 0.55); const th = Math.random() * Math.PI * 2
-          attr.array[i3] = 3.5 + Math.cos(th) * cr * (Math.random() * 0.9 + 0.1)
-          attr.array[i3 + 2] = -2.3 + Math.sin(th) * cr * (Math.random() * 0.9 + 0.1)
+        // read current state
+        let px = attr.array[i3]
+        let py = attr.array[i3 + 1]
+        let pz = attr.array[i3 + 2]
+        let vx = velocities[i3]
+        let vy = velocities[i3 + 1]
+        let vz = velocities[i3 + 2]
+
+        // forces
+        const gravity = -0.018 // gentle downward pull
+        const windX = Math.sin(time * 0.9 + noiseSeeds[i]) * 0.0012
+        const windZ = Math.cos(time * 0.95 + noiseSeeds[i]) * 0.0010
+
+        // integrate velocity
+        vx += windX * dt
+        vy += gravity * dt
+        vz += windZ * dt
+
+        // apply simple drag
+        const drag = 0.85
+        vx *= Math.pow(drag, dt * 60)
+        vy *= Math.pow(drag, dt * 60)
+        vz *= Math.pow(drag, dt * 60)
+
+        // integrate position
+        px += vx * (1.0 + 0.2 * Math.random())
+        py += vy * (1.0 + 0.2 * Math.random())
+        pz += vz * (1.0 + 0.2 * Math.random())
+
+        // floor collision and slight bounce
+        const floorY = 0.05
+        if (py <= floorY) {
+          py = floorY + Math.random() * 0.01
+          vy = Math.abs(vy) * 0.32 // bounce up
+          vx *= 0.6; vz *= 0.6      // damping on impact
         }
+
+        // ceiling clamp (reset if it drifts too high)
+        if (py > 6.2) {
+          // respawn near source cone
+          const t = Math.random()
+          const coneRadius = 1.8 * (1 - t * 0.55)
+          const theta = Math.random() * Math.PI * 2
+          px = 3.5 + Math.cos(theta) * coneRadius * (Math.random() * 0.9 + 0.1)
+          py = Math.random() * 0.6 + 0.08
+          pz = -2.3 + Math.sin(theta) * coneRadius * (Math.random() * 0.9 + 0.1)
+          vx = (Math.random() - 0.5) * 0.002
+          vy = 0.008 + Math.random() * 0.012
+          vz = (Math.random() - 0.5) * 0.002
+        }
+
+        // Back wall collision (soft reflect)
+        const backWallZ = -4.8 + 0.18
+        if (pz < backWallZ) {
+          pz = backWallZ + (backWallZ - pz) * 0.15
+          vz = Math.abs(vz) * 0.35
+          vx *= 0.7
+        }
+
+        // Side wall soft limits (keeps beam inside the room)
+        const leftLimit = -8.0
+        const rightLimit = 12.0
+        if (px < leftLimit) { px = leftLimit + 0.02; vx = Math.abs(vx) * 0.45 }
+        if (px > rightLimit) { px = rightLimit - 0.02; vx = -Math.abs(vx) * 0.45 }
+
+        // write back
+        attr.array[i3] = px
+        attr.array[i3 + 1] = py
+        attr.array[i3 + 2] = pz
+        velocities[i3] = vx
+        velocities[i3 + 1] = vy
+        velocities[i3 + 2] = vz
+
+        // gentle drift to keep particles aligned with the spotlight cone
+        const coneCenterX = 3.5
+        const coneCenterZ = -2.3
+        const toCenterX = coneCenterX - px
+        const toCenterZ = coneCenterZ - pz
+        // apply a tiny restoring acceleration toward the cone axis
+        velocities[i3] += toCenterX * 0.00006 * dt
+        velocities[i3 + 2] += toCenterZ * 0.00006 * dt
       }
+
       attr.needsUpdate = true
     }
   })
