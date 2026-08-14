@@ -1,3 +1,4 @@
+# Beacon RAG Platform - Backend Dependencies
 fastapi
 uvicorn[standard]
 
@@ -28,4 +29,3 @@ langchain-core
 langchain-community
 langchain-text-splitters
 tiktoken
-
