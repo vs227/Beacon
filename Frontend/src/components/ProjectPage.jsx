@@ -608,14 +608,14 @@ function renderFormattedMessage(text) {
     }
   }
 
-  const sidebarItems = [
-    { id: 'overview', label: 'Overview', icon: <IconLayers size={15} /> },
-    { id: 'documents', label: 'Documents', icon: <IconFile size={15} /> },
-    { id: 'rag-chat', label: 'AI Assistant', icon: <IconCpu size={15} /> },
-    { id: 'knowledge-base', label: 'Knowledge Base', icon: <IconDatabase size={15} /> },
-    { id: 'activity', label: 'Activity', icon: <IconActivity size={15} /> },
-    { id: 'api-keys', label: 'API Keys', icon: <IconKey size={15} /> },
-    { id: 'settings', label: 'Settings', icon: <IconSettings size={15} /> },
+  const navItems = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'rag-chat', label: 'Test RAG' },
+    { id: 'knowledge-base', label: 'Knowledge Base' },
+    { id: 'activity', label: 'Activity' },
+    { id: 'api-keys', label: 'API Keys' },
+    { id: 'settings', label: 'Settings' },
   ]
 
   const formatDate = (dateStr) => {
@@ -642,25 +642,25 @@ function renderFormattedMessage(text) {
           <div className="navbar-brand" onClick={() => navigate('/dashboard/organizations')}>
             <span>BEACON</span>
           </div>
-
-          <div className="navbar-breadcrumb">
-            <span className="breadcrumb-separator">/</span>
-            <span className="breadcrumb-org" onClick={() => navigate('/dashboard/organizations')}>Organizations</span>
-            <span className="breadcrumb-separator">/</span>
-            <span className="breadcrumb-org" onClick={() => navigate(`/dashboard/org/${orgId}`)}>Projects</span>
-            <span className="breadcrumb-separator">/</span>
-            <span className="breadcrumb-org" style={{ color: '#fff', cursor: 'default' }}>
-              {project?.name || 'Project'}
-            </span>
-          </div>
         </div>
 
-        {/* Right User profile */}
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Right User profile & Navigation Tabs */}
+        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-item${activeSection === item.id ? ' active' : ''}`}
+              onClick={() => setActiveSection(item.id)}
+            >
+              <span>{item.label}</span>
+            </button>
+          ))}
+
           <button
             className="user-avatar-btn"
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             aria-label="User menu"
+            style={{ marginLeft: '6px' }}
           >
             <div className="user-avatar">
               {auth.user?.username?.[0]?.toUpperCase() || auth.user?.email?.[0]?.toUpperCase() || 'U'}
@@ -697,41 +697,92 @@ function renderFormattedMessage(text) {
         </div>
       </header>
 
-      {/* Project Layout: Sidebar + Content */}
-      <div className="project-layout">
-
-        {/* Left Sidebar */}
-        <aside className="project-sidebar">
-          <button className="sidebar-back-btn" onClick={() => navigate(`/dashboard/org/${orgId}`)}>
+      {/* Main Content Area */}
+      <main style={{ width: '100%', padding: '36px 32px 24px 32px', boxSizing: 'border-box' }}>
+        {/* Back to Projects link on far left under BEACON logo */}
+        <div style={{ marginBottom: '24px', marginTop: '6px' }}>
+          <button
+            onClick={() => navigate(`/dashboard/org/${orgId}`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '0.84rem',
+              padding: 0,
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
             <IconArrowLeft size={14} />
             <span>Back to Projects</span>
           </button>
+        </div>
 
-          <div className="sidebar-project-info">
-            <h3 className="sidebar-project-name">{project?.name || 'Loading...'}</h3>
-            {project?.environment && (
-              <span className={`status-badge ${project.environment.toLowerCase() === 'production' ? 'active' : 'type'}`}>
-                {project.environment}
-              </span>
+        {/* Centered Container for Project Details & Tabs */}
+        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+              {project?.name || 'Project'}
+            </h1>
+
+            {/* Test RAG Controls - Right Aligned under Top Navbar Tabs */}
+            {activeSection === 'rag-chat' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Provider Selector */}
+                <select
+                  className="provider-select-pill"
+                  value={ragProvider}
+                  onChange={(e) => setRagProvider(e.target.value)}
+                  style={{ borderRadius: '0px' }}
+                >
+                  <option value="groq">Groq (Llama 3.3 70B)</option>
+                  <option value="openai">OpenAI (GPT-4o mini)</option>
+                  <option value="gemini">Google Gemini (Flash)</option>
+                  <option value="anthropic">Anthropic (Claude 3.5)</option>
+                  <option value="custom">Custom Endpoint / Local LLM</option>
+                </select>
+
+                {/* BYOK Key Toggle */}
+                <button
+                  className={`byok-toggle-btn ${byokKey.trim() ? 'active-key' : ''}`}
+                  onClick={() => setShowByokModal(!showByokModal)}
+                  style={{ borderRadius: '0px' }}
+                >
+                  <IconKey size={14} />
+                  <span>{byokKey.trim() ? 'BYOK Active' : 'BYOK Key'}</span>
+                </button>
+
+                {/* Context Depth Selector */}
+                <select
+                  className="provider-select-pill"
+                  value={topK}
+                  onChange={(e) => setTopK(Number(e.target.value))}
+                  title="Context depth for query resolution"
+                  style={{ borderRadius: '0px' }}
+                >
+                  <option value={2}>Concise (K=2)</option>
+                  <option value={4}>Balanced (K=4)</option>
+                  <option value={6}>Deep (K=6)</option>
+                </select>
+
+                {/* Clear Chat Button */}
+                <button
+                  className="byok-toggle-btn"
+                  onClick={handleClearChat}
+                  title="Clear conversation history for this project"
+                  style={{ borderRadius: '0px', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}
+                >
+                  <IconTrash size={14} />
+                  <span>Clear</span>
+                </button>
+              </div>
             )}
           </div>
-
-          <nav className="sidebar-nav">
-            {sidebarItems.map((item) => (
-              <button
-                key={item.id}
-                className={`sidebar-nav-item${activeSection === item.id ? ' active' : ''}`}
-                onClick={() => setActiveSection(item.id)}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="project-content">
           {loading ? (
             <div className="spinner-container">
               <div className="dashboard-spinner"></div>
@@ -752,73 +803,51 @@ function renderFormattedMessage(text) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="project-section"
+                  style={{ maxWidth: '720px' }}
                 >
-                  <h2 className="section-title">Project Overview</h2>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '24px' }}>
+                    Project Overview
+                  </h2>
 
-                  <div className="project-meta-grid">
-                    <div className="meta-card">
-                      <div className="meta-label">Project Name</div>
-                      <div className="meta-value">{project.name}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Project Name</span>
+                      <span style={{ color: '#fff', fontSize: '0.92rem', fontWeight: 600, fontFamily: 'var(--font-display)' }}>{project.name}</span>
                     </div>
-                    <div className="meta-card">
-                      <div className="meta-label">Slug</div>
-                      <div className="meta-value mono">{project.slug}</div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Slug</span>
+                      <span style={{ color: 'var(--bronze-highlight)', fontSize: '0.88rem', fontFamily: 'monospace', fontWeight: 500 }}>{project.slug}</span>
                     </div>
-                    <div className="meta-card">
-                      <div className="meta-label">Use Case</div>
-                      <div className="meta-value">{project.project_type || 'Not set'}</div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Use Case</span>
+                      <span style={{ color: '#fff', fontSize: '0.88rem' }}>{project.project_type || 'General AI Assistant'}</span>
                     </div>
-                    <div className="meta-card">
-                      <div className="meta-label">Environment</div>
-                      <div className="meta-value">
-                        <span className={`status-badge ${project.environment?.toLowerCase() === 'production' ? 'active' : 'type'}`}>
-                          {project.environment || 'Development'}
-                        </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Environment</span>
+                      <span className={`status-badge ${project.environment?.toLowerCase() === 'production' ? 'active' : 'type'}`}>
+                        {project.environment || 'Development'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Total Documents</span>
+                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>{documents.length}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Total Chunks</span>
+                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>{documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)}</span>
+                    </div>
+
+                    {project.description && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '4px' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Description</span>
+                        <p style={{ color: '#e0e0e0', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>{project.description}</p>
                       </div>
-                    </div>
-                    <div className="meta-card">
-                      <div className="meta-label">Total Documents</div>
-                      <div className="meta-value">{documents.length}</div>
-                    </div>
-                    <div className="meta-card">
-                      <div className="meta-label">Total Chunks</div>
-                      <div className="meta-value">{documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)}</div>
-                    </div>
-                  </div>
-
-                  {project.description && (
-                    <div className="project-description-block">
-                      <div className="meta-label">Description</div>
-                      <p className="project-description-text">{project.description}</p>
-                    </div>
-                  )}
-
-                  {/* Quick Actions */}
-                  <div className="quick-actions">
-                    <h3 className="subsection-title">Quick Actions</h3>
-                    <div className="actions-grid">
-                      <button className="action-card" onClick={() => setActiveSection('documents')}>
-                        <IconUpload size={20} />
-                        <span>Upload Documents</span>
-                        <p>Add files to build your knowledge index</p>
-                      </button>
-                      <button className="action-card" onClick={() => setActiveSection('rag-chat')}>
-                        <IconCpu size={20} />
-                        <span>AI Assistant RAG</span>
-                        <p>Ask questions with grounded LLM answers</p>
-                      </button>
-                      <button className="action-card" onClick={() => setActiveSection('knowledge-base')}>
-                        <IconDatabase size={20} />
-                        <span>Knowledge Base</span>
-                        <p>Search & query indexed content</p>
-                      </button>
-                      <button className="action-card" onClick={() => setActiveSection('api-keys')}>
-                        <IconKey size={20} />
-                        <span>API Keys</span>
-                        <p>Generate keys for API access</p>
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -1099,54 +1128,92 @@ function renderFormattedMessage(text) {
                   exit={{ opacity: 0, y: -10 }}
                   className="project-section"
                 >
-                  <h2 className="section-title">Knowledge Base & Semantic Search</h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '24px' }}>
-                    Query your indexed vector embeddings using cosine similarity.
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <h2 className="section-title" style={{ margin: 0 }}>Knowledge Base & Semantic Search</h2>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '4px', margin: 0 }}>
+                        Real-time vector search across document embeddings using cosine similarity.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Vector Stats Metric Bar */}
+                  <div className="kb-stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+                    <div className="kb-stat-card">
+                      <span className="kb-stat-label">Vector Index Chunks</span>
+                      <span className="kb-stat-value">{documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)}</span>
+                    </div>
+                    <div className="kb-stat-card">
+                      <span className="kb-stat-label">Embedding Model</span>
+                      <span className="kb-stat-value" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>MiniLM-L6-v2</span>
+                    </div>
+                    <div className="kb-stat-card">
+                      <span className="kb-stat-label">Distance Metric</span>
+                      <span className="kb-stat-value" style={{ fontSize: '0.85rem' }}>Cosine Similarity</span>
+                    </div>
+                    <div className="kb-stat-card">
+                      <span className="kb-stat-label">Vector Status</span>
+                      <span className="kb-stat-value" style={{ fontSize: '0.82rem', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }}></span>
+                        Active & Synced
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Search Bar */}
                   <form onSubmit={handleSearch} className="search-bar-container">
-                    <IconSearch size={16} />
+                    <IconSearch size={18} style={{ color: 'var(--text-secondary)' }} />
                     <input
                       type="text"
                       className="search-input"
-                      placeholder="Ask a question or search key phrases across documents..."
+                      placeholder="Enter natural language queries, questions, or key phrases..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <button type="submit" className="btn-create" disabled={searching || !searchQuery.trim()}>
-                      {searching ? <IconLoader size={14} /> : <span>Search</span>}
+                    <button type="submit" className="kb-search-btn" disabled={searching || !searchQuery.trim()}>
+                      {searching ? <IconLoader size={16} /> : <IconSearch size={16} />}
+                      <span>{searching ? 'Querying...' : 'Semantic Search'}</span>
                     </button>
                   </form>
 
                   {/* Search Results */}
                   {hasSearched && (
                     <div className="search-results-container" style={{ marginTop: '28px' }}>
-                      <h3 className="subsection-title">
-                        Search Results {searchResults.length > 0 && `(${searchResults.length})`}
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <h3 className="subsection-title" style={{ margin: 0 }}>
+                          Search Results {searchResults.length > 0 && `(${searchResults.length} chunks)`}
+                        </h3>
+                        {searchResults.length > 0 && (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            Sorted by similarity match
+                          </span>
+                        )}
+                      </div>
 
                       {searching ? (
-                        <div className="spinner-container" style={{ minHeight: '120px' }}>
+                        <div className="spinner-container" style={{ minHeight: '140px', background: '#101015', borderRadius: '0px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
                           <div className="dashboard-spinner"></div>
-                          <span>Generating embeddings & querying vector index...</span>
+                          <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>Generating vector embeddings & scanning HNSW index...</span>
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <div className="empty-state" style={{ minHeight: '160px' }}>
-                          <p>No matching text chunks found in indexed documents.</p>
+                        <div className="empty-state" style={{ minHeight: '160px', background: '#101015', borderRadius: '0px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+                          <p style={{ color: 'var(--text-secondary)' }}>No matching text chunks found in indexed documents.</p>
                         </div>
                       ) : (
                         <div className="results-list">
                           {searchResults.map((res, i) => (
                             <div key={res.chunk_id || i} className="search-result-card">
                               <div className="result-header">
-                                <span className="doc-source-badge">
-                                  <IconFile size={12} />
-                                  <span>{res.document_name || 'Document'} (Chunk #{res.chunk_index})</span>
-                                </span>
-                                <span className="similarity-badge">
-                                  {Math.round((res.similarity || 0) * 100)}% match
-                                </span>
+                                <div className="doc-source-badge">
+                                  <IconFile size={14} />
+                                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{res.document_name || 'Document'}</span>
+                                  <span style={{ color: 'var(--text-secondary)', marginLeft: '4px' }}>(Chunk #{res.chunk_index})</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <span className="similarity-badge">
+                                    {Math.round((res.similarity || 0) * 100)}% Match
+                                  </span>
+                                </div>
                               </div>
                               <p className="result-content">{res.content}</p>
                             </div>
@@ -1159,68 +1226,15 @@ function renderFormattedMessage(text) {
               )}
 
                {/* AI Assistant RAG Section */}
+              {/* Test RAG Section */}
               {activeSection === 'rag-chat' && (
                 <motion.div
                   key="rag-chat"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="project-section"
+                  style={{ maxWidth: '840px', width: '100%', margin: '0 auto' }}
                 >
-                  <div className="rag-header-bar">
-                    <div>
-                      <h2 className="section-title" style={{ marginBottom: '4px' }}>RAG AI Assistant</h2>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        Ground your questions in your indexed documents, PDFs, code files, and GitHub repositories.
-                      </p>
-                    </div>
-
-                    <div className="rag-controls-group">
-                      {/* Provider Selector */}
-                      <select
-                        className="provider-select-pill"
-                        value={ragProvider}
-                        onChange={(e) => setRagProvider(e.target.value)}
-                      >
-                        <option value="groq">Groq (Llama 3.3 70B)</option>
-                        <option value="openai">OpenAI (GPT-4o mini)</option>
-                        <option value="gemini">Google Gemini (Flash)</option>
-                        <option value="anthropic">Anthropic (Claude 3.5)</option>
-                        <option value="custom">Custom Endpoint / Local LLM</option>
-                      </select>
-
-                      {/* BYOK Key Toggle */}
-                      <button
-                        className={`byok-toggle-btn ${byokKey.trim() ? 'active-key' : ''}`}
-                        onClick={() => setShowByokModal(!showByokModal)}
-                      >
-                        <IconKey size={14} />
-                        <span>{byokKey.trim() ? 'BYOK Key Active' : 'Bring Your Own Key'}</span>
-                      </button>
-
-                      {/* Context Depth Selector */}
-                      <select
-                        className="provider-select-pill"
-                        value={topK}
-                        onChange={(e) => setTopK(Number(e.target.value))}
-                        title="Context depth for query resolution"
-                      >
-                        <option value={2}>Concise Context</option>
-                        <option value={4}>Balanced Context</option>
-                        <option value={6}>Deep Context</option>
-                      </select>
-
-                      {/* Clear Chat Button */}
-                      <button
-                        className="byok-toggle-btn"
-                        onClick={handleClearChat}
-                        title="Clear conversation history for this project"
-                      >
-                        <IconTrash size={14} />
-                        <span>Clear Chat</span>
-                      </button>
-                    </div>
-                  </div>
 
                   {/* BYOK Modal Dropdown */}
                   <AnimatePresence>
@@ -1230,6 +1244,7 @@ function renderFormattedMessage(text) {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         className="byok-modal-panel"
+                        style={{ marginBottom: '16px', borderRadius: '0px' }}
                       >
                         <div className="byok-header">
                           <h4>Bring Your Own Key (BYOK)</h4>
@@ -1244,11 +1259,12 @@ function renderFormattedMessage(text) {
                             placeholder={`Enter custom ${ragProvider.toUpperCase()} API key...`}
                             value={byokKey}
                             onChange={(e) => setByokKey(e.target.value)}
+                            style={{ borderRadius: '0px' }}
                           />
                           {byokKey && (
-                            <button className="btn-modal-cancel" onClick={() => setByokKey('')}>Clear</button>
+                            <button className="btn-modal-cancel" onClick={() => setByokKey('')} style={{ borderRadius: '0px' }}>Clear</button>
                           )}
-                          <button className="btn-modal-submit" onClick={() => setShowByokModal(false)}>Save Key</button>
+                          <button className="btn-modal-submit" onClick={() => setShowByokModal(false)} style={{ borderRadius: '0px' }}>Save Key</button>
                         </div>
                       </motion.div>
                     )}
@@ -1257,20 +1273,28 @@ function renderFormattedMessage(text) {
                   {/* Chat Container */}
                   <div className="rag-chat-container">
                     <div className="rag-messages-scroll" ref={chatScrollRef}>
-                      {ragMessages.map((msg, idx) => (
-                        <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
-                          <div className="rag-message-avatar">
-                            {msg.role === 'assistant' ? <IconCpu size={16} /> : 'U'}
-                          </div>
+                      {ragMessages.length === 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.7, textAlign: 'center', gap: '8px' }}>
+                          <IconCpu size={32} style={{ color: 'var(--bronze-highlight)', marginBottom: '8px' }} />
+                          <h4 style={{ color: '#fff', margin: 0, fontWeight: 500, fontSize: '0.95rem' }}>RAG Engine Ready</h4>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>Ask any question grounded in your indexed knowledge base.</p>
+                        </div>
+                      ) : (
+                        ragMessages.map((msg, idx) => (
+                          <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
+                            <div className="rag-message-avatar">
+                              {msg.role === 'assistant' ? <IconCpu size={16} /> : 'U'}
+                            </div>
 
-                          <div className="rag-message-bubble">
-                            <div className="rag-message-content">
-                              {renderFormattedMessage(msg.content)}
-                              {msg.typing && <span className="typing-cursor">▌</span>}
+                            <div className="rag-message-bubble">
+                              <div className="rag-message-content">
+                                {renderFormattedMessage(msg.content)}
+                                {msg.typing && <span className="typing-cursor">▌</span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
 
                       {ragLoading && (
                         <div className="rag-message-wrapper assistant">
@@ -1295,11 +1319,13 @@ function renderFormattedMessage(text) {
                         value={ragInput}
                         onChange={(e) => setRagInput(e.target.value)}
                         disabled={ragLoading}
+                        style={{ borderRadius: '0px' }}
                       />
                       <button
                         type="submit"
                         className="rag-send-btn"
                         disabled={!ragInput.trim() || ragLoading}
+                        style={{ borderRadius: '0px' }}
                       >
                         {ragLoading ? <IconLoader size={16} /> : <IconSend size={16} />}
                       </button>
@@ -1356,44 +1382,141 @@ function renderFormattedMessage(text) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="project-section"
+                  style={{ maxWidth: '820px' }}
                 >
                   <h2 className="section-title">Project Settings</h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '24px' }}>
+                    Manage environment configurations, metadata identifiers, and system parameters for this project.
+                  </p>
 
-                  <div className="settings-section">
-                    <h3>General</h3>
-                    <div className="settings-field">
-                      <span className="label">Project ID</span>
-                      <span className="value" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{project.id}</span>
+                  {/* General Configuration */}
+                  <div className="settings-card">
+                    <div className="settings-card-header">
+                      <h3>General Configuration</h3>
+                      <span>Basic details and runtime environment settings</span>
                     </div>
-                    <div className="settings-field">
-                      <span className="label">Organization ID</span>
-                      <span className="value" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{project.organization_id}</span>
+
+                    <div className="settings-form-group">
+                      <label className="settings-label">Project Name</label>
+                      <input
+                        type="text"
+                        className="github-input"
+                        value={project.name}
+                        readOnly
+                        style={{ background: '#09090e', cursor: 'default' }}
+                      />
                     </div>
-                    <div className="settings-field">
-                      <span className="label">Slug</span>
-                      <span className="value">{project.slug}</span>
+
+                    <div className="settings-form-group">
+                      <label className="settings-label">Description</label>
+                      <textarea
+                        className="github-input"
+                        value={project.description || 'No description provided.'}
+                        readOnly
+                        rows={2}
+                        style={{ background: '#09090e', resize: 'none', cursor: 'default' }}
+                      />
+                    </div>
+
+                    <div className="settings-grid-2">
+                      <div className="settings-form-group">
+                        <label className="settings-label">Environment</label>
+                        <div className="settings-pill-display">
+                          <span className={`status-badge ${project.environment?.toLowerCase() === 'production' ? 'active' : 'type'}`}>
+                            {project.environment || 'Development'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="settings-form-group">
+                        <label className="settings-label">Use Case / Type</label>
+                        <div className="settings-pill-display">
+                          <span style={{ color: '#ffffff', fontSize: '0.86rem', fontWeight: 500 }}>
+                            {project.project_type || 'General AI Assistant'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="settings-section" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
-                    <h3 style={{ color: '#fca5a5' }}>Danger Zone</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                      Deleting this project will permanently remove all documents, knowledge bases, and API keys associated with it.
+                  {/* System Identifiers */}
+                  <div className="settings-card" style={{ marginTop: '20px' }}>
+                    <div className="settings-card-header">
+                      <h3>System Identifiers & API Metadata</h3>
+                      <span>Unique keys for SDK and backend integration</span>
+                    </div>
+
+                    <div className="settings-field-row">
+                      <div>
+                        <span className="settings-field-title">Project ID</span>
+                        <span className="settings-field-sub">Required in RAG query headers</span>
+                      </div>
+                      <div className="settings-code-box">
+                        <code>{project.id}</code>
+                        <button
+                          className="copy-code-btn"
+                          onClick={() => navigator.clipboard.writeText(project.id)}
+                          title="Copy Project ID"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="settings-field-row">
+                      <div>
+                        <span className="settings-field-title">Organization ID</span>
+                        <span className="settings-field-sub">Parent organization namespace</span>
+                      </div>
+                      <div className="settings-code-box">
+                        <code>{project.organization_id}</code>
+                        <button
+                          className="copy-code-btn"
+                          onClick={() => navigator.clipboard.writeText(project.organization_id)}
+                          title="Copy Organization ID"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="settings-field-row">
+                      <div>
+                        <span className="settings-field-title">Project Slug</span>
+                        <span className="settings-field-sub">URL-safe project identifier</span>
+                      </div>
+                      <div className="settings-code-box">
+                        <code>{project.slug}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="settings-card danger-zone-card" style={{ marginTop: '24px' }}>
+                    <div className="settings-card-header">
+                      <h3 style={{ color: '#fca5a5' }}>Danger Zone</h3>
+                      <span style={{ color: '#f87171' }}>Irreversible workspace operations</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                      Deleting this project will permanently purge all indexed vector embeddings, uploaded files, GitHub repository links, and RAG chat history. This action cannot be undone.
                     </p>
-                    <button
-                      className="btn-modal-cancel"
-                      style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}
-                    >
-                      Delete Project
-                    </button>
+                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        className="btn-danger-delete"
+                        onClick={() => alert('Project deletion protection enabled.')}
+                      >
+                        <IconTrash size={14} />
+                        <span>Delete Project</span>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}
 
             </AnimatePresence>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

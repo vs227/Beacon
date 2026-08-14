@@ -132,6 +132,7 @@ export default function Dashboard({ auth }) {
   const [newProjectType, setNewProjectType] = useState('Customer Support')
   const [customProjectType, setCustomProjectType] = useState('')
   const [newProjectEnv, setNewProjectEnv] = useState('Development')
+  const [projectSearchQuery, setProjectSearchQuery] = useState('')
 
   const API_BASE = ''
 
@@ -412,69 +413,23 @@ export default function Dashboard({ auth }) {
           <div className="navbar-brand" onClick={() => navigate('/dashboard/organizations')}>
             <span>BEACON</span>
           </div>
-
-          {selectedOrg && (
-            <div className="navbar-breadcrumb">
-              <span className="breadcrumb-separator">/</span>
-              <span className="breadcrumb-org" onClick={() => navigate('/dashboard/organizations')}>Organizations</span>
-              <span className="breadcrumb-separator">/</span>
-              <span className="breadcrumb-org" style={{ color: '#fff', cursor: 'default' }}>
-                {selectedOrg?.name}
-              </span>
-            </div>
-          )}
         </div>
 
-        <nav className="navbar-center">
-          {selectedOrg && (
-            <>
-              <button
-                className={`nav-item${activeTab === 'projects' ? ' active' : ''}`}
-                onClick={() => navigate(`/dashboard/org/${selectedOrg?.id || selectedOrg?.organization_id}`)}
-              >
-                <IconLayers />
-                <span>Projects</span>
-              </button>
-              <button
-                className={`nav-item${activeTab === 'workspaces' ? ' active' : ''}`}
-                onClick={() => navigate('/dashboard/workspaces')}
-              >
-                <IconLayers />
-                <span>Workspaces</span>
-              </button>
-              <button
-                className={`nav-item${activeTab === 'knowledge-bases' ? ' active' : ''}`}
-                onClick={() => navigate('/dashboard/knowledge-bases')}
-              >
-                <IconDatabase />
-                <span>Knowledge Bases</span>
-              </button>
-              <button
-                className={`nav-item${activeTab === 'api-keys' ? ' active' : ''}`}
-                onClick={() => navigate('/dashboard/api-keys')}
-              >
-                <IconKey />
-                <span>API Keys</span>
-              </button>
-              <button
-                className={`nav-item${activeTab === 'org-settings' ? ' active' : ''}`}
-                onClick={() => navigate('/dashboard/org-settings')}
-              >
-                <IconSettings />
-                <span>Org Settings</span>
-              </button>
-            </>
-          )}
-        </nav>
+        {/* Right User profile with Nav Items */}
+        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            className={`nav-item${activeTab === 'organizations' ? ' active' : ''}`}
+            onClick={() => navigate('/dashboard/organizations')}
+          >
+            <span>Organizations</span>
+          </button>
 
-        {/* Right User profile with Dropdown */}
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {!selectedOrg && (
+          {selectedOrg && (
             <button
-              className={`nav-item${activeTab === 'organizations' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/organizations')}
+              className={`nav-item${activeTab === 'projects' ? ' active' : ''}`}
+              onClick={() => navigate(`/dashboard/org/${selectedOrg?.id || selectedOrg?.organization_id}`)}
             >
-              <span>Organizations</span>
+              <span>Projects</span>
             </button>
           )}
 
@@ -537,23 +492,6 @@ export default function Dashboard({ auth }) {
 
       {/* Main Content Pane */}
       <main className="dashboard-content">
-        {selectedOrg && (
-          <header className="content-header" style={{ marginBottom: '32px' }}>
-            <div>
-              <h1 className="content-title">
-                {`${selectedOrg.name} / ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace('-', ' ')}`}
-              </h1>
-            </div>
-
-            {activeTab === 'projects' && (
-              <button className="btn-create" onClick={() => setShowProjectModal(true)}>
-                <IconPlus />
-                <span>Create Project</span>
-              </button>
-            )}
-          </header>
-        )}
-
         {/* Status Error Banners */}
         {errorMsg && (
           <div className="error-banner">
@@ -709,61 +647,148 @@ export default function Dashboard({ auth }) {
             )}
 
             {activeTab === 'projects' && (
-              <motion.div key="projects" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="dashboard-grid">
+              <motion.div
+                key="projects"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', padding: '10px 0' }}
+              >
+                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '24px' }}>
+                  Your Projects
+                </h1>
+
+                {/* Control Bar: Search Input (left) & New Project (right) */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <IconSearch size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search projects..."
+                      value={projectSearchQuery}
+                      onChange={(e) => setProjectSearchQuery(e.target.value)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '7px 12px 7px 34px',
+                        color: '#fff',
+                        fontSize: '0.84rem',
+                        fontFamily: 'var(--font-sans)',
+                        outline: 'none',
+                        width: '260px',
+                        transition: 'border-color 0.2s ease',
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)')}
+                      onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowProjectModal(true)}
+                    style={{
+                      background: 'var(--bronze-base)',
+                      border: '1px solid rgba(244, 209, 166, 0.35)',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      padding: '6px 14px',
+                      fontSize: '0.82rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontFamily: 'var(--font-sans)',
+                      boxShadow: '0 2px 10px rgba(182, 122, 70, 0.25)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bronze-shadow)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bronze-base)')}
+                  >
+                    <span>+ New project</span>
+                  </button>
+                </div>
+
+                {/* Projects Cards Grid */}
                 {loadingProjects ? (
                   <div className="spinner-container">
                     <div className="dashboard-spinner"></div>
                     <span>Loading projects...</span>
                   </div>
-                ) : projects.length === 0 ? (
-                  <div className="empty-state">
-                    <h3>No Projects Found</h3>
-                    <p>Create a project inside this organization to build indexing and knowledge bases.</p>
-                    <button className="btn-create" onClick={() => setShowProjectModal(true)}>
-                      <IconPlus />
-                      <span>Create Project</span>
-                    </button>
+                ) : projects.filter(p => p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase())).length === 0 ? (
+                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed rgba(255, 255, 255, 0.1)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '1.05rem', color: '#fff', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
+                      {projectSearchQuery ? 'No matching projects found' : 'No Projects Found'}
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+                      {projectSearchQuery ? 'Try adjusting your search query.' : 'Create a project inside this organization to build indexing and knowledge bases.'}
+                    </p>
+                    {!projectSearchQuery && (
+                      <button
+                        onClick={() => setShowProjectModal(true)}
+                        style={{
+                          background: 'var(--bronze-base)',
+                          border: '1px solid rgba(244, 209, 166, 0.35)',
+                          color: '#fff',
+                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          fontSize: '0.82rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + New project
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  projects.map((proj) => (
-                    <div
-                      className="dashboard-card"
-                      key={proj.id}
-                      onClick={() => {
-                        const orgId = selectedOrg.id || selectedOrg.organization_id
-                        navigate(`/dashboard/org/${orgId}/project/${proj.id}`)
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="card-header">
-                        <h2 className="card-name">{proj.name}</h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {proj.environment && (
-                            <span className={`status-badge ${proj.environment.toLowerCase() === 'production' ? 'active' : 'type'}`}>
-                              {proj.environment}
-                            </span>
-                          )}
-                          <button className="btn-delete-card" onClick={(e) => { e.stopPropagation(); handleDeleteProject(proj.id) }}>
-                            <IconTrash />
-                          </button>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '14px' }}>
+                    {projects
+                      .filter(p => p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase()))
+                      .map((proj) => (
+                        <div
+                          key={proj.id}
+                          onClick={() => {
+                            const orgId = selectedOrg.id || selectedOrg.organization_id
+                            navigate(`/dashboard/org/${orgId}/project/${proj.id}`)
+                          }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
+                            padding: '14px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <IconLayers size={16} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
+                                {proj.name}
+                              </h2>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{proj.project_type || proj.environment || 'Development'}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      {proj.project_type && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--bronze-highlight)', fontWeight: 500, marginTop: '-4px', marginBottom: '8px' }}>
-                          {proj.project_type}
-                        </div>
-                      )}
-                      <p className="card-desc">
-                        {proj.description || 'AI assistant for answering queries from documentation.'}
-                      </p>
-                      <div className="card-footer">
-                        <span className="card-label">Slug</span>
-                        <span className="card-val" style={{ fontFamily: 'monospace', color: 'var(--bronze-highlight)' }}>
-                          {proj.slug}
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                      ))}
+                  </div>
                 )}
               </motion.div>
             )}
@@ -884,71 +909,159 @@ export default function Dashboard({ auth }) {
               </motion.div>
             )}
 
-            {activeTab === 'settings' && (
-              <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="settings-tab-container">
-                <div className="settings-section">
-                  <h3>User Profile Information</h3>
-                  <div className="settings-field">
-                    <span className="label">User Identifier (UUID)</span>
-                    <span className="value"><code>{auth.user?.user_id || 'Generating...'}</code></span>
-                  </div>
-                  <div className="settings-field">
-                    <span className="label">Username</span>
-                    <span className="value">{auth.user?.username || 'Beacon Dev'}</span>
-                  </div>
-                  <div className="settings-field">
-                    <span className="label">Primary Email</span>
-                    <span className="value">{auth.user?.email}</span>
+            {(activeTab === 'settings' || activeTab === 'org-settings') && (
+              <motion.div
+                key="account-settings"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="full-page-settings"
+              >
+                {/* Page Title & Subtitle */}
+                <div className="settings-page-header">
+                  <div>
+                    <h2 className="settings-page-title">Account Settings</h2>
+                    <p className="settings-page-subtitle">
+                      Manage your public profile, security credentials, and active session tokens.
+                    </p>
                   </div>
                 </div>
 
-                <div className="settings-section">
-                  <h3>Active Authorization Credentials</h3>
-                  <div className="settings-field">
-                    <span className="label">JWT Access Token</span>
-                    <div className="token-display-box">
-                      <code className="token-code">{auth.token}</code>
+                {/* Profile Banner */}
+                <div className="profile-banner-card">
+                  <div className="profile-avatar-wrapper">
+                    <div className="profile-avatar-main">
+                      {(auth.user?.username || auth.user?.email || 'U')[0].toUpperCase()}
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
 
-            {activeTab === 'org-settings' && selectedOrg && (
-              <motion.div key="org-settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="settings-tab-container">
-                <div className="settings-section">
-                  <h3>Organization Information</h3>
-                  <div className="settings-field">
-                    <span className="label">Organization ID</span>
-                    <span className="value"><code>{selectedOrg.id || selectedOrg.organization_id}</code></span>
-                  </div>
-                  <div className="settings-field">
-                    <span className="label">Slug</span>
-                    <span className="value"><code>{selectedOrg.slug}</code></span>
-                  </div>
-                  <div className="settings-field">
-                    <span className="label">Name</span>
-                    <span className="value">{selectedOrg.name}</span>
-                  </div>
-                  <div className="settings-field">
-                    <span className="label">Description</span>
-                    <span className="value">{selectedOrg.description || 'No description provided.'}</span>
+                  <div className="profile-banner-info">
+                    <div className="profile-name-row">
+                      <h3 className="profile-display-name">{auth.user?.username || 'Beacon Developer'}</h3>
+                      <span className="profile-status-pill">Active Administrator</span>
+                    </div>
+                    <span className="profile-email-text">{auth.user?.email}</span>
                   </div>
                 </div>
 
-                <div className="settings-section" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
-                  <h3 style={{ color: '#f87171', borderBottomColor: 'rgba(239, 68, 68, 0.1)' }}>Danger Zone</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Deleting this organization will permanently destroy all child projects, API configurations, and workspaces.
-                  </p>
-                  <button
-                    className="btn-logout"
-                    style={{ width: 'fit-content', background: 'rgba(239, 68, 68, 0.05)' }}
-                    onClick={() => handleDeleteOrg(selectedOrg.id || selectedOrg.organization_id)}
-                  >
-                    <IconTrash />
-                    <span>Delete Organization</span>
-                  </button>
+                {/* Main Settings Panel Grid */}
+                <div className="settings-full-grid">
+                  {/* Public Profile Section */}
+                  <div className="settings-panel">
+                    <div className="settings-panel-header">
+                      <h3>Public Profile</h3>
+                      <span>Information associated with your account</span>
+                    </div>
+
+                    <div className="settings-row-2col">
+                      <div className="settings-input-group">
+                        <label className="settings-field-label">Username / Display Name</label>
+                        <input
+                          type="text"
+                          className="settings-text-input"
+                          value={auth.user?.username || ''}
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="settings-input-group">
+                        <label className="settings-field-label">Primary Email Address</label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="email"
+                            className="settings-text-input"
+                            value={auth.user?.email || ''}
+                            readOnly
+                            style={{ paddingRight: '90px' }}
+                          />
+                          <span className="verified-badge-tag">Verified</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="settings-row-2col" style={{ marginTop: '16px' }}>
+                      <div className="settings-input-group">
+                        <label className="settings-field-label">Account Role</label>
+                        <input
+                          type="text"
+                          className="settings-text-input"
+                          value="Workspace Administrator"
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="settings-input-group">
+                        <label className="settings-field-label">Authentication Method</label>
+                        <input
+                          type="text"
+                          className="settings-text-input"
+                          value="Bearer JWT / OAuth Pass"
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security & Access Tokens Section */}
+                  <div className="settings-panel">
+                    <div className="settings-panel-header">
+                      <h3>Security & API Credentials</h3>
+                      <span>Identifiers and active session access tokens</span>
+                    </div>
+
+                    <div className="settings-detail-item">
+                      <div>
+                        <span className="settings-item-title">User Account Identifier (UUID)</span>
+                        <span className="settings-item-desc">Global unique user reference for API requests</span>
+                      </div>
+                      <div className="settings-code-box">
+                        <code>{auth.user?.user_id || 'Generating...'}</code>
+                        <button
+                          className="copy-code-btn"
+                          onClick={() => auth.user?.user_id && navigator.clipboard.writeText(auth.user.user_id)}
+                        >
+                          Copy ID
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="settings-detail-item">
+                      <div>
+                        <span className="settings-item-title">Active JWT Access Token</span>
+                        <span className="settings-item-desc">Current session authorization token</span>
+                      </div>
+                      <div className="settings-code-box">
+                        <code>{auth.token ? `${auth.token.substring(0, 32)}...` : 'No Token'}</code>
+                        <button
+                          className="copy-code-btn"
+                          onClick={() => auth.token && navigator.clipboard.writeText(auth.token)}
+                        >
+                          Copy Token
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Danger & Session Actions */}
+                  <div className="settings-panel danger-panel">
+                    <div className="settings-panel-header">
+                      <h3 style={{ color: '#fca5a5' }}>Session & Security Actions</h3>
+                      <span style={{ color: '#f87171' }}>Active session controls</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                      <p style={{ color: '#cbd5e1', fontSize: '0.86rem', margin: 0 }}>
+                        Terminating your session will revoke your active authentication token and log you out immediately.
+                      </p>
+                      <button
+                        className="btn-danger-delete"
+                        onClick={() => auth.logout()}
+                      >
+                        <IconLogOut size={14} />
+                        <span>Sign Out Account</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
