@@ -26,7 +26,7 @@ CORE INSTRUCTIONS:
    - Do NOT run all information together in a single unbroken block of text.
 
 3. STRICT LENGTH LIMIT & TOKEN CONSERVATION:
-   - Limit your response to a MAXIMUM OF 5 LINES in total.
+   - Limit your response to a MAXIMUM OF 12 LINES in total.
    - Be extremely concise, direct, and token-efficient.
    - Exclude conversational preambles, greetings, intros ("Based on the context..."), and closing fluff ("Please let me know if...").
 
@@ -160,7 +160,7 @@ def run_rag_pipeline(
             temperature=temperature,
         )
         answer = llm_res["answer"]
-        # Enforce strict 5-line maximum output limit and remove conversational fluff
+        # Enforce strict 12-line maximum output limit and remove conversational fluff
         if answer:
             raw_lines = [l.strip() for l in answer.splitlines() if l.strip()]
             filtered = [
@@ -170,7 +170,7 @@ def run_rag_pipeline(
                 and not l.lower().startswith("let me know if")
             ]
             final_lines = filtered if filtered else raw_lines
-            answer = "\n".join(final_lines[:5])
+            answer = "\n".join(final_lines[:12])
 
         provider_used = llm_res["provider"]
         model_used = llm_res["model"]

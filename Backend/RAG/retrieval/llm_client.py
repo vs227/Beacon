@@ -107,7 +107,7 @@ class MultiProviderLLMClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
-            "max_tokens": 512,
+            "max_tokens": 1024,
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -139,7 +139,7 @@ class MultiProviderLLMClient:
 
         payload = {
             "contents": [{"parts": [{"text": f"System Instructions: {system_prompt}\n\nUser Question: {prompt}"}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 512},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 1024},
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -177,7 +177,7 @@ class MultiProviderLLMClient:
             "model": model if "claude" in model else "claude-3-5-sonnet-20241022",
             "system": system_prompt,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 512,
+            "max_tokens": 1024,
             "temperature": temperature,
         }
 
