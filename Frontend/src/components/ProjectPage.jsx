@@ -130,13 +130,7 @@ export default function ProjectPage({ auth }) {
   const [hasSearched, setHasSearched] = useState(false)
 
   // RAG AI Assistant State
-  const [ragMessages, setRagMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! Ask me any question about your indexed project documents, code files, or GitHub repositories.',
-      sources: [],
-    }
-  ])
+  const [ragMessages, setRagMessages] = useState([])
   const [ragInput, setRagInput] = useState('')
   const [ragLoading, setRagLoading] = useState(false)
   const [ragProvider, setRagProvider] = useState('groq')
@@ -146,6 +140,56 @@ export default function ProjectPage({ auth }) {
 
   const chatScrollRef = useRef(null)
 
+  // Load saved project chat history from localStorage on load or project switch
+  useEffect(() => {
+    if (!projectId) return
+    const storageKey = `beacon_rag_chat_${projectId}`
+    const saved = localStorage.getItem(storageKey)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setRagMessages(parsed.map(m => ({ ...m, typing: false })))
+          return
+        }
+      } catch (err) {
+        console.error('Failed to parse saved chat history:', err)
+      }
+    }
+    setRagMessages([
+      {
+        role: 'assistant',
+        content: 'Welcome to Beacon Assistant. How can I help resolve your query today?',
+        sources: [],
+      }
+    ])
+  }, [projectId])
+
+  // Save chat history to localStorage whenever ragMessages updates
+  useEffect(() => {
+    if (!projectId || ragMessages.length === 0) return
+    const storageKey = `beacon_rag_chat_${projectId}`
+    const cleanMessages = ragMessages.map(m => {
+      const { typing, ...rest } = m
+      return rest
+    })
+    localStorage.setItem(storageKey, JSON.stringify(cleanMessages))
+  }, [ragMessages, projectId])
+
+  // Handle Clear Chat
+  const handleClearChat = () => {
+    if (!projectId) return
+    const storageKey = `beacon_rag_chat_${projectId}`
+    localStorage.removeItem(storageKey)
+    setRagMessages([
+      {
+        role: 'assistant',
+        content: 'Welcome to Beacon Assistant. How can I help resolve your query today?',
+        sources: [],
+      }
+    ])
+  }
+
   // Auto-scroll chat to bottom as messages arrive or type out
   useEffect(() => {
     if (chatScrollRef.current) {
@@ -153,40 +197,76 @@ export default function ProjectPage({ auth }) {
     }
   }, [ragMessages, ragLoading])
 
-  // Fast human-like dynamic typing animation
+// Formatter for AI output: renders bold headers and styled bullet points
+function renderFormattedMessage(text) {
+  if (!text) return null
+
+  const lines = text.split('\n')
+  return lines.map((line, idx) => {
+    const cleanLine = line.trim()
+    if (!cleanLine) return <div key={idx} style={{ height: '4px' }} />
+
+    // Check if line is a bullet point (*, -, •)
+    const bulletMatch = cleanLine.match(/^[*\-•]\s+(.*)/)
+    const isBullet = Boolean(bulletMatch)
+    const lineContent = isBullet ? bulletMatch[1] : cleanLine
+
+    // Parse bold text **bold**
+    const parts = lineContent.split(/(\*\*.*?\*\*)/g)
+    const formattedContent = parts.map((part, pIdx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={pIdx} style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+            {part.slice(2, -2)}
+          </strong>
+        )
+      }
+      return part
+    })
+
+    if (isBullet) {
+      return (
+        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '4px 0 4px 4px' }}>
+          <span style={{ color: 'var(--bronze-highlight, #f4d1a6)', fontSize: '0.85rem', lineHeight: '1.4' }}>•</span>
+          <span style={{ flex: 1, lineHeight: '1.45' }}>{formattedContent}</span>
+        </div>
+      )
+    }
+
+    return (
+      <div key={idx} style={{ margin: '3px 0', lineHeight: '1.45' }}>
+        {formattedContent}
+      </div>
+    )
+  })
+}
+
+  // Fast & smooth streaming typing animation (~0.4 - 0.8s)
   const typeTextHumanLike = async (fullText, assistantIndex) => {
     let currentText = ''
-    for (let i = 0; i < fullText.length; i++) {
-      const char = fullText[i]
-      currentText += char
+    const step = Math.max(3, Math.floor(fullText.length / 25))
+    for (let i = 0; i < fullText.length; i += step) {
+      currentText = fullText.slice(0, i + step)
 
       setRagMessages(prev => {
         const copy = [...prev]
         if (copy[assistantIndex]) {
-          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: i < fullText.length - 1 }
+          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: i + step < fullText.length }
         }
         return copy
       })
 
-      // Snappy base delay (5ms - 14ms)
-      let delay = Math.floor(Math.random() * 9) + 5
-
-      // Fast burst chance (35% chance: 2ms - 6ms)
-      if (Math.random() < 0.35) {
-        delay = Math.floor(Math.random() * 4) + 2
-      }
-
-      // Natural human pauses on punctuation and breaks
-      if (['.', '!', '?', ':'].includes(char)) {
-        delay += Math.floor(Math.random() * 60) + 40
-      } else if ([',', ';', '-'].includes(char)) {
-        delay += Math.floor(Math.random() * 30) + 15
-      } else if (char === '\n') {
-        delay += Math.floor(Math.random() * 40) + 25
-      }
-
-      await new Promise(res => setTimeout(res, delay))
+      await new Promise(res => setTimeout(res, 10))
     }
+
+    // Set 100% final text
+    setRagMessages(prev => {
+      const copy = [...prev]
+      if (copy[assistantIndex]) {
+        copy[assistantIndex] = { ...copy[assistantIndex], content: fullText, typing: false }
+      }
+      return copy
+    })
   }
 
   // Handle RAG AI Query
@@ -201,11 +281,14 @@ export default function ProjectPage({ auth }) {
     setRagMessages(updatedMessages)
     setRagLoading(true)
 
-    // Build chat history (sliding window of last 6 messages, exclude system greeting)
-    const historyForApi = updatedMessages
-      .filter(m => m.role === 'user' || (m.role === 'assistant' && m.confidence !== undefined))
-      .slice(-6)
-      .map(m => ({ role: m.role, content: m.content }))
+    // Build chat history (last 3 chat turns = up to 6 prior user & assistant messages)
+    const validPriorMessages = ragMessages.filter(
+      m => m.content && m.content.trim() && !m.typing
+    )
+    const historyForApi = validPriorMessages.slice(-6).map(m => ({
+      role: m.role,
+      content: m.content,
+    }))
 
     try {
       const res = await fetch(`${API_BASE}/organizations/${orgId}/projects/${projectId}/rag/query`, {
@@ -220,7 +303,7 @@ export default function ProjectPage({ auth }) {
           min_score: 0.20,
           llm_provider: ragProvider,
           custom_api_key: byokKey.trim() || undefined,
-          history: historyForApi.length > 1 ? historyForApi.slice(0, -1) : undefined,
+          history: historyForApi.length > 0 ? historyForApi : undefined,
         }),
       })
 
@@ -1099,11 +1182,11 @@ export default function ProjectPage({ auth }) {
                         value={ragProvider}
                         onChange={(e) => setRagProvider(e.target.value)}
                       >
-                        <option value="groq">⚡ Groq (Llama-3.3-70B)</option>
-                        <option value="openai">🤖 OpenAI (GPT-4o-mini)</option>
-                        <option value="gemini">✨ Google Gemini (Flash)</option>
-                        <option value="anthropic">🧠 Anthropic (Claude-3.5)</option>
-                        <option value="custom">🔌 Custom / Local (Ollama/vLLM)</option>
+                        <option value="groq">Groq (Llama 3.3 70B)</option>
+                        <option value="openai">OpenAI (GPT-4o mini)</option>
+                        <option value="gemini">Google Gemini (Flash)</option>
+                        <option value="anthropic">Anthropic (Claude 3.5)</option>
+                        <option value="custom">Custom Endpoint / Local LLM</option>
                       </select>
 
                       {/* BYOK Key Toggle */}
@@ -1112,20 +1195,30 @@ export default function ProjectPage({ auth }) {
                         onClick={() => setShowByokModal(!showByokModal)}
                       >
                         <IconKey size={14} />
-                        <span>{byokKey.trim() ? 'BYOK Key Set ✓' : 'Bring Your Own Key'}</span>
+                        <span>{byokKey.trim() ? 'BYOK Key Active' : 'Bring Your Own Key'}</span>
                       </button>
 
-                      {/* Top-K Selector for Token Optimization */}
+                      {/* Context Depth Selector */}
                       <select
                         className="provider-select-pill"
                         value={topK}
                         onChange={(e) => setTopK(Number(e.target.value))}
-                        title="Top K chunks retrieved per query"
+                        title="Context depth for query resolution"
                       >
-                        <option value={2}>Minimal (Top-2)</option>
-                        <option value={4}>Balanced (Top-4)</option>
-                        <option value={6}>Deep Context (Top-6)</option>
+                        <option value={2}>Concise Context</option>
+                        <option value={4}>Balanced Context</option>
+                        <option value={6}>Deep Context</option>
                       </select>
+
+                      {/* Clear Chat Button */}
+                      <button
+                        className="byok-toggle-btn"
+                        onClick={handleClearChat}
+                        title="Clear conversation history for this project"
+                      >
+                        <IconTrash size={14} />
+                        <span>Clear Chat</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1139,9 +1232,9 @@ export default function ProjectPage({ auth }) {
                         className="byok-modal-panel"
                       >
                         <div className="byok-header">
-                          <h4>🔑 Bring Your Own Key (BYOK)</h4>
+                          <h4>Bring Your Own Key (BYOK)</h4>
                           <span className="byok-subtitle">
-                            Provide your custom API key for {ragProvider.toUpperCase()}. Leaves system default untouched.
+                            Provide your custom API key for {ragProvider.toUpperCase()} or any compatible LLM endpoint.
                           </span>
                         </div>
                         <div className="byok-input-row">
@@ -1172,7 +1265,7 @@ export default function ProjectPage({ auth }) {
 
                           <div className="rag-message-bubble">
                             <div className="rag-message-content">
-                              {msg.content}
+                              {renderFormattedMessage(msg.content)}
                               {msg.typing && <span className="typing-cursor">▌</span>}
                             </div>
                           </div>
@@ -1184,9 +1277,10 @@ export default function ProjectPage({ auth }) {
                           <div className="rag-message-avatar">
                             <IconCpu size={16} />
                           </div>
-                          <div className="rag-message-bubble loading">
-                            <div className="dashboard-spinner"></div>
-                            <span>Searching vector index & generating answer...</span>
+                          <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', minWidth: '56px' }}>
+                            <span className="dot-typing"></span>
+                            <span className="dot-typing"></span>
+                            <span className="dot-typing"></span>
                           </div>
                         </div>
                       )}
@@ -1197,7 +1291,7 @@ export default function ProjectPage({ auth }) {
                       <input
                         type="text"
                         className="rag-chat-input"
-                        placeholder="Ask a question about your project documents, code, or GitHub repo..."
+                        placeholder="Type your query or request..."
                         value={ragInput}
                         onChange={(e) => setRagInput(e.target.value)}
                         disabled={ragLoading}
