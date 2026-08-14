@@ -12,6 +12,7 @@ from app.api.projects import router as projects_router
 from app.api.documents import router as documents_router
 from app.api.search import router as search_router
 from app.api.webhooks import router as webhooks_router
+from app.api.query import router as query_router
 
 app = FastAPI(
     title="Beacon API",
@@ -35,6 +36,7 @@ app.include_router(projects_router)
 app.include_router(documents_router)
 app.include_router(search_router)
 app.include_router(webhooks_router)
+app.include_router(query_router)
 
 
 @app.get("/")

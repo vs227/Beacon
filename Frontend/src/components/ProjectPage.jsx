@@ -38,6 +38,16 @@ function IconFile({ size = 16 }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
   )
 }
+function IconCpu({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" /><rect x="9" y="9" width="6" height="6" /><line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" /><line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" /><line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="15" x2="23" y2="15" /><line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="15" x2="4" y2="15" /></svg>
+  )
+}
+function IconSend({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+  )
+}
 function IconActivity({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
@@ -84,6 +94,8 @@ function IconRefresh({ size = 16 }) {
   )
 }
 
+const API_BASE = ''
+
 export default function ProjectPage({ auth }) {
   const navigate = useNavigate()
   const { orgId, projectId } = useParams()
@@ -117,8 +129,153 @@ export default function ProjectPage({ auth }) {
   const [searching, setSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
+  // RAG AI Assistant State
+  const [ragMessages, setRagMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Hello! Ask me any question about your indexed project documents, code files, or GitHub repositories.',
+      sources: [],
+    }
+  ])
+  const [ragInput, setRagInput] = useState('')
+  const [ragLoading, setRagLoading] = useState(false)
+  const [ragProvider, setRagProvider] = useState('groq')
+  const [byokKey, setByokKey] = useState('')
+  const [showByokModal, setShowByokModal] = useState(false)
+  const [topK, setTopK] = useState(4)
 
-  const API_BASE = ''
+  const chatScrollRef = useRef(null)
+
+  // Auto-scroll chat to bottom as messages arrive or type out
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [ragMessages, ragLoading])
+
+  // Fast human-like dynamic typing animation
+  const typeTextHumanLike = async (fullText, assistantIndex) => {
+    let currentText = ''
+    for (let i = 0; i < fullText.length; i++) {
+      const char = fullText[i]
+      currentText += char
+
+      setRagMessages(prev => {
+        const copy = [...prev]
+        if (copy[assistantIndex]) {
+          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: i < fullText.length - 1 }
+        }
+        return copy
+      })
+
+      // Snappy base delay (5ms - 14ms)
+      let delay = Math.floor(Math.random() * 9) + 5
+
+      // Fast burst chance (35% chance: 2ms - 6ms)
+      if (Math.random() < 0.35) {
+        delay = Math.floor(Math.random() * 4) + 2
+      }
+
+      // Natural human pauses on punctuation and breaks
+      if (['.', '!', '?', ':'].includes(char)) {
+        delay += Math.floor(Math.random() * 60) + 40
+      } else if ([',', ';', '-'].includes(char)) {
+        delay += Math.floor(Math.random() * 30) + 15
+      } else if (char === '\n') {
+        delay += Math.floor(Math.random() * 40) + 25
+      }
+
+      await new Promise(res => setTimeout(res, delay))
+    }
+  }
+
+  // Handle RAG AI Query
+  const handleSendRagQuery = async (e) => {
+    e?.preventDefault()
+    if (!ragInput.trim() || ragLoading) return
+
+    const userMsg = ragInput.trim()
+    setRagInput('')
+
+    const updatedMessages = [...ragMessages, { role: 'user', content: userMsg }]
+    setRagMessages(updatedMessages)
+    setRagLoading(true)
+
+    // Build chat history (sliding window of last 6 messages, exclude system greeting)
+    const historyForApi = updatedMessages
+      .filter(m => m.role === 'user' || (m.role === 'assistant' && m.confidence !== undefined))
+      .slice(-6)
+      .map(m => ({ role: m.role, content: m.content }))
+
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects/${projectId}/rag/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          query: userMsg,
+          top_k: topK,
+          min_score: 0.20,
+          llm_provider: ragProvider,
+          custom_api_key: byokKey.trim() || undefined,
+          history: historyForApi.length > 1 ? historyForApi.slice(0, -1) : undefined,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const fullAnswer = data.answer || 'No response.'
+        
+        // Hide loading spinner and insert initial empty assistant message
+        setRagLoading(false)
+        
+        setRagMessages(prev => {
+          const assistantIndex = prev.length
+          // Add placeholder message
+          const withPlaceholder = [
+            ...prev,
+            {
+              role: 'assistant',
+              content: '',
+              typing: true,
+              sources: data.sources || [],
+              confidence: data.confidence_score,
+              provider: data.provider_used,
+              model: data.model_used,
+              tokens: data.token_usage,
+              executionTime: data.execution_time_ms,
+            }
+          ]
+          // Trigger dynamic typing
+          typeTextHumanLike(fullAnswer, assistantIndex)
+          return withPlaceholder
+        })
+      } else {
+        const err = await res.json()
+        setRagLoading(false)
+        setRagMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `⚠️ Error: ${err.detail || 'RAG Query failed.'}`,
+            sources: [],
+          }
+        ])
+      }
+    } catch (err) {
+      setRagLoading(false)
+      setRagMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `⚠️ Connection Error: ${err.message}`,
+          sources: [],
+        }
+      ])
+    }
+  }
 
   // Fetch Project
   const fetchProject = useCallback(async () => {
@@ -371,6 +528,7 @@ export default function ProjectPage({ auth }) {
   const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: <IconLayers size={15} /> },
     { id: 'documents', label: 'Documents', icon: <IconFile size={15} /> },
+    { id: 'rag-chat', label: 'AI Assistant', icon: <IconCpu size={15} /> },
     { id: 'knowledge-base', label: 'Knowledge Base', icon: <IconDatabase size={15} /> },
     { id: 'activity', label: 'Activity', icon: <IconActivity size={15} /> },
     { id: 'api-keys', label: 'API Keys', icon: <IconKey size={15} /> },
@@ -561,6 +719,11 @@ export default function ProjectPage({ auth }) {
                         <IconUpload size={20} />
                         <span>Upload Documents</span>
                         <p>Add files to build your knowledge index</p>
+                      </button>
+                      <button className="action-card" onClick={() => setActiveSection('rag-chat')}>
+                        <IconCpu size={20} />
+                        <span>AI Assistant RAG</span>
+                        <p>Ask questions with grounded LLM answers</p>
                       </button>
                       <button className="action-card" onClick={() => setActiveSection('knowledge-base')}>
                         <IconDatabase size={20} />
@@ -909,6 +1072,145 @@ export default function ProjectPage({ auth }) {
                       )}
                     </div>
                   )}
+                </motion.div>
+              )}
+
+               {/* AI Assistant RAG Section */}
+              {activeSection === 'rag-chat' && (
+                <motion.div
+                  key="rag-chat"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="project-section"
+                >
+                  <div className="rag-header-bar">
+                    <div>
+                      <h2 className="section-title" style={{ marginBottom: '4px' }}>RAG AI Assistant</h2>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Ground your questions in your indexed documents, PDFs, code files, and GitHub repositories.
+                      </p>
+                    </div>
+
+                    <div className="rag-controls-group">
+                      {/* Provider Selector */}
+                      <select
+                        className="provider-select-pill"
+                        value={ragProvider}
+                        onChange={(e) => setRagProvider(e.target.value)}
+                      >
+                        <option value="groq">⚡ Groq (Llama-3.3-70B)</option>
+                        <option value="openai">🤖 OpenAI (GPT-4o-mini)</option>
+                        <option value="gemini">✨ Google Gemini (Flash)</option>
+                        <option value="anthropic">🧠 Anthropic (Claude-3.5)</option>
+                        <option value="custom">🔌 Custom / Local (Ollama/vLLM)</option>
+                      </select>
+
+                      {/* BYOK Key Toggle */}
+                      <button
+                        className={`byok-toggle-btn ${byokKey.trim() ? 'active-key' : ''}`}
+                        onClick={() => setShowByokModal(!showByokModal)}
+                      >
+                        <IconKey size={14} />
+                        <span>{byokKey.trim() ? 'BYOK Key Set ✓' : 'Bring Your Own Key'}</span>
+                      </button>
+
+                      {/* Top-K Selector for Token Optimization */}
+                      <select
+                        className="provider-select-pill"
+                        value={topK}
+                        onChange={(e) => setTopK(Number(e.target.value))}
+                        title="Top K chunks retrieved per query"
+                      >
+                        <option value={2}>Minimal (Top-2)</option>
+                        <option value={4}>Balanced (Top-4)</option>
+                        <option value={6}>Deep Context (Top-6)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* BYOK Modal Dropdown */}
+                  <AnimatePresence>
+                    {showByokModal && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="byok-modal-panel"
+                      >
+                        <div className="byok-header">
+                          <h4>🔑 Bring Your Own Key (BYOK)</h4>
+                          <span className="byok-subtitle">
+                            Provide your custom API key for {ragProvider.toUpperCase()}. Leaves system default untouched.
+                          </span>
+                        </div>
+                        <div className="byok-input-row">
+                          <input
+                            type="password"
+                            className="search-input"
+                            placeholder={`Enter custom ${ragProvider.toUpperCase()} API key...`}
+                            value={byokKey}
+                            onChange={(e) => setByokKey(e.target.value)}
+                          />
+                          {byokKey && (
+                            <button className="btn-modal-cancel" onClick={() => setByokKey('')}>Clear</button>
+                          )}
+                          <button className="btn-modal-submit" onClick={() => setShowByokModal(false)}>Save Key</button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Chat Container */}
+                  <div className="rag-chat-container">
+                    <div className="rag-messages-scroll" ref={chatScrollRef}>
+                      {ragMessages.map((msg, idx) => (
+                        <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
+                          <div className="rag-message-avatar">
+                            {msg.role === 'assistant' ? <IconCpu size={16} /> : 'U'}
+                          </div>
+
+                          <div className="rag-message-bubble">
+                            <div className="rag-message-content">
+                              {msg.content}
+                              {msg.typing && <span className="typing-cursor">▌</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {ragLoading && (
+                        <div className="rag-message-wrapper assistant">
+                          <div className="rag-message-avatar">
+                            <IconCpu size={16} />
+                          </div>
+                          <div className="rag-message-bubble loading">
+                            <div className="dashboard-spinner"></div>
+                            <span>Searching vector index & generating answer...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input Bar */}
+                    <form className="rag-input-form" onSubmit={handleSendRagQuery}>
+                      <input
+                        type="text"
+                        className="rag-chat-input"
+                        placeholder="Ask a question about your project documents, code, or GitHub repo..."
+                        value={ragInput}
+                        onChange={(e) => setRagInput(e.target.value)}
+                        disabled={ragLoading}
+                      />
+                      <button
+                        type="submit"
+                        className="rag-send-btn"
+                        disabled={!ragInput.trim() || ragLoading}
+                      >
+                        {ragLoading ? <IconLoader size={16} /> : <IconSend size={16} />}
+                      </button>
+                    </form>
+                  </div>
                 </motion.div>
               )}
 

@@ -179,22 +179,10 @@ export default function Dashboard({ auth }) {
     const path = location.pathname.replace(/\/$/, '')
     if (path.startsWith('/dashboard/org/')) {
       const orgId = path.split('/dashboard/org/')[1]?.split('/')[0]
-      if (orgId) {
+      if (orgId && orgs.length > 0) {
         const found = orgs.find(o => String(o.id) === String(orgId) || String(o.organization_id) === String(orgId) || o.slug === orgId)
         if (found) {
           setSelectedOrg(found)
-        } else {
-          try {
-            const cachedSel = localStorage.getItem('beacon_selected_org')
-            if (cachedSel) {
-              const parsed = JSON.parse(cachedSel)
-              if (String(parsed.id) === String(orgId) || String(parsed.organization_id) === String(orgId)) {
-                setSelectedOrg(parsed)
-              }
-            }
-          } catch {
-            // ignore
-          }
         }
       }
       setActiveTab('projects')
@@ -213,9 +201,23 @@ export default function Dashboard({ auth }) {
       setSelectedOrg(null)
       setActiveTab('organizations')
     } else {
-      // /dashboard defaults to organizations
-      setSelectedOrg(null)
-      setActiveTab('organizations')
+      // /dashboard: auto-select first/cached org if available so projects load
+      if (orgs.length > 0) {
+        const cached = localStorage.getItem('beacon_selected_org')
+        let initialOrg = orgs[0]
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached)
+            const match = orgs.find(o => String(o.id) === String(parsed.id) || String(o.organization_id) === String(parsed.id) || o.slug === parsed.slug)
+            if (match) initialOrg = match
+          } catch {}
+        }
+        setSelectedOrg(initialOrg)
+        setActiveTab('projects')
+      } else {
+        setSelectedOrg(null)
+        setActiveTab('organizations')
+      }
     }
   }, [location.pathname, orgs])
 
@@ -223,6 +225,7 @@ export default function Dashboard({ auth }) {
   const fetchProjects = useCallback(async (orgId) => {
     if (!auth.token || !orgId) return
     setLoadingProjects(true)
+    setErrorMsg('')
     try {
       const res = await fetch(`${API_BASE}/organizations/${orgId}/projects`, {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -232,9 +235,12 @@ export default function Dashboard({ auth }) {
         setProjects(data)
       } else if (res.status === 401) {
         auth.logout()
+      } else {
+        const errData = await res.json()
+        setErrorMsg(errData.detail || 'Failed to load projects for organization.')
       }
-    } catch {
-      // silently fail — user can retry
+    } catch (err) {
+      setErrorMsg('Failed to connect to project service: ' + err.message)
     } finally {
       setLoadingProjects(false)
     }

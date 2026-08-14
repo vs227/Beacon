@@ -1,4 +1,5 @@
 import re
+import uuid
 import unicodedata
 from fastapi import HTTPException, status
 from postgrest.exceptions import APIError as PostgrestAPIError
@@ -40,16 +41,23 @@ def _generate_unique_slug(name: str, organization_id: str, exclude_id: str | Non
             return f"{base_slug}-{counter}"
 
 
-def _verify_org_ownership(organization_id: str, owner_id: str) -> None:
-    """Verify that the caller owns the organization."""
+def _verify_org_ownership(organization_id: str, owner_id: str) -> str:
+    """Verify caller owns the organization by UUID or slug. Returns the organization's UUID id."""
     try:
-        result = (
-            supabase.table("organizations")
-            .select("id")
-            .eq("id", organization_id)
-            .eq("owner_id", owner_id)
-            .execute()
-        )
+        is_uuid = False
+        try:
+            uuid.UUID(organization_id)
+            is_uuid = True
+        except ValueError:
+            is_uuid = False
+
+        query = supabase.table("organizations").select("id, owner_id")
+        if is_uuid:
+            query = query.eq("id", organization_id)
+        else:
+            query = query.eq("slug", organization_id)
+
+        result = query.eq("owner_id", owner_id).execute()
     except PostgrestAPIError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -62,13 +70,15 @@ def _verify_org_ownership(organization_id: str, owner_id: str) -> None:
             detail="Organization not found or not authorized"
         )
 
+    return result.data[0]["id"]
+
 
 def create_project(organization_id: str, project_data: ProjectCreate, owner_id: str) -> dict:
-    _verify_org_ownership(organization_id, owner_id)
+    real_org_id = _verify_org_ownership(organization_id, owner_id)
 
-    slug = _generate_unique_slug(project_data.name, organization_id)
+    slug = _generate_unique_slug(project_data.name, real_org_id)
     payload = {
-        "organization_id": organization_id,
+        "organization_id": real_org_id,
         "name": project_data.name,
         "slug": slug,
         "project_type": project_data.project_type or "Customer Support",
@@ -95,13 +105,13 @@ def create_project(organization_id: str, project_data: ProjectCreate, owner_id: 
 
 
 def get_projects(organization_id: str, owner_id: str) -> list[dict]:
-    _verify_org_ownership(organization_id, owner_id)
+    real_org_id = _verify_org_ownership(organization_id, owner_id)
 
     try:
         result = (
             supabase.table("projects")
             .select("*")
-            .eq("organization_id", organization_id)
+            .eq("organization_id", real_org_id)
             .order("created_at", desc=False)
             .execute()
         )
@@ -116,7 +126,20 @@ def get_projects(organization_id: str, owner_id: str) -> list[dict]:
 
 def get_project_by_id(project_id: str, owner_id: str) -> dict:
     try:
-        result = supabase.table("projects").select("*").eq("id", project_id).execute()
+        is_uuid = False
+        try:
+            uuid.UUID(project_id)
+            is_uuid = True
+        except ValueError:
+            is_uuid = False
+
+        query = supabase.table("projects").select("*")
+        if is_uuid:
+            query = query.eq("id", project_id)
+        else:
+            query = query.eq("slug", project_id)
+
+        result = query.execute()
     except PostgrestAPIError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -133,12 +156,13 @@ def get_project_by_id(project_id: str, owner_id: str) -> dict:
 
 def update_project(project_id: str, project_data: ProjectUpdate, owner_id: str) -> dict:
     project = get_project_by_id(project_id, owner_id)
+    real_project_id = project["id"]
 
     update_payload = {}
     if project_data.name is not None and project_data.name != project.get("name"):
         update_payload["name"] = project_data.name
         update_payload["slug"] = _generate_unique_slug(
-            project_data.name, project["organization_id"], exclude_id=project_id
+            project_data.name, project["organization_id"], exclude_id=real_project_id
         )
     if project_data.description is not None and project_data.description != project.get("description"):
         update_payload["description"] = project_data.description
@@ -151,7 +175,7 @@ def update_project(project_id: str, project_data: ProjectUpdate, owner_id: str) 
         return project
 
     try:
-        result = supabase.table("projects").update(update_payload).eq("id", project_id).execute()
+        result = supabase.table("projects").update(update_payload).eq("id", real_project_id).execute()
     except PostgrestAPIError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -168,14 +192,15 @@ def update_project(project_id: str, project_data: ProjectUpdate, owner_id: str) 
 
 
 def delete_project(project_id: str, owner_id: str) -> dict:
-    get_project_by_id(project_id, owner_id)
+    project = get_project_by_id(project_id, owner_id)
+    real_project_id = project["id"]
 
     try:
-        supabase.table("projects").delete().eq("id", project_id).execute()
+        supabase.table("projects").delete().eq("id", real_project_id).execute()
     except PostgrestAPIError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {e.message}"
         )
 
-    return {"message": "Project deleted successfully", "id": project_id}
+    return {"message": "Project deleted successfully", "id": real_project_id}
