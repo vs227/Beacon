@@ -75,8 +75,14 @@ export function useAuth() {
 
     const email = params.get('email')
     const username = params.get('username')
+    const authType = params.get('auth')
     if (email) {
-      const partial = { email, username: username || email.split('@')[0] }
+      const partial = {
+        email,
+        username: username || email.split('@')[0],
+        auth_provider: authType || 'email',
+        github_username: authType === 'github' ? username : '',
+      }
       localStorage.setItem(USER_KEY, JSON.stringify(partial))
       setUser(partial)
     }

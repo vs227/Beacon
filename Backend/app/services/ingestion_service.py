@@ -88,6 +88,7 @@ def run_ingestion(document_id: str) -> None:
             chunk_rows.append({
                 "document_id": document_id,
                 "project_id": doc["project_id"],
+                "organization_id": doc["organization_id"],
                 "chunk_index": idx,
                 "content": chunk.page_content,
                 "token_count": len(chunk.page_content.split()),

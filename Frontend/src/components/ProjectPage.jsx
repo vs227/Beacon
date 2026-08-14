@@ -123,6 +123,13 @@ export default function ProjectPage({ auth }) {
   const [githubError, setGithubError] = useState('')
   const [syncingRepoUrl, setSyncingRepoUrl] = useState('')
 
+  // GitHub Repo Picker State (for GitHub-authenticated users)
+  const [userRepos, setUserRepos] = useState([])
+  const [loadingRepos, setLoadingRepos] = useState(false)
+  const [repoSearchFilter, setRepoSearchFilter] = useState('')
+  const [reposFetched, setReposFetched] = useState(false)
+  const isGithubUser = auth.user?.auth_provider === 'github'
+
   // Semantic Search State
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -241,25 +248,42 @@ function renderFormattedMessage(text) {
   })
 }
 
-  // Fast & smooth streaming typing animation (~0.4 - 0.8s)
+  // Realistic Human Live Typing Animation
   const typeTextHumanLike = async (fullText, assistantIndex) => {
     let currentText = ''
-    const step = Math.max(3, Math.floor(fullText.length / 25))
-    for (let i = 0; i < fullText.length; i += step) {
-      currentText = fullText.slice(0, i + step)
+    let idx = 0
+
+    while (idx < fullText.length) {
+      // Reveal 1 to 2 characters per keystroke tick
+      const char = fullText[idx]
+      const nextChar = fullText[idx + 1] || ''
+      const increment = (char === ' ' || char === '\n') ? 1 : Math.min(2, fullText.length - idx)
+      
+      idx += increment
+      currentText = fullText.slice(0, idx)
 
       setRagMessages(prev => {
         const copy = [...prev]
         if (copy[assistantIndex]) {
-          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: i + step < fullText.length }
+          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: idx < fullText.length }
         }
         return copy
       })
 
-      await new Promise(res => setTimeout(res, 10))
+      // Calculate realistic human typing pause:
+      let delay = Math.floor(Math.random() * 15) + 18 // Base keystroke: 18-33ms
+
+      // Human pause on punctuation marks
+      if (['.', '!', '?', '\n'].includes(char)) {
+        delay = Math.floor(Math.random() * 80) + 140 // Pause on sentence ends / line breaks
+      } else if ([',', ';', ':', '-'].includes(char)) {
+        delay = Math.floor(Math.random() * 40) + 70  // Slight pause on commas & clauses
+      }
+
+      await new Promise(res => setTimeout(res, delay))
     }
 
-    // Set 100% final text
+    // Ensure final state is clean and typing indicator is turned off
     setRagMessages(prev => {
       const copy = [...prev]
       if (copy[assistantIndex]) {
@@ -486,6 +510,70 @@ function renderFormattedMessage(text) {
         const data = await res.json()
         setGithubScanResult(data)
         // Default pre-select only .md files as requested
+        const mdFiles = data.files.filter(f => f.extension === 'md' || f.path.toLowerCase().endsWith('.md')).map(f => f.path)
+        setSelectedGithubFiles(mdFiles.length > 0 ? mdFiles : data.files.map(f => f.path))
+      } else {
+        const errData = await res.json()
+        setGithubError(errData.detail || 'Failed to scan repository')
+      }
+    } catch (err) {
+      setGithubError('Scan failed: ' + err.message)
+    } finally {
+      setScanningGithub(false)
+    }
+  }
+
+  // Fetch GitHub Repos for authenticated GitHub users
+  const fetchUserRepos = useCallback(async () => {
+    if (!auth.token || !isGithubUser || !orgId || !projectId) return
+    setLoadingRepos(true)
+    setGithubError('')
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects/${projectId}/documents/github-repos`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUserRepos(data.repos || [])
+        setReposFetched(true)
+      } else {
+        const errData = await res.json()
+        setGithubError(errData.detail || 'Failed to load repositories')
+      }
+    } catch (err) {
+      setGithubError('Failed to fetch repos: ' + err.message)
+    } finally {
+      setLoadingRepos(false)
+    }
+  }, [auth.token, isGithubUser, orgId, projectId])
+
+  // Auto-fetch repos when GitHub tab is opened by a GitHub-authenticated user
+  useEffect(() => {
+    if (docTab === 'github' && isGithubUser && !reposFetched && !loadingRepos) {
+      fetchUserRepos()
+    }
+  }, [docTab, isGithubUser, reposFetched, loadingRepos, fetchUserRepos])
+
+  // Select a repo from the picker and auto-scan it
+  const handleSelectRepoFromPicker = async (repoUrl) => {
+    setGithubUrl(repoUrl)
+    setGithubScanResult(null)
+    setScanningGithub(true)
+    setGithubError('')
+
+    try {
+      const res = await fetch(`${API_BASE}/organizations/${orgId}/projects/${projectId}/documents/github-scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ repo_url: repoUrl }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setGithubScanResult(data)
         const mdFiles = data.files.filter(f => f.extension === 'md' || f.path.toLowerCase().endsWith('.md')).map(f => f.path)
         setSelectedGithubFiles(mdFiles.length > 0 ? mdFiles : data.files.map(f => f.path))
       } else {
@@ -923,19 +1011,180 @@ function renderFormattedMessage(text) {
                   {/* GitHub Repository Pipeline */}
                   {docTab === 'github' && (
                     <div className="github-scan-card">
-                      <form onSubmit={handleScanGithubRepo} className="github-url-form">
-                        <input
-                          type="text"
-                          className="github-input"
-                          placeholder="Paste GitHub Repository URL (e.g. https://github.com/owner/repo)"
-                          value={githubUrl}
-                          onChange={(e) => setGithubUrl(e.target.value)}
-                        />
-                        <button type="submit" className="github-scan-btn" disabled={scanningGithub}>
-                          {scanningGithub ? <IconLoader size={16} /> : <IconGithub size={16} />}
-                          <span>{scanningGithub ? 'Scanning Tree...' : 'Scan Repository'}</span>
-                        </button>
-                      </form>
+
+                      {/* ── Step 1: GitHub Repo Picker (for GitHub-authenticated users) ── */}
+                      {isGithubUser && !githubScanResult && (
+                        <>
+                          {/* Repo search filter */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: '0px',
+                              padding: '10px 14px',
+                            }}>
+                              <IconSearch size={16} />
+                              <input
+                                type="text"
+                                placeholder="Search your repositories..."
+                                value={repoSearchFilter}
+                                onChange={(e) => setRepoSearchFilter(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  background: 'transparent',
+                                  border: 'none',
+                                  outline: 'none',
+                                  color: '#fff',
+                                  fontSize: '0.88rem',
+                                  fontFamily: 'var(--font-body)',
+                                }}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className="github-scan-btn"
+                              onClick={fetchUserRepos}
+                              disabled={loadingRepos}
+                              style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}
+                            >
+                              <IconRefresh size={14} className={loadingRepos ? 'spin-icon' : ''} />
+                              <span>{loadingRepos ? 'Loading...' : 'Refresh'}</span>
+                            </button>
+                          </div>
+
+                          {/* Repo list */}
+                          {loadingRepos ? (
+                            <div className="spinner-container" style={{ minHeight: '200px' }}>
+                              <div className="dashboard-spinner"></div>
+                              <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>Loading your GitHub repositories...</span>
+                            </div>
+                          ) : userRepos.length === 0 && reposFetched ? (
+                            <div className="empty-state" style={{ minHeight: '160px' }}>
+                              <IconGithub size={24} />
+                              <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>No repositories found. Try refreshing or paste a URL manually below.</p>
+                            </div>
+                          ) : (
+                            <div style={{
+                              maxHeight: '380px',
+                              overflowY: 'auto',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              borderRadius: '0px',
+                            }}>
+                              {userRepos
+                                .filter(r => {
+                                  if (!repoSearchFilter.trim()) return true
+                                  const q = repoSearchFilter.toLowerCase()
+                                  return r.name.toLowerCase().includes(q) || r.full_name.toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)
+                                })
+                                .map((repo) => (
+                                  <div
+                                    key={repo.full_name}
+                                    onClick={() => handleSelectRepoFromPicker(repo.html_url)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '12px 16px',
+                                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                      cursor: 'pointer',
+                                      transition: 'background 0.15s ease',
+                                      gap: '12px',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                                        <IconGithub size={14} />
+                                        <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600, fontFamily: 'var(--font-display)' }}>{repo.name}</span>
+                                        <span style={{
+                                          fontSize: '0.68rem',
+                                          padding: '1px 7px',
+                                          borderRadius: '10px',
+                                          border: `1px solid ${repo.private ? 'rgba(251, 191, 36, 0.3)' : 'rgba(74, 222, 128, 0.3)'}`,
+                                          color: repo.private ? '#fbbf24' : '#4ade80',
+                                          fontWeight: 500,
+                                        }}>
+                                          {repo.private ? 'Private' : 'Public'}
+                                        </span>
+                                        {repo.fork && (
+                                          <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>fork</span>
+                                        )}
+                                      </div>
+                                      {repo.description && (
+                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {repo.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                                      {repo.language && (
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--bronze-highlight, #f4d1a6)', display: 'inline-block' }}></span>
+                                          {repo.language}
+                                        </span>
+                                      )}
+                                      {repo.stargazers_count > 0 && (
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                          ★ {repo.stargazers_count}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Manual URL fallback */}
+                          <div style={{ marginTop: '18px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '10px' }}>
+                              Or paste a repository URL manually
+                            </span>
+                            <form onSubmit={handleScanGithubRepo} className="github-url-form">
+                              <input
+                                type="text"
+                                className="github-input"
+                                placeholder="https://github.com/owner/repo"
+                                value={githubUrl}
+                                onChange={(e) => setGithubUrl(e.target.value)}
+                              />
+                              <button type="submit" className="github-scan-btn" disabled={scanningGithub}>
+                                {scanningGithub ? <IconLoader size={16} /> : <IconGithub size={16} />}
+                                <span>{scanningGithub ? 'Scanning...' : 'Scan'}</span>
+                              </button>
+                            </form>
+                          </div>
+                        </>
+                      )}
+
+                      {/* ── Non-GitHub users: original URL paste flow ── */}
+                      {!isGithubUser && !githubScanResult && (
+                        <form onSubmit={handleScanGithubRepo} className="github-url-form">
+                          <input
+                            type="text"
+                            className="github-input"
+                            placeholder="Paste GitHub Repository URL (e.g. https://github.com/owner/repo)"
+                            value={githubUrl}
+                            onChange={(e) => setGithubUrl(e.target.value)}
+                          />
+                          <button type="submit" className="github-scan-btn" disabled={scanningGithub}>
+                            {scanningGithub ? <IconLoader size={16} /> : <IconGithub size={16} />}
+                            <span>{scanningGithub ? 'Scanning Tree...' : 'Scan Repository'}</span>
+                          </button>
+                        </form>
+                      )}
+
+                      {/* Scanning spinner */}
+                      {scanningGithub && (
+                        <div className="spinner-container" style={{ minHeight: '120px', marginTop: '16px' }}>
+                          <div className="dashboard-spinner"></div>
+                          <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>Scanning repository tree...</span>
+                        </div>
+                      )}
 
                       {githubError && (
                         <div className="upload-error" style={{ marginTop: '14px' }}>
@@ -944,9 +1193,34 @@ function renderFormattedMessage(text) {
                         </div>
                       )}
 
-                      {/* Detected Files Tree Selector */}
+                      {/* ── Step 2: Detected Files Tree Selector (unchanged) ── */}
                       {githubScanResult && (
                         <div className="github-tree-container">
+                          {/* Back to repo list button for GitHub users */}
+                          {isGithubUser && (
+                            <button
+                              type="button"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.82rem',
+                                padding: '0 0 12px 0',
+                                transition: 'color 0.2s ease',
+                              }}
+                              onClick={() => { setGithubScanResult(null); setGithubUrl(''); }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                            >
+                              <IconArrowLeft size={13} />
+                              <span>Back to repositories</span>
+                            </button>
+                          )}
+
                           <div className="github-tree-header">
                             <div>
                               <span className="github-tree-title">

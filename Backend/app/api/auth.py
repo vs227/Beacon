@@ -132,7 +132,7 @@ def get_profile(
         result = (
             supabase
             .table("users")
-            .select("id, username, email, auth_provider")
+            .select("id, username, email, auth_provider, github_username")
             .eq("id", current_user["user_id"])
             .execute()
         )
@@ -152,6 +152,8 @@ def get_profile(
             "user_id": db_user["id"],
             "username": db_user.get("username", db_user["email"].split("@")[0]),
             "email": db_user["email"],
+            "auth_provider": db_user.get("auth_provider", "email"),
+            "github_username": db_user.get("github_username", ""),
         }
     }
 
@@ -241,6 +243,14 @@ async def github_callback(code: str | None = None, error: str | None = None):
 
     if existing.data:
         db_user = existing.data[0]
+        # Update GitHub token & username on every login so it stays fresh
+        try:
+            supabase.table("users").update({
+                "github_access_token": access_token,
+                "github_username": username,
+            }).eq("id", db_user["id"]).execute()
+        except Exception:
+            pass  # Non-critical — continue login even if token save fails
     else:
         try:
             insert_res = (
@@ -250,7 +260,9 @@ async def github_callback(code: str | None = None, error: str | None = None):
                     "username": username,
                     "email": email,
                     "password_hash": "",
-                    "auth_provider": "github"
+                    "auth_provider": "github",
+                    "github_access_token": access_token,
+                    "github_username": username,
                 })
                 .execute()
             )

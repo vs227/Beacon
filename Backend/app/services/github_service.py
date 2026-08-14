@@ -259,6 +259,7 @@ def ingest_github_selected_files(
 
                 row = {
                     "project_id": project_id,
+                    "organization_id": organization_id,
                     "chunk_index": total_chunks_created + idx,
                     "content": chunk.page_content,
                     "token_count": len(chunk.page_content.split()),
@@ -309,6 +310,67 @@ def ingest_github_selected_files(
         "files_indexed": len(selected_file_paths),
         "total_chunks": total_chunks_created,
     }
+
+
+def list_user_github_repos(github_access_token: str) -> List[Dict[str, Any]]:
+    """
+    Fetch the authenticated GitHub user's repositories using their stored OAuth token.
+    Returns a list of repos with name, URL, description, visibility, language, and timestamps.
+    """
+    if not github_access_token:
+        return []
+
+    headers = {
+        "Authorization": f"Bearer {github_access_token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "Beacon-App",
+    }
+
+    all_repos = []
+    page = 1
+
+    with httpx.Client(timeout=15.0) as client:
+        while page <= 3:  # Cap at 3 pages (up to 300 repos)
+            resp = client.get(
+                "https://api.github.com/user/repos",
+                headers=headers,
+                params={
+                    "sort": "updated",
+                    "direction": "desc",
+                    "per_page": 100,
+                    "page": page,
+                    "type": "all",
+                },
+            )
+
+            if resp.status_code == 401:
+                raise ValueError("GitHub token expired or revoked. Please re-login with GitHub.")
+            if resp.status_code != 200:
+                raise ValueError(f"GitHub API error ({resp.status_code}): {resp.text[:200]}")
+
+            repos = resp.json()
+            if not repos:
+                break
+
+            for repo in repos:
+                all_repos.append({
+                    "name": repo.get("name", ""),
+                    "full_name": repo.get("full_name", ""),
+                    "html_url": repo.get("html_url", ""),
+                    "description": repo.get("description") or "",
+                    "private": repo.get("private", False),
+                    "language": repo.get("language") or "",
+                    "default_branch": repo.get("default_branch", "main"),
+                    "updated_at": repo.get("updated_at", ""),
+                    "stargazers_count": repo.get("stargazers_count", 0),
+                    "fork": repo.get("fork", False),
+                })
+
+            if len(repos) < 100:
+                break
+            page += 1
+
+    return all_repos
 
 
 def check_and_auto_sync_github_repo(doc: Dict[str, Any], background_tasks: Any) -> bool:
