@@ -399,7 +399,7 @@ export default function Dashboard({ auth }) {
       {/* Top Navbar */}
       <header className="dashboard-navbar">
         <div className="navbar-left">
-          <div className="navbar-brand" onClick={() => navigate('/dashboard/organizations')}>
+          <div className="navbar-brand" onClick={() => navigate('/')}>
             <span>BEACON</span>
           </div>
 

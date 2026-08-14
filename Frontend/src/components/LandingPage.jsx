@@ -191,7 +191,7 @@ export default function LandingPage({ auth }) {
 
       {/* Navigation Header */}
       <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="logo-text" onClick={() => auth?.isLoggedIn && navigate('/dashboard/organizations')} style={{ cursor: auth?.isLoggedIn ? 'pointer' : 'default' }}>
+        <div className="logo-text" onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
           <span>Beacon</span>
         </div>
         <ul className="nav-links">
