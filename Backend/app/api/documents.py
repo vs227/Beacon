@@ -13,6 +13,7 @@ from app.services.github_service import (
     create_or_get_github_document,
     ingest_github_selected_files,
     check_and_auto_sync_github_repo,
+    list_user_github_repos,
 )
 
 router = APIRouter(
@@ -43,6 +44,42 @@ async def upload_document(
     # Trigger background ingestion
     background_tasks.add_task(run_ingestion, doc["id"])
     return doc
+
+
+@router.get("/github-repos")
+def list_github_repos(
+    organization_id: str,
+    project_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """List the authenticated user's GitHub repositories (requires GitHub OAuth login)."""
+    from app.core.database import supabase as db
+
+    # Fetch user's stored GitHub access token
+    try:
+        user_row = db.table("users").select("github_access_token, auth_provider").eq("id", current_user["user_id"]).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    if not user_row.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_data = user_row.data[0]
+    gh_token = user_data.get("github_access_token", "")
+
+    if not gh_token:
+        raise HTTPException(
+            status_code=400,
+            detail="No GitHub token found. Please log in with GitHub to access your repositories."
+        )
+
+    try:
+        repos = list_user_github_repos(gh_token)
+        return {"repos": repos, "count": len(repos)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch repositories: {str(e)}")
 
 
 @router.post("/github-scan")

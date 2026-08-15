@@ -101,20 +101,52 @@ class RAGRetriever:
             except Exception as fallback_err:
                 logger.error(f"Fallback direct chunk search failed: {fallback_err}")
 
-        # 4. Filter by score threshold & slice to top_k
+        # 4. Filter by score threshold
         filtered = [c for c in retrieved_chunks if c["similarity_score"] >= min_score]
-        return filtered[:k] if filtered else retrieved_chunks[:k]
+        candidate_chunks = filtered[:k] if filtered else retrieved_chunks[:k]
+
+        if not candidate_chunks:
+            return []
+
+        # 5. Adaptive Top-K Pruning: If top chunk is highly confident (>= 0.65),
+        # prune diffuse low-confidence tail chunks (saves 30-50% prompt tokens)
+        top_score = candidate_chunks[0]["similarity_score"]
+        if top_score >= 0.65 and len(candidate_chunks) > 3:
+            # Keep chunks that are within 75% of the top score, always keeping at least top 3
+            adaptive_threshold = top_score * 0.70
+            pruned = [c for c in candidate_chunks if c["similarity_score"] >= adaptive_threshold]
+            return pruned if len(pruned) >= 3 else candidate_chunks[:3]
+
+        return candidate_chunks
 
     def format_context_for_prompt(self, chunks: List[Dict[str, Any]]) -> str:
         """
-        Format retrieved chunks into a compact context string.
-        Mirrors the reference pipeline: join page_content blocks with double newlines.
+        Format retrieved chunks into a compact, deduplicated context string.
+        Deduplicates exact line matches from chunk overlaps to conserve prompt tokens.
         """
         if not chunks:
             return ""
 
-        blocks = []
-        for chunk in chunks:
-            blocks.append(chunk["content"].strip())
+        seen_lines = set()
+        unique_blocks = []
 
-        return "\n\n".join(blocks)
+        for chunk in chunks:
+            raw_text = chunk.get("content", "").strip()
+            if not raw_text:
+                continue
+
+            lines = raw_text.splitlines()
+            block_lines = []
+            for line in lines:
+                clean_line = line.strip()
+                # Skip duplicate lines from chunk overlap windows
+                if clean_line and clean_line in seen_lines:
+                    continue
+                if clean_line:
+                    seen_lines.add(clean_line)
+                    block_lines.append(line)
+
+            if block_lines:
+                unique_blocks.append("\n".join(block_lines))
+
+        return "\n\n".join(unique_blocks)

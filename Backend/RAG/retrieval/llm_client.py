@@ -107,11 +107,21 @@ class MultiProviderLLMClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
-            "max_tokens": 512,
+            "max_tokens": 2048,
         }
 
         with httpx.Client(timeout=30.0) as client:
             resp = client.post(base_url, headers=headers, json=payload)
+            
+            # Auto-retry once on 429 Rate Limit (e.g. Groq 6000 TPM limit)
+            if resp.status_code == 429:
+                import time
+                time.sleep(4.0)  # Wait 4 seconds for TPM window to clear
+                resp = client.post(base_url, headers=headers, json=payload)
+
+            if resp.status_code == 429:
+                raise ValueError("Groq rate limit reached (6,000 Tokens/Min limit on free tier). Please wait 5 seconds before asking your next question, or select Gemini in settings.")
+
             if resp.status_code != 200:
                 raise ValueError(f"{provider_name} API Error ({resp.status_code}): {resp.text[:300]}")
 
@@ -139,7 +149,7 @@ class MultiProviderLLMClient:
 
         payload = {
             "contents": [{"parts": [{"text": f"System Instructions: {system_prompt}\n\nUser Question: {prompt}"}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 512},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 2048},
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -177,7 +187,7 @@ class MultiProviderLLMClient:
             "model": model if "claude" in model else "claude-3-5-sonnet-20241022",
             "system": system_prompt,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 512,
+            "max_tokens": 2048,
             "temperature": temperature,
         }
 
