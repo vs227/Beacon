@@ -34,6 +34,16 @@ def run_ingestion(document_id: str) -> None:
             return
         doc = result.data[0]
 
+        # Guard: GitHub documents use a separate ingestion pipeline (ingest_github_selected_files).
+        # run_ingestion only handles directly uploaded files with a Supabase Storage path.
+        if doc.get("file_type") == "github":
+            logger.warning(f"Document {document_id} is a GitHub document — use GitHub import pipeline instead.")
+            supabase.table("documents").update({
+                "status": "failed",
+                "error_message": "GitHub documents must be ingested via the GitHub import flow, not the file upload pipeline.",
+            }).eq("id", document_id).execute()
+            return
+
         # Download raw file bytes
         file_bytes = get_file_bytes(doc["storage_path"])
 
@@ -88,6 +98,7 @@ def run_ingestion(document_id: str) -> None:
             chunk_rows.append({
                 "document_id": document_id,
                 "project_id": doc["project_id"],
+                "organization_id": doc["organization_id"],
                 "chunk_index": idx,
                 "content": chunk.page_content,
                 "token_count": len(chunk.page_content.split()),

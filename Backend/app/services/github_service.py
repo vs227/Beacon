@@ -259,6 +259,7 @@ def ingest_github_selected_files(
 
                 row = {
                     "project_id": project_id,
+                    "organization_id": organization_id,
                     "chunk_index": total_chunks_created + idx,
                     "content": chunk.page_content,
                     "token_count": len(chunk.page_content.split()),

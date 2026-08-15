@@ -45,6 +45,7 @@ def ingest_files(directory: str | Path, project_id: str, organization_id: str) -
     for chunk, embedding in zip(chunks, embeddings):
         chunk_rows.append({
             "project_id": project_id,
+            "organization_id": organization_id,
             "document_id": chunk.metadata.get("document_id"),  # optional
             "chunk_index": chunk.metadata.get("chunk_index", 0),
             "content": chunk.page_content,
@@ -78,6 +79,7 @@ def ingest_single_file(file_path: str | Path, project_id: str, organization_id: 
             meta["document_id"] = document_id
         chunk_rows.append({
             "project_id": project_id,
+            "organization_id": organization_id,
             "document_id": document_id,
             "chunk_index": chunk.metadata.get("chunk_index", 0),
             "content": chunk.page_content,
