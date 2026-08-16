@@ -280,7 +280,8 @@ export default function AuthOverlay({ heroProgress = 0, auth }) {
                   <button
                     className="auth-btn-primary"
                     onClick={doLogin}
-                    disabled={auth?.pending}
+                    disabled={auth?.pending || (isError && response?.includes('Too many'))}
+                    style={isError && response?.includes('Too many') ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                   >
                     {auth?.pending ? 'Logging in…' : 'Login'}
                   </button>

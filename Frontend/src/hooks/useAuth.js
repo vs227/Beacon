@@ -172,6 +172,12 @@ export function useAuth() {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
+
+      // Rate limit hit — show a specific friendly message
+      if (res.status === 429) {
+        throw new Error('🔒 Too many login attempts. Please wait a minute and try again.')
+      }
+
       if (!res.ok) throw new Error(data.detail || 'Login failed')
       const newToken = data.access_token || 'beacon_session_active'
       localStorage.setItem(TOKEN_KEY, newToken)

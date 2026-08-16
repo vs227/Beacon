@@ -1,7 +1,21 @@
-import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from app.core.limiter import limiter
+
+
+def _custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Return a clear, human-friendly 429 response."""
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Too many attempts. Please wait a minute and try again.",
+            "retry_after": "60 seconds",
+        },
+        headers={"Retry-After": "60"},
+    )
 
 from app.api.auth import router as auth_router
 from app.api.organizations import router as organizations_router
@@ -14,11 +28,34 @@ from app.api.search import router as search_router
 from app.api.webhooks import router as webhooks_router
 from app.api.query import router as query_router
 
-app = FastAPI(
-    title="Beacon API",
-    version="1.0.0"
-)
 
+app = FastAPI(title="Beacon API", version="1.0.0")
+
+# ── Fix 1: Rate limiting ──────────────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# ── Fix 2: Body size limit (via middleware callback, no body buffering) ────────
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    max_bytes = 10 * 1024 * 1024  # 10 MB
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > max_bytes:
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body too large. Maximum allowed size is 10 MB."},
+        )
+    return await call_next(request)
+
+# ── Fix 3: Hide Server header ─────────────────────────────────────────────────
+@app.middleware("http")
+async def hide_server_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Server"] = "Beacon"
+    return response
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +64,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
 app.include_router(organizations_router)
 app.include_router(workspaces_router)

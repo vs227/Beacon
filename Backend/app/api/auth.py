@@ -1,5 +1,5 @@
 from urllib.parse import urlencode
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 import httpx
 from postgrest.exceptions import APIError as PostgrestAPIError
@@ -15,6 +15,7 @@ from app.schemas.auth import (
     RegisterUser,
     LoginUser
 )
+from app.core.limiter import limiter  # shared singleton — no circular import
 
 router = APIRouter(tags=["Authentication"])
 
@@ -38,7 +39,8 @@ def _build_github_oauth_callback_url() -> str:
 
 
 @router.post("/register")
-def register(user: RegisterUser):
+@limiter.limit("3/minute")  # Max 3 registration attempts per IP per minute
+def register(request: Request, user: RegisterUser):
     hashed_password = hash_password(user.password)
     try:
         result = (
@@ -70,7 +72,8 @@ def register(user: RegisterUser):
 
 
 @router.post("/login")
-def login(user: LoginUser):
+@limiter.limit("5/minute")  # Max 5 login attempts per IP per minute (brute-force protection)
+def login(request: Request, user: LoginUser):
     try:
         result = (
             supabase
