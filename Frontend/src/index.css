@@ -335,7 +335,8 @@ body {
   pointer-events: auto;
 }
 
-.logo-text {
+.logo-text,
+.navbar-brand {
   font-family: var(--font-display);
   font-size: 1.2rem;
   font-weight: 800;
@@ -345,6 +346,14 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  user-select: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.logo-text:hover,
+.navbar-brand:hover {
+  opacity: 0.88;
 }
 
 .nav-links {
@@ -1036,12 +1045,6 @@ body {
   justify-content: space-between;
   padding: 0 32px;
   z-index: 10;
-  color: #fff;
-  cursor: pointer;
-}
-
-.navbar-brand .logo-accent {
-  color: var(--bronze-base);
   text-shadow: 0 0 10px rgba(182, 122, 70, 0.4);
 }
 

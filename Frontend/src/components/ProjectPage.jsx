@@ -935,8 +935,8 @@ function renderFormattedMessage(text) {
       {/* Top Navbar */}
       <header className="dashboard-navbar">
         <div className="navbar-left">
-          <div className="navbar-brand" onClick={() => navigate('/dashboard/organizations')}>
-            <span>BEACON</span>
+          <div className="logo-text navbar-brand" onClick={() => navigate('/dashboard/organizations')} style={{ cursor: 'pointer' }}>
+            <span>Beacon</span>
           </div>
         </div>
 
