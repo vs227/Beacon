@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import CreativeBackground from './CreativeBackground'
 
 
 // SVG Icons for horizontal navbar to keep things compact & modern
@@ -405,6 +406,8 @@ export default function Dashboard({ auth }) {
 
   return (
     <div className="dashboard-container">
+      {/* Creative Dynamic Atmospheric Background */}
+      <CreativeBackground />
 
 
       {/* Top Navbar */}

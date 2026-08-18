@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import CreativeBackground from './CreativeBackground'
 
 /* ─── Inline SVG Icons ─── */
 function IconArrowLeft({ size = 16 }) {
@@ -723,6 +724,8 @@ function renderFormattedMessage(text) {
 
   return (
     <div className="dashboard-container">
+      {/* Creative Dynamic Atmospheric Background */}
+      <CreativeBackground />
 
       {/* Top Navbar */}
       <header className="dashboard-navbar">
