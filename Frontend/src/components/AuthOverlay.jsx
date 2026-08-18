@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import './AuthOverlay.css'
 
 // Lucide v1.29 (your installed version) does not export Github, LogOut, User
 // as named exports reliably. We use inline SVGs so the app always renders

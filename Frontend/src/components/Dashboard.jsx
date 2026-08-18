@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import './Dashboard.css'
 
 
 // SVG Icons for horizontal navbar to keep things compact & modern

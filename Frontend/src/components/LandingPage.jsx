@@ -6,6 +6,7 @@ import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { motion, AnimatePresence } from 'framer-motion'
 import SceneCanvas from './SceneCanvas'
 import AuthOverlay from './AuthOverlay'
+import './LandingPage.css'
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 

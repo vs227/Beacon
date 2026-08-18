@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import './ProjectPage.css'
 
 /* ─── Inline SVG Icons ─── */
 function IconArrowLeft({ size = 16 }) {
