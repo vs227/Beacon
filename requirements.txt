@@ -1,0 +1,31 @@
+# Beacon RAG Platform - Backend Dependencies
+fastapi
+uvicorn[standard]
+
+python-dotenv
+
+supabase
+
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+
+python-multipart
+
+pydantic
+pydantic-settings
+
+httpx
+
+email-validator
+
+# RAG & Data Ingestion Pipeline
+sentence-transformers
+numpy
+pypdf
+docx2txt
+python-docx
+langchain-core
+langchain-community
+langchain-text-splitters
+tiktoken
