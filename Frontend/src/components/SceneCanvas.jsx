@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useRef, useEffect, useMemo } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
@@ -15,9 +15,10 @@ const P_NEAR = new THREE.Vector3(3.5, 1.55, -0.20)   // Approach portal entrance
 const P_INSIDE = new THREE.Vector3(3.5, 1.55, -4.50) // Pass completely through
 const L_PORTAL = new THREE.Vector3(3.5, 1.55, -2.30) // Portal center target
 const L_VOID = new THREE.Vector3(3.5, 1.55, -8.00)   // Void target
+const LOOK_TEMP = new THREE.Vector3()                 // Preallocated for zero GC allocation in render loop
 
-// ─── Camera Controller ────────────────────────────────────────────────────
-function CameraController({ cameraProgress = 0, onReady }) {
+// ─── Camera Controller (dolly-zoom through portal)
+function CameraController({ cameraProgress, onReady }) {
   const { camera } = useThree()
   const lookAtRef = useRef(new THREE.Vector3(3.5, 1.55, -2.3))
   const smoothCam = useRef(0)
@@ -31,7 +32,7 @@ function CameraController({ cameraProgress = 0, onReady }) {
     const mouse = state.mouse
 
     // Smooth cameraProgress (Section 2: 0 → 1)
-    smoothCam.current = THREE.MathUtils.lerp(smoothCam.current, cameraProgress, 0.055)
+    smoothCam.current = THREE.MathUtils.lerp(smoothCam.current, cameraProgress, 0.12)
     const cp = smoothCam.current
 
     if (cp < 0.001) {
@@ -53,8 +54,8 @@ function CameraController({ cameraProgress = 0, onReady }) {
       const t = clamp01((cp - 0.80) / 0.20)
       const et = easeInOutCubic(t)
       camera.position.lerpVectors(P_NEAR, P_INSIDE, et)
-      const lookTarget = new THREE.Vector3().lerpVectors(L_PORTAL, L_VOID, et)
-      lookAtRef.current.lerp(lookTarget, 0.08)
+      LOOK_TEMP.lerpVectors(L_PORTAL, L_VOID, et)
+      lookAtRef.current.lerp(LOOK_TEMP, 0.08)
     }
 
     camera.lookAt(lookAtRef.current)
@@ -64,7 +65,20 @@ function CameraController({ cameraProgress = 0, onReady }) {
 }
 
 // ─── Scene Contents ───────────────────────────────────────────────────────
-function SceneContents({ cameraProgress = 0, onReady }) {
+function SceneContents({ scrollProgress = 0, cameraProgress = 0, onReady }) {
+  const lightRef = useRef()
+  const smoothProgress = useRef(0)
+
+  useFrame(() => {
+    // Smooth scrollProgress with lerp (0.09 for tighter scroll sync)
+    smoothProgress.current = THREE.MathUtils.lerp(smoothProgress.current, scrollProgress, 0.18)
+    // portalFade starts at 60% of morph and finishes at 80% (Phase 4)
+    const portalFade = Math.max(0, Math.min(1, (smoothProgress.current - 0.60) / 0.20))
+    if (lightRef.current) {
+      lightRef.current.intensity = 18.0 * portalFade
+    }
+  })
+
   return (
     <>
       <color attach="background" args={['#0F0E0C']} />
@@ -81,16 +95,17 @@ function SceneContents({ cameraProgress = 0, onReady }) {
         {/* Portal structure + interior */}
         <group
           position={[3.5, 1.55, -2.3]}
-          rotation={[(-5 * Math.PI) / 180, (18 * Math.PI) / 180, 0]}
+          rotation={[0, (18 * Math.PI) / 180, 0]}
         >
-          <ArtifactSculpture metalness={0.14} roughness={0.50} />
-          <PortalInterior />
+          <ArtifactSculpture scrollProgress={scrollProgress} />
+          <PortalInterior scrollProgress={scrollProgress} position={[0, 0.70, 0]} />
         </group>
 
         {/* Soft emerald point light from portal void */}
         <pointLight
+          ref={lightRef}
           position={[3.5, 1.55, -2.3]}
-          intensity={18.0}
+          intensity={0}
           color="#1E6F5C"
           distance={5}
           decay={2.0}
@@ -107,6 +122,7 @@ function SceneContents({ cameraProgress = 0, onReady }) {
 
 // ─── Main Export ──────────────────────────────────────────────────────────
 export default function SceneCanvas({
+  scrollProgress = 0,
   cameraProgress = 0,
   blackProgress = 0,
   onReady,
@@ -124,9 +140,10 @@ export default function SceneCanvas({
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.05,
         }}
-        dpr={Math.max(window.devicePixelRatio || 1, 2)}
+        dpr={Math.min(window.devicePixelRatio || 1, 2)}
       >
         <SceneContents
+          scrollProgress={scrollProgress}
           cameraProgress={cameraProgress}
           onReady={onReady}
         />
