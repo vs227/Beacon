@@ -53,7 +53,7 @@ function createPlasterTexturePair() {
   // Fine micro-plaster stipple grain
   ctx.save()
   ctx.globalAlpha = 0.06
-  for (let i = 0; i < 45000; i++) {
+  for (let i = 0; i < 18000; i++) {
     const x = Math.random() * W, y = Math.random() * H
     const g = 28 + Math.floor(Math.random() * 32)
     ctx.fillStyle = `rgb(${g},${g - 2},${g - 4})`
@@ -73,7 +73,7 @@ function createPlasterTexturePair() {
   bCtx.fillRect(0, 0, W, H)
 
   // Plaster height mass variations
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < 140; i++) {
     const cx = Math.random() * W
     const cy = Math.random() * H
     const r = Math.random() * 100 + 28
@@ -87,7 +87,7 @@ function createPlasterTexturePair() {
   }
 
   // Trowel drag mark ridges & valleys
-  for (let i = 0; i < 130; i++) {
+  for (let i = 0; i < 90; i++) {
     const x0 = Math.random() * W
     const y0 = Math.random() * H
     const angle = (Math.random() - 0.5) * 0.40
@@ -107,7 +107,7 @@ function createPlasterTexturePair() {
   }
 
   // Micro surface bump noise
-  for (let i = 0; i < 65000; i++) {
+  for (let i = 0; i < 22000; i++) {
     const x = Math.random() * W
     const y = Math.random() * H
     const v = 60 + (Math.random() * 135 | 0)
@@ -162,7 +162,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
     const ctx = canvas.getContext('2d')
     ctx.fillStyle = '#181615'
     ctx.fillRect(0, 0, 512, 512)
-    for (let i = 0; i < 30000; i++) {
+    for (let i = 0; i < 12000; i++) {
       const x = Math.random() * 512
       const y = Math.random() * 512
       const l = (Math.random() - 0.5) * 6
@@ -176,8 +176,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
   }, [])
 
   // ─── WALL TEXTURES ─────────────────────────────────────────────────────────
-  const textureVer = useMemo(() => Date.now(), [])
-  const [wallColorMap, wallBumpMap] = useMemo(() => createPlasterTexturePair(), [textureVer])
+  const [wallColorMap, wallBumpMap] = useMemo(() => createPlasterTexturePair(), [])
 
   // ─── CEILING TEXTURE ────────────────────────────────────────────────────────
   const ceilingTex = useMemo(() => {
@@ -314,7 +313,6 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
       <mesh position={[0, 4, -4.8]} receiveShadow>
         <planeGeometry args={[18, 8]} />
         <meshStandardMaterial
-          key={`back-mat-${textureVer}`}
           map={wallColorMap}
           bumpMap={wallBumpMap}
           bumpScale={0.65}
@@ -327,7 +325,6 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
       <mesh position={[-4.8, 4, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[14, 8]} />
         <meshStandardMaterial
-          key={`left-mat-${textureVer}`}
           map={wallColorMap}
           bumpMap={wallBumpMap}
           bumpScale={0.60}
@@ -340,7 +337,6 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
       <mesh position={[9.2, 4, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[14, 8]} />
         <meshStandardMaterial
-          key={`right-mat-${textureVer}`}
           map={wallColorMap}
           bumpMap={wallBumpMap}
           bumpScale={0.60}
@@ -417,17 +413,18 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
         <meshBasicMaterial color="#FFFFFF" toneMapped={false} />
       </mesh>
 
-      <mesh position={[3.5, 4.32, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.22, 0.32, 32]} />
-        <meshBasicMaterial color="#7A5A2A" toneMapped={false} transparent opacity={0.65} />
-      </mesh>
-
       <pointLight position={[3.5, 4.32, -2.3]} intensity={14} color="#FFF3CC" distance={1.8} decay={2.0} />
 
-      {/* PEDESTAL — Dark charcoal concrete */}
+      {/* PEDESTAL — Warm aged stone, matching beacon material */}
       <mesh position={[3.5, 0.38, -2.3]} castShadow receiveShadow>
         <boxGeometry args={[4.2, 0.76, 2.8]} />
-        <meshStandardMaterial color="#1C1A18" roughness={0.92} metalness={0.01} />
+        <meshStandardMaterial
+          color="#3A3028"
+          roughness={0.94}
+          metalness={0.0}
+          bumpMap={floorBumpMap}
+          bumpScale={0.018}
+        />
       </mesh>
 
       {/* ─── SINGLE SPOTLIGHT ILLUMINATING THE ROOM ALONE ─────────── */}

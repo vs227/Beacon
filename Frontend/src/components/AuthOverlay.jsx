@@ -49,9 +49,10 @@ export default function AuthOverlay({ heroProgress = 0, auth }) {
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
 
-  // Fade out as hero section scrolls — fully gone by heroProgress 0.40
-  const fadeEnd = 0.40
-  const rawT = Math.min(heroProgress / fadeEnd, 1)
+  // Fade out as hero section scrolls — fully gone by heroProgress 0.80
+  const fadeStart = 0.30
+  const fadeEnd = 0.80
+  const rawT = Math.max(0, Math.min((heroProgress - fadeStart) / (fadeEnd - fadeStart), 1))
   const opacity = 1 - rawT
   const translateY = rawT * -60
 

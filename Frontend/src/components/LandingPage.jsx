@@ -65,11 +65,24 @@ export default function LandingPage({ auth }) {
         start: 'top top',
         end: 'bottom top',
         scrub: true,
+        onEnter: () => {
+          setActiveSection(0)
+          setCameraProgress(0)
+          setBlackProgress(0)
+        },
+        onEnterBack: () => {
+          // Fired when scrolling back up into Section 1 from Section 2
+          setActiveSection(0)
+          setCameraProgress(0)
+          setBlackProgress(0)
+        },
         onUpdate: (self) => {
           if (self.isActive || self.progress > 0) {
             setHeroProgress(self.progress)
           }
-          if (self.isActive) {
+          // Also reset when at the very top (progress===0) — GSAP may not mark
+          // the trigger as "active" at the exact start boundary
+          if (self.isActive || self.progress === 0) {
             setActiveSection(0)
             setCameraProgress(0)
             setBlackProgress(0)
@@ -81,11 +94,20 @@ export default function LandingPage({ auth }) {
       ScrollTrigger.create({
         trigger: sec2Ref.current,
         scroller: scroller,
-        start: 'top top',
+        start: 'top 5%',
         end: 'bottom top',
         scrub: true,
+        onEnter: () => {
+          setActiveSection(1)
+        },
+        onLeaveBack: () => {
+          // Scrolled back into Section 1 — restore genesis state
+          setActiveSection(0)
+          setCameraProgress(0)
+          setBlackProgress(0)
+        },
         onUpdate: (self) => {
-          if (self.isActive) {
+          if (self.isActive || self.progress > 0) {
             setActiveSection(1)
             setCameraProgress(self.progress)
             setBlackProgress(self.progress >= 0.98 ? 1 : 0)
@@ -100,6 +122,10 @@ export default function LandingPage({ auth }) {
         start: 'top top',
         end: 'bottom top',
         scrub: true,
+        onLeaveBack: () => {
+          setActiveSection(1)
+          setBlackProgress(0)
+        },
         onUpdate: (self) => {
           if (self.isActive) {
             setActiveSection(2)
@@ -122,8 +148,9 @@ export default function LandingPage({ auth }) {
     if (!targetEl) return
 
     setActiveSection(idx)
+    const targetY = idx === 0 ? 0 : targetEl.offsetTop + 15
     gsap.to(scroller, {
-      scrollTo: { y: targetEl.offsetTop, autoKill: false },
+      scrollTo: { y: targetY, autoKill: false },
       duration: 1.2,
       ease: 'power2.inOut',
     })
@@ -309,7 +336,20 @@ export default function LandingPage({ auth }) {
       <div className="canvas-container">
         {canvasMounted && (
           <SceneCanvas
-            cameraProgress={cameraProgress}
+            scrollProgress={
+              activeSection === 0
+                ? 0
+                : activeSection === 1
+                  ? Math.min(1, cameraProgress / 0.45)
+                  : 1
+            }
+            cameraProgress={
+              activeSection === 0
+                ? 0
+                : activeSection === 1
+                  ? Math.max(0, (cameraProgress - 0.40) / 0.60)
+                  : 1
+            }
             blackProgress={blackProgress}
             onReady={() => setIsSceneReady(true)}
           />
@@ -326,7 +366,7 @@ export default function LandingPage({ auth }) {
           width: '40%',
           maxWidth: '480px',
           zIndex: 50,
-          pointerEvents: 'none',
+          pointerEvents: 'auto',
         }}
       >
         <AnimatePresence mode="wait">
@@ -337,7 +377,7 @@ export default function LandingPage({ auth }) {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.4 }}
             className="info-column outfit-landing"
-            style={{ width: '100%', height: 'auto', pointerEvents: 'auto' }}
+            style={{ width: '100%', height: 'auto' }}
           >
             {section.tag && (
               <span className="tag-label" style={{ color: section.tagColor }}>
@@ -379,11 +419,11 @@ export default function LandingPage({ auth }) {
 
       {/* Scrollable Container with Separate Pinned Sections */}
       <div ref={scrollContainerRef} className="scroll-container">
-        {/* Section 1: Portal + static camera */}
-        <div ref={sec1Ref} className="scroll-section-trigger" style={{ height: '100vh', pointerEvents: 'none' }} />
+        {/* Section 1: Stationary Portal transformation */}
+        <div ref={sec1Ref} className="scroll-section-trigger" style={{ height: '180vh', pointerEvents: 'none' }} />
 
-        {/* Section 2: Camera moves through portal */}
-        <div ref={sec2Ref} className="scroll-section-trigger" style={{ height: '180vh', pointerEvents: 'none' }} />
+        {/* Section 2: Ingestion section visible + Camera moves through portal */}
+        <div ref={sec2Ref} className="scroll-section-trigger" style={{ height: '200vh', pointerEvents: 'none' }} />
 
         {/* Section 3: Completely black / next content */}
         <div ref={sec3Ref} className="scroll-section-trigger" style={{ height: '120vh', pointerEvents: 'none' }} />

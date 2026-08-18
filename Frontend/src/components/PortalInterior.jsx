@@ -7,11 +7,12 @@ import * as THREE from 'three'
 const OPEN_W = 1.20   // portal opening width
 const OPEN_H = 2.16   // portal opening height
 
-export default function PortalInterior() {
+export default function PortalInterior({ scrollProgress = 0, ...props }) {
   const voidLayerRefs = useRef([])
-  const ringRefs      = useRef([])
-  const particlesRef  = useRef()
-  const rimGlowRef    = useRef()
+  const ringRefs = useRef([])
+  const particlesRef = useRef()
+  const rimGlowRef = useRef()
+  const smoothFade = useRef(0)
 
   // ─── Materials ────────────────────────────────────────────────────────────
   const voidMats = useMemo(() => [
@@ -33,16 +34,16 @@ export default function PortalInterior() {
   }), [])
 
   const [positions, velocities] = useMemo(() => {
-    const N   = 220
+    const N = 220
     const pos = new Float32Array(N * 3)
     const vel = []
     for (let i = 0; i < N; i++) {
-      pos[i*3+0] = (Math.random() - 0.5) * 1.12
-      pos[i*3+1] = (Math.random() - 0.5) * 2.10
-      pos[i*3+2] = -(Math.random() * 0.40 + 0.05)
+      pos[i * 3 + 0] = (Math.random() - 0.5) * 1.12
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 2.10
+      pos[i * 3 + 2] = -(Math.random() * 0.40 + 0.05)
       vel.push({
-        vx:    (Math.random() - 0.5) * 0.0015,
-        vy:    Math.random() * 0.0025 + 0.0004,
+        vx: (Math.random() - 0.5) * 0.0015,
+        vy: Math.random() * 0.0025 + 0.0004,
         phase: Math.random() * Math.PI * 2,
       })
     }
@@ -57,12 +58,16 @@ export default function PortalInterior() {
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
-    const fade = 1.0
+    
+    const targetFade = Math.max(0, Math.min(1, (scrollProgress - 0.60) / 0.20))
+    smoothFade.current = THREE.MathUtils.lerp(smoothFade.current, targetFade, 0.14)
+    const fade = smoothFade.current
+    if (fade <= 0.001 && targetFade <= 0.001) return
 
     // Void layers
     voidLayerRefs.current.forEach((mesh, i) => {
       if (!mesh) return
-      mesh.material.opacity = (0.85 - i * 0.08) * (0.92 + 0.08 * Math.sin(time * 0.4 + i * 0.9))
+      mesh.material.opacity = fade * (0.85 - i * 0.08) * (0.92 + 0.08 * Math.sin(time * 0.4 + i * 0.9))
     })
 
     // Rim glow
@@ -73,9 +78,9 @@ export default function PortalInterior() {
     // Energy rings
     ringRefs.current.forEach((ring, i) => {
       if (!ring) return
-      const speed  = 0.55 + i * 0.25
-      const cycle  = ((time * speed + i * 1.1) % 3.0) / 3.0
-      const alpha  = Math.sin(cycle * Math.PI)
+      const speed = 0.55 + i * 0.25
+      const cycle = ((time * speed + i * 1.1) % 3.0) / 3.0
+      const alpha = Math.sin(cycle * Math.PI)
       ring.material.opacity = fade * alpha * 0.22
       ring.scale.x = 0.25 + cycle * 0.75
       ring.scale.y = ring.scale.x
@@ -88,18 +93,18 @@ export default function PortalInterior() {
       const posArr = particlesRef.current.geometry.attributes.position.array
       for (let i = 0; i < velocities.length; i++) {
         const v = velocities[i]
-        posArr[i*3+0] += v.vx + Math.sin(time * 0.35 + v.phase) * 0.0006
-        posArr[i*3+1] += v.vy
-        if (posArr[i*3+1] >  1.05) { posArr[i*3+1] = -1.05; posArr[i*3+0] = (Math.random()-0.5)*1.10 }
-        if (posArr[i*3+0] >  0.56) posArr[i*3+0] = -0.56
-        if (posArr[i*3+0] < -0.56) posArr[i*3+0] =  0.56
+        posArr[i * 3 + 0] += v.vx + Math.sin(time * 0.35 + v.phase) * 0.0006
+        posArr[i * 3 + 1] += v.vy
+        if (posArr[i * 3 + 1] > 1.05) { posArr[i * 3 + 1] = -1.05; posArr[i * 3 + 0] = (Math.random() - 0.5) * 1.10 }
+        if (posArr[i * 3 + 0] > 0.56) posArr[i * 3 + 0] = -0.56
+        if (posArr[i * 3 + 0] < -0.56) posArr[i * 3 + 0] = 0.56
       }
       particlesRef.current.geometry.attributes.position.needsUpdate = true
     }
   })
 
   return (
-    <group>
+    <group {...props} visible={smoothFade.current > 0.001}>
       {/* Void depth layers */}
       {[0, 1, 2, 3].map((i) => (
         <mesh
