@@ -22,11 +22,13 @@ from app.api.organizations import router as organizations_router
 from app.api.workspaces import router as workspaces_router
 from app.api.knowledge_bases import router as kb_router
 from app.api.api_keys import router as api_keys_router
+from app.api.activity import router as activity_router
 from app.api.projects import router as projects_router
 from app.api.documents import router as documents_router
 from app.api.search import router as search_router
 from app.api.webhooks import router as webhooks_router
 from app.api.query import router as query_router
+
 
 
 app = FastAPI(title="Beacon API", version="1.0.0")
@@ -70,6 +72,7 @@ app.include_router(organizations_router)
 app.include_router(workspaces_router)
 app.include_router(kb_router)
 app.include_router(api_keys_router)
+app.include_router(activity_router)
 app.include_router(projects_router)
 app.include_router(documents_router)
 app.include_router(search_router)

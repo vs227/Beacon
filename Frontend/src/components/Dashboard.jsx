@@ -211,7 +211,7 @@ export default function Dashboard({ auth }) {
             const parsed = JSON.parse(cached)
             const match = orgs.find(o => String(o.id) === String(parsed.id) || String(o.organization_id) === String(parsed.id) || o.slug === parsed.slug)
             if (match) initialOrg = match
-          } catch {}
+          } catch { }
         }
         setSelectedOrg(initialOrg)
         setActiveTab('projects')
@@ -510,9 +510,42 @@ export default function Dashboard({ auth }) {
                 exit={{ opacity: 0, y: -10 }}
                 style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', padding: '10px 0' }}
               >
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '24px' }}>
-                  Your Organizations
-                </h1>
+                <div style={{ marginBottom: '24px' }}>
+                  <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+                    Your Organizations
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0 }}>
+                    Manage multi-tenant workspace environments and project access.
+                  </p>
+                </div>
+
+                {/* Developer Workspace Stats Bar */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '22px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      TOTAL ORGANIZATIONS
+                    </div>
+                    <div style={{ fontSize: '1rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      {loadingOrgs ? '-' : orgs.length}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      WORKSPACE TIER
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      DEVELOPER FREE TIER
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      VECTOR DATABASE
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      SUPABASE PGVECTOR
+                    </div>
+                  </div>
+                </div>
 
                 {/* Control Bar: Search Input (left) & New Organization (right) */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
@@ -522,12 +555,12 @@ export default function Dashboard({ auth }) {
                     </span>
                     <input
                       type="text"
-                      placeholder="Search for an organization"
+                      placeholder="Search organizations..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
                         background: 'rgba(255, 255, 255, 0.04)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: 'none',
                         borderRadius: '6px',
                         padding: '7px 12px 7px 34px',
                         color: '#fff',
@@ -535,17 +568,14 @@ export default function Dashboard({ auth }) {
                         fontFamily: 'var(--font-sans)',
                         outline: 'none',
                         width: '260px',
-                        transition: 'border-color 0.2s ease',
                       }}
-                      onFocus={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)')}
-                      onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
                     />
                   </div>
                   <button
                     onClick={() => setShowCreateModal(true)}
                     style={{
                       background: 'var(--bronze-base)',
-                      border: '1px solid rgba(244, 209, 166, 0.35)',
+                      border: 'none',
                       color: '#fff',
                       borderRadius: '6px',
                       padding: '6px 14px',
@@ -573,7 +603,7 @@ export default function Dashboard({ auth }) {
                     <span>Loading organization directories...</span>
                   </div>
                 ) : orgs.filter(o => o.name?.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed rgba(255, 255, 255, 0.1)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
+                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
                     <h3 style={{ fontSize: '1.05rem', color: '#fff', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
                       {searchQuery ? 'No matching organizations found' : 'No Organizations Found'}
                     </h3>
@@ -585,7 +615,7 @@ export default function Dashboard({ auth }) {
                         onClick={() => setShowCreateModal(true)}
                         style={{
                           background: 'var(--bronze-base)',
-                          border: '1px solid rgba(244, 209, 166, 0.35)',
+                          border: 'none',
                           color: '#fff',
                           borderRadius: '6px',
                           padding: '6px 14px',
@@ -607,10 +637,9 @@ export default function Dashboard({ auth }) {
                           key={org.id || org.organization_id}
                           onClick={() => navigate(`/dashboard/org/${org.id || org.organization_id}`)}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            background: 'rgba(255, 255, 255, 0.025)',
                             borderRadius: '8px',
-                            padding: '14px 16px',
+                            padding: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -618,27 +647,28 @@ export default function Dashboard({ auth }) {
                             transition: 'all 0.2s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
                             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <IconOrgCluster size={16} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
+                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.94rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
                                 {org.name}
                               </h2>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>Free Plan</span>
+                              <div style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>ACTIVE WORKSPACE</span>
                               </div>
                             </div>
                           </div>
+                          <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            &rarr;
+                          </span>
                         </div>
                       ))}
                   </div>
@@ -654,9 +684,42 @@ export default function Dashboard({ auth }) {
                 exit={{ opacity: 0, y: -10 }}
                 style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', padding: '10px 0' }}
               >
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '24px' }}>
-                  Your Projects
-                </h1>
+                <div style={{ marginBottom: '24px' }}>
+                  <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+                    Your Projects
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0 }}>
+                    Deploy knowledge bases, document ingestion pipelines, and search endpoints.
+                  </p>
+                </div>
+
+                {/* Developer Projects Stats Bar */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '22px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      ACTIVE PROJECTS
+                    </div>
+                    <div style={{ fontSize: '1rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      {loadingProjects ? '-' : projects.length}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      ACTIVE ORGANIZATION
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {selectedOrg?.name || 'DEFAULT'}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      RAG PIPELINE
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      ACTIVE & OPTIMIZED
+                    </div>
+                  </div>
+                </div>
 
                 {/* Control Bar: Search Input (left) & New Project (right) */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
@@ -671,7 +734,7 @@ export default function Dashboard({ auth }) {
                       onChange={(e) => setProjectSearchQuery(e.target.value)}
                       style={{
                         background: 'rgba(255, 255, 255, 0.04)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: 'none',
                         borderRadius: '6px',
                         padding: '7px 12px 7px 34px',
                         color: '#fff',
@@ -679,17 +742,14 @@ export default function Dashboard({ auth }) {
                         fontFamily: 'var(--font-sans)',
                         outline: 'none',
                         width: '260px',
-                        transition: 'border-color 0.2s ease',
                       }}
-                      onFocus={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)')}
-                      onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
                     />
                   </div>
                   <button
                     onClick={() => setShowProjectModal(true)}
                     style={{
                       background: 'var(--bronze-base)',
-                      border: '1px solid rgba(244, 209, 166, 0.35)',
+                      border: 'none',
                       color: '#fff',
                       borderRadius: '6px',
                       padding: '6px 14px',
@@ -717,7 +777,7 @@ export default function Dashboard({ auth }) {
                     <span>Loading projects...</span>
                   </div>
                 ) : projects.filter(p => p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase())).length === 0 ? (
-                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed rgba(255, 255, 255, 0.1)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
+                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
                     <h3 style={{ fontSize: '1.05rem', color: '#fff', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
                       {projectSearchQuery ? 'No matching projects found' : 'No Projects Found'}
                     </h3>
@@ -729,7 +789,7 @@ export default function Dashboard({ auth }) {
                         onClick={() => setShowProjectModal(true)}
                         style={{
                           background: 'var(--bronze-base)',
-                          border: '1px solid rgba(244, 209, 166, 0.35)',
+                          border: 'none',
                           color: '#fff',
                           borderRadius: '6px',
                           padding: '6px 14px',
@@ -754,10 +814,9 @@ export default function Dashboard({ auth }) {
                             navigate(`/dashboard/org/${orgId}/project/${proj.id}`)
                           }}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            background: 'rgba(255, 255, 255, 0.025)',
                             borderRadius: '8px',
-                            padding: '14px 16px',
+                            padding: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -765,27 +824,28 @@ export default function Dashboard({ auth }) {
                             transition: 'all 0.2s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
                             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <IconLayers size={16} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
+                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.94rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
                                 {proj.name}
                               </h2>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{proj.project_type || proj.environment || 'Development'}</span>
+                              <div style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{(proj.project_type || proj.environment || 'DEVELOPMENT').toUpperCase()}</span>
                               </div>
                             </div>
                           </div>
+                          <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            &rarr;
+                          </span>
                         </div>
                       ))}
                   </div>

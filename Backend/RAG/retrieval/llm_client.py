@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Default model per provider — use smaller/faster models for lower token cost
 DEFAULT_MODELS = {
-    "groq": "llama-3.1-8b-instant",
+    "groq": "llama3-70b-8192",
     "openai": "gpt-4o-mini",
     "gemini": "gemini-2.0-flash",
     "anthropic": "claude-3-5-sonnet-20241022",
@@ -49,7 +49,7 @@ class MultiProviderLLMClient:
         """Generate chat completion using the requested provider and model."""
         provider = provider.lower()
         api_key = self.resolve_api_key(provider, custom_api_key)
-        model = model_name or DEFAULT_MODELS.get(provider, "llama-3.1-8b-instant")
+        model = model_name or DEFAULT_MODELS.get(provider, "llama3-70b-8192")
 
         if provider in ("groq", "openai", "custom"):
             base_urls = {
@@ -81,7 +81,7 @@ class MultiProviderLLMClient:
             return self._call_openai_compatible(
                 base_url="https://api.groq.com/openai/v1/chat/completions",
                 api_key=api_key,
-                model="llama-3.1-8b-instant",
+                model="llama3-70b-8192",
                 prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=temperature,
