@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /* ── LandingPage Component Styles ────────────────────────────────────────── */
 
 .scroll-container {
@@ -265,9 +267,9 @@
   gap: 5px;
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 0.78rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   transition: color 0.3s ease;
   padding-bottom: 4px;
@@ -279,7 +281,7 @@
 
 .nav-link--active {
   color: #fff;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .loader-container {
@@ -342,8 +344,7 @@
   margin-top: 8px;
 }
 
-.beyond-column {
-}
+.beyond-column {}
 
 .beyond-label {
   color: #52A88B;
@@ -383,4 +384,463 @@
   box-shadow: 0 0 32px rgba(82, 168, 139, 0.25), inset 0 0 20px rgba(82, 168, 139, 0.08);
   color: #7DD4BA;
   transform: translateY(-1px);
+}
+
+/* ── Extended Section Inline Extras (matching original palette) ── */
+
+.section-callout-card {
+  background: rgba(200, 111, 82, 0.08);
+  border: 1px solid rgba(200, 111, 82, 0.25);
+  padding: 14px 18px;
+  border-radius: 6px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.section-callout-card p {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #C86F52;
+  line-height: 1.5;
+}
+
+.section-flow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.flow-node {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #FFF5E0);
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.flow-node.beacon-hl {
+  background: rgba(82, 168, 139, 0.12);
+  border-color: rgba(82, 168, 139, 0.35);
+  color: #52A88B;
+}
+
+.flow-sep {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 1rem;
+}
+
+.section-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #52A88B;
+  min-width: 24px;
+}
+
+.step-label {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-primary, #FFF5E0);
+}
+
+.step-text {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.section-code-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(82, 168, 139, 0.25);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: -0.5rem;
+  pointer-events: auto;
+  width: 100%;
+}
+
+.code-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: rgba(82, 168, 139, 0.15);
+  color: #52A88B;
+  font-weight: 600;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  border-color: rgba(82, 168, 139, 0.4);
+  color: #52A88B;
+}
+
+.code-pre {
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #52A88B;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.section-arch-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+  width: 100%;
+}
+
+.arch-node {
+  width: 100%;
+  text-align: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-primary, #FFF5E0);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.arch-node.hl {
+  background: rgba(82, 168, 139, 0.1);
+  border-color: rgba(82, 168, 139, 0.3);
+  color: #52A88B;
+}
+
+.arch-arrow {
+  text-align: center;
+  width: 100%;
+  display: block;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* ── Ultra-Minimal Architecture Chart (Section 08 Right Panel) ── */
+.clean-arch-chart {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(400px, 32vw, 540px);
+  z-index: 60;
+  pointer-events: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clean-chart-node {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  border: none;
+  transition: background 0.25s ease;
+}
+
+.clean-chart-node:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.clean-chart-node.node-hl {
+  background: rgba(82, 168, 139, 0.06);
+}
+
+.clean-chart-node.node-hl:hover {
+  background: rgba(82, 168, 139, 0.1);
+}
+
+.clean-node-title {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #FFF5E0;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.clean-chart-node.node-hl .clean-node-title {
+  color: #52A88B;
+}
+
+.clean-node-desc {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.4;
+}
+
+/* ── Dev SDK Code Box (Section 06 Right Panel - Borderless & Syntax Colors) ── */
+.sdk-code-panel {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(420px, 34vw, 560px);
+  z-index: 60;
+  pointer-events: auto;
+  background: rgba(15, 14, 12, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: none;
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.sdk-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: none;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.sdk-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.sdk-tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sdk-tab-btn.active {
+  background: rgba(82, 168, 139, 0.14);
+  color: #52A88B;
+  font-weight: 600;
+}
+
+.sdk-copy-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.76rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.sdk-copy-btn:hover {
+  background: rgba(82, 168, 139, 0.15);
+  color: #52A88B;
+}
+
+.sdk-code-content {
+  padding: 20px 22px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.sdk-code-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: #FFF5E0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── VS Code Dark+ Code Syntax Colors ── */
+.syn-keyword {
+  color: #C586C0;
+  font-weight: 500;
+}
+
+/* VS Code Magenta */
+.syn-class {
+  color: #4EC9B0;
+  font-weight: 500;
+}
+
+/* VS Code Turquoise */
+.syn-var {
+  color: #9CDCFE;
+}
+
+/* VS Code Variable Light Blue */
+.syn-string {
+  color: #CE9178;
+}
+
+/* VS Code String Warm Amber */
+.syn-prop {
+  color: #9CDCFE;
+}
+
+/* VS Code Property Light Blue */
+.syn-fn {
+  color: #DCDCAA;
+}
+
+/* VS Code Function Yellow */
+.syn-const {
+  color: #4FC1FF;
+}
+
+/* VS Code Constant Bright Blue */
+.syn-cmd {
+  color: #569CD6;
+  font-weight: 500;
+}
+
+/* VS Code Command Blue */
+.syn-flag {
+  color: #9CDCFE;
+}
+
+/* VS Code Flag Light Blue */
+
+/* ── Ultra-Minimal Modern Steps Box (Section 05 Right Panel) ── */
+.minimal-steps-panel {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(400px, 32vw, 540px);
+  z-index: 60;
+  pointer-events: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.minimal-step-item {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  border: none;
+  transition: background 0.25s ease;
+}
+
+.minimal-step-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.minimal-step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.minimal-step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.minimal-step-title {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #FFF5E0;
+  letter-spacing: 0.08em;
+}
+
+.minimal-step-desc {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── CometCard 3D Hover Tilt & Depth Container ── */
+.comet-card-container {
+  width: 100%;
+  cursor: pointer;
+  will-change: transform;
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+.comet-card-content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
 }
