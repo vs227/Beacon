@@ -1916,7 +1916,9 @@ export default function ProjectPage({ auth }) {
                             outline: 'none',
                           }}
                         >
-                          <option value="groq" style={{ background: '#121217' }}>Groq (Llama 3.3 70B)</option>
+                          <option value="groq" style={{ background: '#121217' }}>Groq (GPT-OSS 120B)</option>
+                          <option value="qwen" style={{ background: '#121217' }}>Groq (Qwen 3.8 27B)</option>
+                          <option value="gemini" style={{ background: '#121217' }}>Gemini (2.0 Flash)</option>
                           <option value="openai" style={{ background: '#121217' }}>OpenAI (GPT-4o)</option>
                           <option value="claude" style={{ background: '#121217' }}>Anthropic (Claude 3.5)</option>
                           <option value="local" style={{ background: '#121217' }}>Local DeepSeek R1</option>
