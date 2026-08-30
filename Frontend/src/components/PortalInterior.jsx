@@ -131,13 +131,6 @@ export default function PortalInterior({ scrollProgress = 0, ...props }) {
         </mesh>
       ))}
 
-      {/* Floating particles inside void */}
-      <points ref={particlesRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        </bufferGeometry>
-        <primitive object={particleMat} attach="material" />
-      </points>
     </group>
   )
 }

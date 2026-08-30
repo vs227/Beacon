@@ -618,13 +618,13 @@
   font-family: "Outfit", sans-serif;
   font-size: 0.86rem;
   font-weight: 600;
-  color: #FFF5E0;
+  color: #FFFFFF;
   letter-spacing: 0.05em;
   margin-bottom: 3px;
 }
 
 .clean-chart-node.node-hl .clean-node-title {
-  color: #52A88B;
+  color: #FFFFFF;
 }
 
 .clean-node-desc {
@@ -634,8 +634,8 @@
   line-height: 1.4;
 }
 
-/* ── Dev SDK Code Box (Section 06 Right Panel - Borderless & Syntax Colors) ── */
-.sdk-code-panel {
+/* ── Dev SDK Code Box (Section 06 Right Panel - Glass Card with 3D Tilt) ── */
+.sdk-code-panel-wrapper {
   position: fixed;
   right: 6%;
   top: 30%;
@@ -643,10 +643,15 @@
   width: clamp(420px, 34vw, 560px);
   z-index: 60;
   pointer-events: auto;
-  background: rgba(15, 14, 12, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: none;
+}
+
+.sdk-code-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   overflow: visible;
 }
@@ -657,7 +662,7 @@
   align-items: center;
   padding: 12px 18px;
   background: rgba(255, 255, 255, 0.03);
-  border-bottom: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
 }

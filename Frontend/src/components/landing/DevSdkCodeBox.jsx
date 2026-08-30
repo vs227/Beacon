@@ -124,9 +124,9 @@ export default function DevSdkCodeBox({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 20 }}
           transition={{ duration: 0.4 }}
-          className="sdk-code-panel"
+          className="sdk-code-panel-wrapper"
         >
-          <CometCard rotateDepth={12} translateDepth={15}>
+          <CometCard rotateDepth={12} translateDepth={15} className="sdk-code-panel">
             {/* Top Bar with Language Tabs & Copy Button */}
             <div className="sdk-panel-header">
               <div className="sdk-tabs">

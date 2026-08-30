@@ -43,11 +43,8 @@ export default function HowItWorksStepsBox({ isVisible }) {
           <CometCard rotateDepth={12} translateDepth={15}>
             <div className="comet-card-content-stack">
               {STEPS.map((step) => (
-                <div key={step.num} className="minimal-step-item">
+                <div key={step.label} className="minimal-step-item">
                   <div className="minimal-step-head">
-                    <span className="minimal-step-num" style={{ color: step.color }}>
-                      {step.num}
-                    </span>
                     <span className="minimal-step-title">{step.label}</span>
                   </div>
                   <p className="minimal-step-desc">{step.text}</p>

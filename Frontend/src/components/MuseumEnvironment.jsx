@@ -122,6 +122,87 @@ function createPlasterTexturePair() {
   return [colorTex, bumpTex]
 }
 
+// ─── THREEUI SEAMLESS FLUID FIELD WALL SHADER MATERIAL ─────────────────────
+function FluidFieldWall({ position = [9.2, 4, 0], rotation = [0, -Math.PI / 2, 0], args = [16, 8] }) {
+  const matRef = useRef()
+
+  useFrame((state) => {
+    if (matRef.current) {
+      matRef.current.uniforms.uTime.value = state.clock.getElapsedTime()
+    }
+  })
+
+  return (
+    <mesh position={position} rotation={rotation} receiveShadow>
+      <planeGeometry args={args} />
+      <shaderMaterial
+        ref={matRef}
+        side={THREE.DoubleSide}
+        uniforms={{
+          uTime: { value: 0 },
+        }}
+        vertexShader={`
+          varying vec2 vUv;
+          varying vec3 vWorldPosition;
+          void main() {
+            vUv = uv;
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPos;
+          }
+        `}
+        fragmentShader={`
+          uniform float uTime;
+          varying vec2 vUv;
+          varying vec3 vWorldPosition;
+
+          vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+          vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+          vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+          float snoise(vec2 v) {
+              const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+              vec2 i  = floor(v + dot(v, C.yy));
+              vec2 x0 = v -   i + dot(i, C.xx);
+              vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+              vec4 x12 = x0.xyxy + C.xxzz;
+              x12.xy -= i1;
+              i = mod289(i);
+              vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+              vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+              m = m*m;
+              m = m*m;
+              vec3 x = 2.0 * fract(p * C.www) - 1.0;
+              vec3 h = abs(x) - 0.5;
+              vec3 ox = floor(x + 0.5);
+              vec3 a0 = x - ox;
+              m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+              vec3 g;
+              g.x  = a0.x  * x0.x  + h.x  * x0.y;
+              g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+              return 130.0 * dot(m, g);
+          }
+
+          void main() {
+              // World-position based noise coordinates so adjacent walls map noise seamlessly across corners!
+              vec2 st = (vWorldPosition.xy + vWorldPosition.zy) * 0.15;
+              st += vec2(snoise(st + uTime * 0.08), snoise(st - uTime * 0.08)) * 0.35;
+
+              float beam = smoothstep(0.05, 0.85, snoise(vec2(st.x + st.y * 1.5 - uTime * 0.18, uTime * 0.05)));
+              vec3 glow = mix(vec3(0.10, 0.16, 0.65), vec3(0.26, 0.12, 0.68), snoise(st * 1.2 + uTime * 0.12) * 0.5 + 0.5);
+
+              // Stronger top fade starting at y=0.8 up to y=4.5 (fading upper walls deeply into shadow)
+              float topFade = smoothstep(4.5, 0.8, vWorldPosition.y);
+
+              vec3 baseColor = vec3(0.009, 0.009, 0.016);
+              gl_FragColor = vec4(baseColor + (glow * beam * 0.75 * topFade), 1.0);
+          }
+        `}
+      />
+    </mesh>
+  )
+}
+
 export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightColor = '#F1F5F9' }) {
   const spotlightRef = useRef()
   const particlesRef = useRef()
@@ -308,47 +389,27 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
     <group>
       <primitive object={spotlightTarget} />
 
-      {/* ─── ROOM WALLS ─────────────────────────────────────────── */}
-      {/* Back Wall — dark charcoal plaster with strong bump relief catching spreading light */}
-      <mesh position={[0, 4, -4.8]} receiveShadow>
-        <planeGeometry args={[18, 8]} />
-        <meshStandardMaterial
-          map={wallColorMap}
-          bumpMap={wallBumpMap}
-          bumpScale={0.65}
-          roughness={0.88}
-          metalness={0.0}
-        />
-      </mesh>
+      {/* ─── FLUSH SEAMLESS ROOM WALLS (TALL 14-UNIT EXTENSION) ────── */}
+      {/* Back Wall — Spans y:0..13 for full camera coverage */}
+      <FluidFieldWall position={[2.0, 6.0, -4.8]} rotation={[0, 0, 0]} args={[28, 14]} />
 
-      {/* Left Wall */}
-      <mesh position={[-4.8, 4, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[14, 8]} />
-        <meshStandardMaterial
-          map={wallColorMap}
-          bumpMap={wallBumpMap}
-          bumpScale={0.60}
-          roughness={0.88}
-          metalness={0.0}
-        />
-      </mesh>
+      {/* Left Wall — Extended height matching right wall */}
+      <FluidFieldWall position={[-4.8, 6.0, 0]} rotation={[0, Math.PI / 2, 0]} args={[20, 14]} />
 
-      {/* Right Wall */}
-      <mesh position={[9.2, 4, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[14, 8]} />
-        <meshStandardMaterial
-          map={wallColorMap}
-          bumpMap={wallBumpMap}
-          bumpScale={0.60}
-          roughness={0.88}
-          metalness={0.0}
-        />
-      </mesh>
+      {/* Right Wall — Extended height matching left wall */}
+      <FluidFieldWall position={[9.2, 6.0, 0]} rotation={[0, -Math.PI / 2, 0]} args={[20, 14]} />
 
-      {/* ─── FLOOR ──────────────────────────────────────────────── */}
+      {/* ─── FLOOR (REALISTIC SATIN POLISHED MUSEUM FLOOR) ─────────── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[24, 20]} />
-        <meshStandardMaterial color="#000000" roughness={1.0} metalness={0.0} />
+        <planeGeometry args={[28, 24]} />
+        <meshPhysicalMaterial
+          color="#0A0C14"
+          roughness={0.35}
+          metalness={0.05}
+          clearcoat={0.35}
+          clearcoatRoughness={0.25}
+          reflectivity={0.5}
+        />
       </mesh>
 
       {/* ─── CEILING ────────────────────────────────────────────── */}
@@ -411,15 +472,16 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
 
       <pointLight position={[3.5, 4.32, -2.3]} intensity={14} color="#FFF3CC" distance={1.8} decay={2.0} />
 
-      {/* PEDESTAL — Warm aged stone, matching beacon material */}
+      {/* PEDESTAL BOX — Same material plain matching the floor */}
       <mesh position={[3.5, 0.38, -2.3]} castShadow receiveShadow>
         <boxGeometry args={[4.2, 0.76, 2.8]} />
-        <meshStandardMaterial
-          color="#3A3028"
-          roughness={0.94}
-          metalness={0.0}
-          bumpMap={floorBumpMap}
-          bumpScale={0.018}
+        <meshPhysicalMaterial
+          color="#0A0C14"
+          roughness={0.35}
+          metalness={0.05}
+          clearcoat={0.35}
+          clearcoatRoughness={0.25}
+          reflectivity={0.5}
         />
       </mesh>
 
@@ -454,16 +516,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
         shadow-camera-fov={72}
       />
 
-      {/* ─── VOLUMETRIC DUST (inside spotlight cone) ─────────────── */}
-      <points ref={particlesRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.028} color="#FFE8C8" transparent opacity={0.16}
-          sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending}
-        />
-      </points>
+      {/* Volumetric dust particles removed per request */}
 
     </group>
   )

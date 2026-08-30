@@ -14,6 +14,7 @@ import ArchitectureFlowChart from './landing/ArchitectureFlowChart'
 import DevSdkCodeBox from './landing/DevSdkCodeBox'
 import HowItWorksStepsBox from './landing/HowItWorksStepsBox'
 import { SECTIONS_DATA, CODE_EXAMPLES } from './landing/landingData'
+import { StructureFlowCollection } from './ui/StructureFlowCollection'
 import './LandingPage.css'
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
@@ -188,6 +189,45 @@ export default function LandingPage({ auth }) {
           />
         )}
       </div>
+
+      {/* ThreeUI Nebula Background Layer (Fades in during How It Works portal transition) */}
+      {(() => {
+        const nebulaOpacity = activeSection < 5 
+          ? 0 
+          : activeSection >= 6 
+            ? 1 
+            : Math.max(0, Math.min(1, (blackProgress - 0.55) / 0.45));
+
+        return (
+          <div
+            className="nebula-bg-wrapper"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 2,
+              opacity: nebulaOpacity,
+              transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: nebulaOpacity > 0.1 ? 'auto' : 'none',
+            }}
+          >
+            <StructureFlowCollection
+              variant="nebula"
+              hue={0}
+              saturation={1.00}
+              brightness={0.85}
+            />
+            {/* Soft Top Gradient Overlay */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.60) 0%, transparent 25%), radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.58) 100%)',
+              }}
+            />
+          </div>
+        )
+      })()}
 
       {/* Fixed Left Information Panel — SAME PANEL FOR ALL SECTIONS */}
       <div
