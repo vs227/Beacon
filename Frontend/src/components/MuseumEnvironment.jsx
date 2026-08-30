@@ -122,7 +122,7 @@ function createPlasterTexturePair() {
   return [colorTex, bumpTex]
 }
 
-export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightColor = '#F5F0EA' }) {
+export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightColor = '#F1F5F9' }) {
   const spotlightRef = useRef()
   const particlesRef = useRef()
 
@@ -347,13 +347,9 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
 
       {/* ─── FLOOR ──────────────────────────────────────────────── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[18, 14]} />
-        <meshStandardMaterial color="#17150F" roughness={0.94} metalness={0.0} bumpMap={floorBumpMap} bumpScale={0.006} />
+        <planeGeometry args={[24, 20]} />
+        <meshStandardMaterial color="#000000" roughness={1.0} metalness={0.0} />
       </mesh>
-
-      <gridHelper args={[18, 22, '#1a3030', '#1a3030']} position={[0, 0.002, 0]}>
-        <lineBasicMaterial attach="material" transparent opacity={0.10} depthWrite={false} />
-      </gridHelper>
 
       {/* ─── CEILING ────────────────────────────────────────────── */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 8.0, 0]}>
@@ -430,7 +426,7 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
       {/* ─── SINGLE SPOTLIGHT ILLUMINATING THE ROOM ALONE ─────────── */}
 
       {/* Minimal ambient ground fill for realistic deep shadow detail */}
-      <hemisphereLight skyColor="#1A1816" groundColor="#050404" intensity={0.06} />
+      <hemisphereLight skyColor="#181A20" groundColor="#08090C" intensity={0.06} />
 
       {/*
         THE SINGLE SPOTLIGHT

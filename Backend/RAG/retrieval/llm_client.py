@@ -125,6 +125,7 @@ class MultiProviderLLMClient:
             ],
             "temperature": temperature,
             "max_tokens": 4096,
+        }
 
         with httpx.Client(timeout=30.0) as client:
             resp = client.post(base_url, headers=headers, json=payload)
@@ -169,6 +170,7 @@ class MultiProviderLLMClient:
         if not api_key:
             raise ValueError("No Gemini API Key. Set GEMINI_API_KEY in .env or pass custom_api_key (BYOK).")
 
+        gemini_model = model if "gemini" in model else "gemini-2.0-flash"
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
 
         payload = {
@@ -176,6 +178,7 @@ class MultiProviderLLMClient:
             "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096},
         }
 
+        with httpx.Client(timeout=30.0) as client:
             resp = client.post(url, json=payload)
             if resp.status_code != 200:
                 raise ValueError(f"Gemini API Error ({resp.status_code}): {resp.text[:300]}")
@@ -203,6 +206,7 @@ class MultiProviderLLMClient:
 
         headers = {
             "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         }
         payload = {
@@ -214,6 +218,7 @@ class MultiProviderLLMClient:
         }
 
         with httpx.Client(timeout=30.0) as client:
+            resp = client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
             if resp.status_code != 200:
                 raise ValueError(f"Anthropic API Error ({resp.status_code}): {resp.text[:300]}")
 

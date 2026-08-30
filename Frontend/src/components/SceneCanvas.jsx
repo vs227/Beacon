@@ -71,11 +71,11 @@ function SceneContents({ scrollProgress = 0, cameraProgress = 0, onReady }) {
 
   return (
     <>
-      <color attach="background" args={['#0F0E0C']} />
-      <fog attach="fog" args={['#0F0E0C', 16, 34]} />
+      <color attach="background" args={['#0E0F12']} />
+      <fog attach="fog" args={['#0E0F12', 16, 34]} />
 
       <Suspense fallback={null}>
-        <MuseumEnvironment spotlightIntensity={180} spotlightColor="#FFF5E0" />
+        <MuseumEnvironment spotlightIntensity={180} spotlightColor="#F1F5F9" />
 
         <ContactShadows
           position={[3.5, 0.002, -2.3]}

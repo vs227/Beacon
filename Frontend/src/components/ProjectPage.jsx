@@ -24,6 +24,11 @@ function IconKey({ size = 16 }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg>
   )
 }
+function IconLock({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+  )
+}
 function IconSettings({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -69,6 +74,11 @@ function IconTwinkle({ size = 18 }) {
         </linearGradient>
       </defs>
     </svg>
+  )
+}
+function IconZap({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
   )
 }
 function IconSend({ size = 16 }) {
@@ -500,10 +510,19 @@ export default function ProjectPage({ auth }) {
     })
   }
 
+  // Derived token telemetry & chat locking status
+  const lastAssistantMessage = [...ragMessages].reverse().find(m => m.role === 'assistant' && m.tokens)
+  const lastQueryTokens = lastAssistantMessage ? lastAssistantMessage.tokens : null
+  const sessionTokens = ragMessages.reduce((sum, msg) => sum + (msg.tokens?.total_tokens || 0), 0)
+
+  const isGenerating = ragLoading || ragMessages.some(m => m.typing)
+  const isFreeTier = !byokKey.trim() && ragProvider !== 'gemini'
+  const isChatLocked = isFreeTier && ((lastQueryTokens?.total_tokens || 0) >= 6000)
+
   // Handle RAG AI Query
   const handleSendRagQuery = async (e) => {
     e?.preventDefault()
-    if (!ragInput.trim() || ragLoading) return
+    if (!ragInput.trim() || ragLoading || isGenerating || isChatLocked) return
 
     const userMsg = ragInput.trim()
     setRagInput('')
@@ -1998,139 +2017,319 @@ export default function ProjectPage({ auth }) {
                       </div>
                     </div>
 
-                    {/* Chat Messages Console */}
-                    <div className="rag-chat-container" style={{ height: '500px', background: 'transparent' }}>
-                      <div className="rag-messages-scroll" ref={chatScrollRef}>
-                        {ragMessages.length === 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '18px', padding: '40px 20px' }}>
-                            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
-                              <IconCpu size={28} />
-                            </div>
-                            <div style={{ maxWidth: '460px' }}>
-                              <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>RAG Grounding Console</h4>
-                              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
-                                Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
-                              </p>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', width: '100%', maxWidth: '580px', marginTop: '8px' }}>
-                              {[
-                                { title: '⚡ System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
-                                { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
-                                { title: '🛡️ Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
-                                { title: '📊 RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
-                              ].map((chip, i) => (
-                                <button
-                                  key={i}
-                                  onClick={() => setRagInput(chip.prompt)}
-                                  style={{
-                                    background: 'rgba(255, 255, 255, 0.03)',
-                                    border: 'none',
-                                    color: '#fff',
-                                    padding: '12px 14px',
-                                    borderRadius: '8px',
-                                    fontSize: '0.78rem',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(182, 122, 70, 0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.transform = 'translateY(0)' }}
-                                >
-                                  <span style={{ fontWeight: 600, color: 'var(--bronze-highlight)', fontSize: '0.80rem' }}>{chip.title}</span>
-                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.4 }}>{chip.prompt}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          ragMessages.map((msg, idx) => (
-                            <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
-                              <div className="rag-message-avatar">
-                                {msg.role === 'assistant' ? <IconCpu size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>YOU</span>}
+                    {/* Flex Layout: Chat Console (Left) + Vertical Telemetry Sidebar (Right) */}
+                    <div style={{ display: 'flex', minHeight: '520px', alignItems: 'stretch' }}>
+                      {/* Left Column: Chat Console & Input */}
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '520px', background: 'transparent' }}>
+                        {/* Messages Scroll Area */}
+                        <div className="rag-messages-scroll" ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                          {ragMessages.length === 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '18px', padding: '40px 20px' }}>
+                              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
+                                <IconCpu size={28} />
                               </div>
+                              <div style={{ maxWidth: '460px' }}>
+                                <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>RAG Grounding Console</h4>
+                                <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
+                                  Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
+                                </p>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', width: '100%', maxWidth: '580px', marginTop: '8px' }}>
+                                {[
+                                  { title: '⚡ System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
+                                  { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
+                                  { title: '🛡️ Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
+                                  { title: '📊 RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
+                                ].map((chip, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      if (!isGenerating && !isChatLocked) setRagInput(chip.prompt)
+                                    }}
+                                    disabled={isGenerating || isChatLocked}
+                                    style={{
+                                      background: 'rgba(255, 255, 255, 0.03)',
+                                      border: 'none',
+                                      color: isGenerating || isChatLocked ? 'var(--text-secondary)' : '#fff',
+                                      padding: '12px 14px',
+                                      borderRadius: '8px',
+                                      fontSize: '0.78rem',
+                                      textAlign: 'left',
+                                      cursor: isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
+                                      opacity: isGenerating || isChatLocked ? 0.6 : 1,
+                                      transition: 'all 0.2s ease',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '4px',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (!isGenerating && !isChatLocked) {
+                                        e.currentTarget.style.background = 'rgba(182, 122, 70, 0.12)'
+                                        e.currentTarget.style.transform = 'translateY(-1px)'
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (!isGenerating && !isChatLocked) {
+                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                                        e.currentTarget.style.transform = 'translateY(0)'
+                                      }
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: 600, color: 'var(--bronze-highlight)', fontSize: '0.80rem' }}>{chip.title}</span>
+                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.4 }}>{chip.prompt}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            ragMessages.map((msg, idx) => (
+                              <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
+                                <div className="rag-message-avatar">
+                                  {msg.role === 'assistant' ? <IconCpu size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>YOU</span>}
+                                </div>
 
-                              <div className="rag-message-bubble" style={{ position: 'relative' }}>
-                                <div className="rag-message-content">
-                                  {renderFormattedMessage(msg.content)}
-                                  {msg.typing && <span className="typing-cursor">▌</span>}
+                                <div className="rag-message-bubble" style={{ position: 'relative' }}>
+                                  <div className="rag-message-content">
+                                    {renderFormattedMessage(msg.content)}
+                                    {msg.typing && <span className="typing-cursor">▌</span>}
+                                  </div>
+
+                                  {msg.role === 'assistant' && msg.tokens && !msg.typing && (
+                                    <div style={{
+                                      marginTop: '8px',
+                                      paddingTop: '6px',
+                                      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      flexWrap: 'wrap',
+                                      gap: '6px',
+                                      fontSize: '0.70rem',
+                                      color: 'var(--text-secondary)',
+                                      fontFamily: 'monospace'
+                                    }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--bronze-highlight)', fontWeight: 600 }}>
+                                          <IconZap size={11} />
+                                          <span>{msg.tokens.total_tokens || 0} tokens</span>
+                                        </span>
+                                        <span style={{ opacity: 0.3 }}>•</span>
+                                        <span>{msg.tokens.prompt_tokens || 0} in / {msg.tokens.completion_tokens || 0} out</span>
+                                        {msg.executionTime && (
+                                          <>
+                                            <span style={{ opacity: 0.3 }}>•</span>
+                                            <span>{msg.executionTime}ms</span>
+                                          </>
+                                        )}
+                                      </div>
+                                      {msg.sources && msg.sources.length > 0 && (
+                                        <span style={{ color: '#4ade80', background: 'rgba(74, 222, 128, 0.08)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem' }}>
+                                          {msg.sources.length} {msg.sources.length === 1 ? 'chunk' : 'chunks'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          ))
-                        )}
+                            ))
+                          )}
 
-                        {ragLoading && (
-                          <div className="rag-message-wrapper assistant">
-                            <div className="rag-message-avatar">
-                              <IconCpu size={16} />
+                          {ragLoading && (
+                            <div className="rag-message-wrapper assistant">
+                              <div className="rag-message-avatar">
+                                <IconCpu size={16} />
+                              </div>
+                              <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 18px' }}>
+                                <IconLoader size={14} className="spin" style={{ color: 'var(--bronze-highlight)' }} />
+                                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                  Retrieving vector chunks & generating answer...
+                                </span>
+                              </div>
                             </div>
-                            <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 18px' }}>
-                              <IconLoader size={14} className="spin" style={{ color: 'var(--bronze-highlight)' }} />
-                              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                Retrieving vector chunks & generating answer...
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Chat Input Console Bar */}
-                      <form
-                        className="rag-input-form"
-                        onSubmit={handleSendRagQuery}
-                        style={{ padding: '14px 18px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', gap: '12px' }}
-                      >
-                        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                          <div style={{ position: 'absolute', left: '14px', display: 'flex', alignItems: 'center', pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))' }}>
-                            <IconTwinkle size={18} />
-                          </div>
-                          <input
-                            type="text"
-                            className="rag-chat-input"
-                            placeholder="Ask a question grounded in your documents..."
-                            value={ragInput}
-                            onChange={(e) => setRagInput(e.target.value)}
-                            disabled={ragLoading}
-                            style={{
-                              width: '100%',
-                              borderRadius: '6px',
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              border: 'none',
-                              padding: '12px 16px 12px 42px',
-                              color: '#fff',
-                              fontSize: '0.88rem',
-                              outline: 'none',
-                            }}
-                          />
+                          )}
                         </div>
-                        <button
-                          type="submit"
-                          className="rag-send-btn"
-                          disabled={!ragInput.trim() || ragLoading}
-                          style={{
-                            background: !ragInput.trim() || ragLoading ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
-                            color: !ragInput.trim() || ragLoading ? 'var(--text-secondary)' : '#000000',
-                            borderRadius: '6px',
-                            padding: '0 18px',
-                            height: '42px',
-                            border: 'none',
+
+                        {/* Locked Banner Notification */}
+                        {isChatLocked && (
+                          <div style={{
+                            padding: '10px 18px',
+                            background: 'rgba(239, 68, 68, 0.10)',
+                            borderTop: '1px solid rgba(239, 68, 68, 0.20)',
+                            color: '#fca5a5',
+                            fontSize: '0.78rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            cursor: !ragInput.trim() || ragLoading ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.2s ease',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            fontFamily: 'var(--font-sans)',
-                          }}
+                            gap: '8px',
+                            fontFamily: 'monospace'
+                          }}>
+                            <IconLock size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+                            <span><strong>Chat Locked:</strong> Free Tier 6,000 TPM limit reached. Switch provider or configure BYOK key above to continue.</span>
+                          </div>
+                        )}
+
+                        {/* Chat Input Console Form */}
+                        <form
+                          className="rag-input-form"
+                          onSubmit={handleSendRagQuery}
+                          style={{ padding: '14px 18px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', gap: '12px' }}
                         >
-                          {ragLoading ? <IconLoader size={16} /> : <IconSend size={16} style={{ color: !ragInput.trim() || ragLoading ? 'var(--text-secondary)' : '#000000' }} />}
-                          <span>Ask</span>
-                        </button>
-                      </form>
+                          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                            <div style={{ position: 'absolute', left: '14px', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: isChatLocked ? '#f87171' : 'var(--text-secondary)' }}>
+                              {isChatLocked ? <IconLock size={18} /> : <IconTwinkle size={18} />}
+                            </div>
+                            <input
+                              type="text"
+                              className="rag-chat-input"
+                              placeholder={
+                                isChatLocked
+                                  ? 'Chat locked (Free Tier 6k TPM limit reached)'
+                                  : isGenerating
+                                    ? 'Generating response... Please wait for output'
+                                    : 'Ask a question grounded in your documents...'
+                              }
+                              value={ragInput}
+                              onChange={(e) => setRagInput(e.target.value)}
+                              disabled={isGenerating || isChatLocked}
+                              style={{
+                                width: '100%',
+                                borderRadius: '6px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: 'none',
+                                padding: '12px 16px 12px 42px',
+                                color: isChatLocked ? '#f87171' : '#fff',
+                                fontSize: '0.88rem',
+                                outline: 'none',
+                                cursor: (isGenerating || isChatLocked) ? 'not-allowed' : 'text',
+                                opacity: (isGenerating || isChatLocked) ? 0.7 : 1,
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="rag-send-btn"
+                            disabled={!ragInput.trim() || isGenerating || isChatLocked}
+                            style={{
+                              background: !ragInput.trim() || isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                              color: !ragInput.trim() || isGenerating || isChatLocked ? 'var(--text-secondary)' : '#000000',
+                              borderRadius: '6px',
+                              padding: '0 18px',
+                              height: '42px',
+                              border: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: !ragInput.trim() || isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.2s ease',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <IconLoader size={16} className="spin" />
+                                <span>Generating</span>
+                              </>
+                            ) : isChatLocked ? (
+                              <>
+                                <IconLock size={16} />
+                                <span>Locked</span>
+                              </>
+                            ) : (
+                              <>
+                                <IconSend size={16} style={{ color: !ragInput.trim() ? 'var(--text-secondary)' : '#000000' }} />
+                                <span>Ask</span>
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* Right Column: Vertical Token Telemetry Sidebar */}
+                      <div style={{
+                        width: '260px',
+                        flexShrink: 0,
+                        borderLeft: '1px solid rgba(255, 255, 255, 0.04)',
+                        padding: '20px 18px',
+                        background: 'rgba(255, 255, 255, 0.012)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                      }}>
+                        {/* Sidebar Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <IconZap size={15} style={{ color: 'var(--bronze-highlight)' }} />
+                          <span style={{ color: '#fff', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.03em' }}>Token Telemetry</span>
+                        </div>
+
+                        {/* Lock / Live Status Pill */}
+                        {isChatLocked ? (
+                          <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontWeight: 600, fontSize: '0.72rem' }}>
+                            <IconLock size={14} />
+                            <span>CHAT LOCKED (Limit)</span>
+                          </div>
+                        ) : isGenerating ? (
+                          <div style={{ background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24', fontWeight: 600, fontSize: '0.72rem' }}>
+                            <IconLoader size={14} className="spin" />
+                            <span>GENERATING OUTPUT</span>
+                          </div>
+                        ) : (
+                          <div style={{ background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#4ade80', fontWeight: 600, fontSize: '0.72rem' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
+                            <span>CONSOLE READY</span>
+                          </div>
+                        )}
+
+                        {/* Last Query Card */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Query</span>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
+                            {lastQueryTokens ? (lastQueryTokens.total_tokens || 0).toLocaleString() : '0'}
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.70rem', opacity: 0.85 }}>
+                            {lastQueryTokens ? `${lastQueryTokens.prompt_tokens || 0} prompt · ${lastQueryTokens.completion_tokens || 0} output` : 'No active query'}
+                          </div>
+                        </div>
+
+                        {/* Session Total Card */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Session Total</span>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--bronze-highlight)' }}>
+                            {sessionTokens.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-secondary)' }}>tokens</span>
+                          </div>
+                        </div>
+
+                        {/* Free Tier Capacity Gauge */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {byokKey.trim() ? 'BYOK Status' : (ragProvider === 'gemini' ? 'Gemini Tier' : 'Free Tier')}
+                            </span>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: (lastQueryTokens?.total_tokens || 0) >= 6000 ? '#f87171' : (lastQueryTokens?.total_tokens || 0) > 3500 ? '#fbbf24' : '#4ade80' }}>
+                              {byokKey.trim() ? 'Unmetered' : (ragProvider === 'gemini' ? '1M TPM' : `${lastQueryTokens ? lastQueryTokens.total_tokens || 0 : 0}/6k TPM`)}
+                            </span>
+                          </div>
+
+                          {!byokKey.trim() && ragProvider !== 'gemini' && (
+                            <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${Math.min(100, Math.max(lastQueryTokens ? Math.round(((lastQueryTokens.total_tokens || 0) / 6000) * 100) : 0, 4))}%`,
+                                height: '100%',
+                                background: (lastQueryTokens?.total_tokens || 0) >= 6000 ? '#f87171' : (lastQueryTokens?.total_tokens || 0) > 3500 ? '#fbbf24' : '#4ade80',
+                                transition: 'width 0.3s ease'
+                              }} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Engine Provider Info Pill */}
+                        <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
+                          <span>Engine:</span>
+                          <span style={{ color: '#fff', fontWeight: 600, textTransform: 'capitalize' }}>{ragProvider}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

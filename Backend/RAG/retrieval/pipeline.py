@@ -55,9 +55,19 @@ def run_rag_pipeline(
     start_time = time.time()
 
     # ── 1. Fast greeting check (ONLY on fresh chat / no history) ──
+    import re
     clean_q = query.strip().lower()
-    GREETINGS = {"hi", "hii", "hello", "hey", "good morning", "good evening"}
-    if (not chat_history or len(chat_history) == 0) and clean_q in GREETINGS:
+    clean_q_no_punct = re.sub(r"[^\w\s]", "", clean_q).strip()
+    words = clean_q_no_punct.split()
+
+    GREETINGS = {"hi", "hii", "hiii", "hiiii", "hello", "hey", "greetings", "good morning", "good evening", "good afternoon"}
+    greeting_pattern = r"^(h+i+|h+e+l+o+|h+e+y+|greetings|good\s*(morning|afternoon|evening))\b"
+    is_greeting = (
+        clean_q_no_punct in GREETINGS
+        or (len(words) <= 3 and bool(re.match(greeting_pattern, clean_q_no_punct, re.IGNORECASE)))
+    )
+
+    if (not chat_history or len(chat_history) == 0) and is_greeting:
         execution_time_ms = round((time.time() - start_time) * 1000, 2)
         return {
             "query": query,
