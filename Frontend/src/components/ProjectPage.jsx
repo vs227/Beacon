@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import LandingHeader from './landing/LandingHeader'
+import { StructureFlowCollection } from './ui/StructureFlowCollection'
 import './ProjectPage.css'
 
 /* ─── Inline SVG Icons ─── */
@@ -157,7 +159,6 @@ export default function ProjectPage({ auth }) {
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeSection, setActiveSection] = useState('overview')
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
 
   // Documents & Ingestion State
   const [documents, setDocuments] = useState([])
@@ -1024,98 +1025,92 @@ export default function ProjectPage({ auth }) {
   return (
     <div className="dashboard-container">
 
-      {/* Top Navbar */}
-      <header className="dashboard-navbar">
-        <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className="logo-text navbar-brand" onClick={() => navigate('/dashboard/organizations')} style={{ cursor: 'pointer' }}>
-            <span>Beacon</span>
-          </div>
-          {project?.name && (
-            <>
-              <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: '0.9rem' }}>/</span>
-              <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>
-                {project.name}
-              </span>
-            </>
-          )}
-        </div>
+      {/* Dynamic 3D Crisp White Nebula Background Layer for all sections EXCEPT Test RAG */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: activeSection !== 'rag-chat' ? 1 : 0,
+          transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'opacity',
+        }}
+      >
+        <StructureFlowCollection
+          variant="nebula"
+          hue={0}
+          saturation={0}
+          brightness={0.55}
+          style={{ filter: 'brightness(1.0) contrast(1.1)' }}
+        />
+        {/* Soft Ambient White Tint & Dark Overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.70) 100%), radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 70%)',
+          }}
+        />
+      </div>
 
-        {/* Right User profile & Navigation Tabs */}
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              style={{
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '0.80rem',
-                fontWeight: activeSection === item.id ? 600 : 500,
-                color: activeSection === item.id ? '#ffffff' : 'rgba(255, 255, 255, 0.45)',
-                background: activeSection === item.id ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                border: 'none',
-                borderRadius: '100px',
-                padding: '6px 14px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span>{item.label}</span>
-            </button>
-          ))}
+      {/* Dynamic 3D Original Cosmic Violet Nebula Background Layer SPECIFICALLY for Test RAG section */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: activeSection === 'rag-chat' ? 1 : 0,
+          transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'opacity',
+        }}
+      >
+        <StructureFlowCollection
+          variant="nebula"
+          hue={0}
+          saturation={0.92}
+          brightness={0.53}
+        />
+        {/* Soft Ambient Overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.50) 0%, rgba(0, 0, 0, 0.65) 100%), radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.75) 100%)',
+          }}
+        />
+      </div>
 
-          <button
-            className="user-avatar-btn"
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            aria-label="User menu"
-            style={{ marginLeft: '6px' }}
-          >
-            <div className="user-avatar">
-              {auth.user?.username?.[0]?.toUpperCase() || auth.user?.email?.[0]?.toUpperCase() || 'U'}
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {showProfileDropdown && (
-              <>
-                <div className="dropdown-overlay" onClick={() => setShowProfileDropdown(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="profile-dropdown"
-                >
-                  <div className="dropdown-header">
-                    <span className="dropdown-username">{auth.user?.username || 'Explorer'}</span>
-                    <span className="dropdown-email">{auth.user?.email}</span>
-                  </div>
-                  <div className="dropdown-divider" />
-                  <button className="dropdown-item" onClick={() => { setShowProfileDropdown(false); navigate('/dashboard/settings') }}>
-                    <IconSettings size={14} /><span>Account Settings</span>
-                  </button>
-                  <div className="dropdown-divider" />
-                  <button className="dropdown-item logout" onClick={() => { setShowProfileDropdown(false); auth.logout() }}>
-                    <IconLogOut size={14} /><span>Sign Out</span>
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
+      {/* Top Floating Landing-Style Navbar with Project Tabs */}
+      <LandingHeader
+        auth={auth}
+        isDashboard={true}
+        activeTab={activeSection}
+        navItems={navItems}
+        onSelectTab={setActiveSection}
+        projectName={project?.name}
+        onNavigate={navigate}
+      />
 
       {/* Main Content Area */}
       <main style={{
         width: '100%',
-        padding: '24px 32px 32px 32px',
+        padding: '110px 32px 32px 32px',
         boxSizing: 'border-box',
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
+        zIndex: 1,
         overflowY: activeSection === 'rag-chat' ? 'hidden' : 'auto'
       }}>
-        {/* Back to Projects link on far left under BEACON logo */}
-        <div style={{ marginBottom: '20px', marginTop: '2px', flexShrink: 0 }}>
+        {/* Back to Projects Link */}
+        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto 36px auto', flexShrink: 0 }}>
           <button
             onClick={() => navigate(`/dashboard/org/${orgId}`)}
             style={{
@@ -2357,8 +2352,17 @@ export default function ProjectPage({ auth }) {
                                 lineHeight: '1.55',
                                 fontFamily: 'Outfit, sans-serif'
                               }}>
-                                {renderFormattedMessage(msg.content)}
-                                {msg.typing && <span className="typing-cursor">▌</span>}
+                                {msg.role === 'assistant' && !msg.content ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 4px' }}>
+                                    <span className="dot-typing"></span>
+                                    <span className="dot-typing"></span>
+                                    <span className="dot-typing"></span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {renderFormattedMessage(msg.content)}
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))
@@ -2366,7 +2370,15 @@ export default function ProjectPage({ auth }) {
 
                         {ragLoading && (
                           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.025)', borderLeft: '2px solid rgba(255, 255, 255, 0.25)', borderRadius: '4px 14px 14px 14px' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '12px 16px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.04)',
+                              borderRadius: '2px 14px 14px 14px'
+                            }}>
                               <span className="dot-typing"></span>
                               <span className="dot-typing"></span>
                               <span className="dot-typing"></span>

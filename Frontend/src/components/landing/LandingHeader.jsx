@@ -11,6 +11,9 @@ export default function LandingHeader({
   isDashboard = false,
   activeTab = 'organizations',
   selectedOrg = null,
+  projectName = null,
+  navItems = null,
+  onSelectTab = null,
 }) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
 
@@ -27,6 +30,38 @@ export default function LandingHeader({
   ]
 
   const NavPill = () => {
+    if (navItems && navItems.length > 0) {
+      return (
+        <ul className="nav-links">
+          {navItems.map((item) => {
+            const itemId = item.id || item.tab || item.label
+            const isActive = activeTab === itemId
+            return (
+              <li key={itemId}>
+                <button
+                  onClick={() => {
+                    if (item.onClick) item.onClick()
+                    else if (onSelectTab) onSelectTab(itemId)
+                    else if (item.path && onNavigate) onNavigate(item.path)
+                  }}
+                  className={`nav-link${isActive ? ' nav-link--active' : ''}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="projNavActivePill"
+                      className="nav-active-pill"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="nav-link-text">{item.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )
+    }
+
     if (isDashboard) {
       return (
         <ul className="nav-links">
@@ -93,8 +128,16 @@ export default function LandingHeader({
 
   return (
     <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div className="logo-text" onClick={() => onNavigate ? onNavigate('/') : onScrollToTop?.()} style={{ cursor: 'pointer' }}>
+      <div className="logo-text" onClick={() => onNavigate ? onNavigate('/dashboard/organizations') : onScrollToTop?.()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span>Beacon</span>
+        {projectName && (
+          <>
+            <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: '0.9rem' }}>/</span>
+            <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 500, letterSpacing: 'normal', textTransform: 'none' }}>
+              {projectName}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>

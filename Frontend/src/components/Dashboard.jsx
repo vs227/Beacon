@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import LandingHeader from './landing/LandingHeader'
+import { StructureFlowCollection } from './ui/StructureFlowCollection'
 import './Dashboard.css'
 import './LandingPage.css'
 
@@ -125,6 +126,8 @@ export default function Dashboard({ auth }) {
   const [newOrgDesc, setNewOrgDesc] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [selectedOrgIds, setSelectedOrgIds] = useState([])
 
   // Projects State scoped by selected Org
   const [projects, setProjects] = useState([])
@@ -322,6 +325,27 @@ export default function Dashboard({ auth }) {
     }
   }
 
+  // Batch Delete Organizations
+  const handleBatchDeleteOrgs = async () => {
+    if (selectedOrgIds.length === 0) return
+    const count = selectedOrgIds.length
+    if (!confirm(`Are you sure you want to delete ${count} selected organization(s)? This will remove all child projects.`)) return
+    setErrorMsg('')
+    try {
+      for (const orgId of selectedOrgIds) {
+        await fetch(`${API_BASE}/organizations/${orgId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${auth.token}` },
+        })
+      }
+      setSelectedOrgIds([])
+      setIsSelectMode(false)
+      fetchOrgs()
+    } catch (err) {
+      setErrorMsg('Error deleting organizations: ' + err.message)
+    }
+  }
+
   // Create Project via API
   const handleCreateProject = async (e) => {
     e.preventDefault()
@@ -409,6 +433,34 @@ export default function Dashboard({ auth }) {
   return (
     <div className="dashboard-container">
 
+      {/* Dynamic 3D Crisp White Nebula Background Layer */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: 1,
+        }}
+      >
+        <StructureFlowCollection
+          variant="nebula"
+          hue={0}
+          saturation={0}
+          brightness={0.55}
+          style={{ filter: 'brightness(1.0) contrast(1.1)' }}
+        />
+        {/* Soft Ambient White Tint & Dark Overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.70) 100%), radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 70%)',
+          }}
+        />
+      </div>
 
       {/* Top Floating Landing-Style Navbar */}
       <LandingHeader
@@ -420,7 +472,7 @@ export default function Dashboard({ auth }) {
       />
 
       {/* Main Content Pane */}
-      <main className="dashboard-content">
+      <main className="dashboard-content" style={{ position: 'relative', zIndex: 1 }}>
         {/* Status Error Banners */}
         {errorMsg && (
           <div className="error-banner">
@@ -477,8 +529,8 @@ export default function Dashboard({ auth }) {
                   </div>
                 </div>
 
-                {/* Control Bar: Search Input & New Organization + Button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '28px', gap: '12px', flexWrap: 'wrap' }}>
+                {/* Control Bar: Search Input & New Organization (+) & Edit Mode (-) Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: isSelectMode ? '14px' : '28px', gap: '12px', flexWrap: 'wrap' }}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <span style={{ position: 'absolute', left: '16px', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
                       <IconSearch size={15} />
@@ -539,7 +591,70 @@ export default function Dashboard({ auth }) {
                   >
                     +
                   </button>
+                  <button
+                    onClick={() => {
+                      setIsSelectMode(!isSelectMode)
+                      setSelectedOrgIds([])
+                    }}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: isSelectMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(16px)',
+                      border: isSelectMode ? '1px solid rgba(255, 255, 255, 0.3)' : 'none',
+                      color: isSelectMode ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontFamily: 'Outfit, sans-serif',
+                      lineHeight: 1,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                      boxSizing: 'border-box',
+                    }}
+                    title={isSelectMode ? "Cancel edit mode" : "Modify / Select organizations"}
+                  >
+                    -
+                  </button>
                 </div>
+
+                {/* Trash Icon Button below Search Bar with smooth height transition */}
+                <AnimatePresence>
+                  {isSelectMode && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <button
+                        onClick={handleBatchDeleteOrgs}
+                        disabled={selectedOrgIds.length === 0}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: selectedOrgIds.length > 0 ? 'rgba(239, 68, 68, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                          backdropFilter: 'blur(16px)',
+                          border: selectedOrgIds.length > 0 ? '1px solid rgba(239, 68, 68, 0.3)' : 'none',
+                          color: selectedOrgIds.length > 0 ? '#f87171' : 'rgba(255, 255, 255, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: selectedOrgIds.length > 0 ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.2s ease',
+                        }}
+                        title={selectedOrgIds.length > 0 ? "Delete selected organizations" : "Select organizations to delete"}
+                      >
+                        <IconTrash size={16} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Organization Cards Grid */}
                 {loadingOrgs ? (
@@ -565,55 +680,98 @@ export default function Dashboard({ auth }) {
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+                  <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
                     {orgs
                       .filter(o => o.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((org) => (
-                        <div
-                          key={org.id || org.organization_id}
-                          onClick={() => navigate(`/dashboard/org/${org.id || org.organization_id}`)}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.035)',
-                            backdropFilter: 'blur(24px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                            border: 'none',
-                            borderRadius: '16px',
-                            padding: '22px 24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
-                            e.currentTarget.style.transform = 'translateY(-2px)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.035)'
-                            e.currentTarget.style.transform = 'translateY(0px)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <IconOrgCluster size={18} />
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
-                                {org.name}
-                              </h2>
-                              <div style={{ fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>ACTIVE WORKSPACE</span>
+                      .map((org) => {
+                        const orgId = org.id || org.organization_id
+                        const isSelected = selectedOrgIds.includes(orgId)
+                        return (
+                          <div
+                            key={orgId}
+                            onClick={() => {
+                              if (isSelectMode) {
+                                setSelectedOrgIds(prev =>
+                                  prev.includes(orgId)
+                                    ? prev.filter(id => id !== orgId)
+                                    : [...prev, orgId]
+                                )
+                              } else {
+                                navigate(`/dashboard/org/${orgId}`)
+                              }
+                            }}
+                            style={{
+                              background: isSelected ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.035)',
+                              backdropFilter: 'blur(24px) saturate(180%)',
+                              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                              border: isSelected ? '1px solid rgba(239, 68, 68, 0.35)' : 'none',
+                              borderRadius: '16px',
+                              padding: '22px 24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
+                              e.currentTarget.style.transform = 'translateY(-2px)'
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.035)'
+                              e.currentTarget.style.transform = 'translateY(0px)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                              <div style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '12px',
+                                background: isSelected ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                color: isSelected ? '#f87171' : '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <IconOrgCluster size={18} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+                                  {org.name}
+                                </h2>
+                                <div style={{ fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span>ACTIVE WORKSPACE</span>
+                                </div>
                               </div>
                             </div>
+                            {isSelectMode ? (
+                              <div style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                background: isSelected ? '#ef4444' : 'rgba(255, 255, 255, 0.06)',
+                                border: isSelected ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ffffff',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                transition: 'all 0.2s ease',
+                              }}>
+                                {isSelected && '✓'}
+                              </div>
+                            ) : (
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                                ➔
+                              </div>
+                            )}
                           </div>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
-                            ➔
-                          </div>
-                        </div>
-                      ))}
-                  </div>
+                        )
+                      })}
+                  </motion.div>
                 )}
               </motion.div>
             )}
@@ -1233,6 +1391,48 @@ export default function Dashboard({ auth }) {
                       <IconLogOut size={16} /> Sign Out
                     </button>
                   </div>
+
+                  {/* Organization Deletion Danger Section */}
+                  {selectedOrg && (
+                    <div style={{
+                      paddingTop: '24px',
+                      marginTop: '24px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '16px'
+                    }}>
+                      <div>
+                        <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.98rem', fontWeight: 600, color: '#f87171', margin: '0 0 4px 0' }}>
+                          Delete Active Organization ({selectedOrg.name})
+                        </h3>
+                        <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.82rem', margin: 0 }}>
+                          Permanently delete this organization directory and all child projects/documents.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteOrg(selectedOrg.id || selectedOrg.organization_id)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.14)',
+                          border: 'none',
+                          borderRadius: '100px',
+                          padding: '10px 22px',
+                          color: '#f87171',
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '0.84rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <IconTrash size={16} /> Delete Organization
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
