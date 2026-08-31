@@ -1578,3 +1578,119 @@ select option:checked {
   background-color: #2a222e !important;
   color: #f4d1a6 !important;
 }
+
+/* ─── RAG Responsive Layout & Mobile Phone Support ───────────────────── */
+.rag-playground-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rag-header-toolbar {
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rag-main-flex {
+  display: flex;
+  min-height: 520px;
+  align-items: stretch;
+}
+
+.rag-chat-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  background: transparent;
+}
+
+.rag-telemetry-col {
+  width: 260px;
+  flex-shrink: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 20px 18px;
+  background: rgba(255, 255, 255, 0.012);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.78rem;
+  font-family: monospace;
+}
+
+.rag-prompts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 580px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .rag-header-toolbar {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rag-header-toolbar > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .rag-main-flex {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .rag-chat-col {
+    height: 440px;
+    width: 100%;
+  }
+
+  .rag-telemetry-col {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 16px 14px;
+    box-sizing: border-box;
+  }
+
+  .rag-messages-scroll {
+    padding: 12px 10px !important;
+  }
+
+  .rag-message-wrapper {
+    max-width: 98% !important;
+  }
+
+  .rag-input-form {
+    padding: 10px 10px !important;
+    gap: 8px !important;
+  }
+
+  .rag-chat-input {
+    font-size: 0.82rem !important;
+    padding: 10px 10px 10px 34px !important;
+  }
+
+  .rag-send-btn {
+    padding: 0 12px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .rag-prompts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 8px;
+  }
+}
+

@@ -1897,18 +1897,9 @@ export default function ProjectPage({ auth }) {
                   style={{ maxWidth: '940px', width: '100%', margin: '0 auto' }}
                 >
                   {/* Consolidated RAG Playground Container */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div className="rag-playground-card">
                     {/* Integrated Console Header Toolbar */}
-                    <div style={{
-                      padding: '12px 18px',
-                      background: 'rgba(255, 255, 255, 0.025)',
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '12px'
-                    }}>
+                    <div className="rag-header-toolbar">
                       {/* Left Status Indicator */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px rgba(74, 222, 128, 0.6)' }}></span>
@@ -2018,9 +2009,9 @@ export default function ProjectPage({ auth }) {
                     </div>
 
                     {/* Flex Layout: Chat Console (Left) + Vertical Telemetry Sidebar (Right) */}
-                    <div style={{ display: 'flex', minHeight: '520px', alignItems: 'stretch' }}>
+                    <div className="rag-main-flex">
                       {/* Left Column: Chat Console & Input */}
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '520px', background: 'transparent' }}>
+                      <div className="rag-chat-col">
                         {/* Messages Scroll Area */}
                         <div className="rag-messages-scroll" ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
                           {ragMessages.length === 0 ? (
@@ -2034,7 +2025,7 @@ export default function ProjectPage({ auth }) {
                                   Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
                                 </p>
                               </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', width: '100%', maxWidth: '580px', marginTop: '8px' }}>
+                              <div className="rag-prompts-grid">
                                 {[
                                   { title: '⚡ System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
                                   { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
@@ -2246,18 +2237,7 @@ export default function ProjectPage({ auth }) {
                       </div>
 
                       {/* Right Column: Vertical Token Telemetry Sidebar */}
-                      <div style={{
-                        width: '260px',
-                        flexShrink: 0,
-                        borderLeft: '1px solid rgba(255, 255, 255, 0.04)',
-                        padding: '20px 18px',
-                        background: 'rgba(255, 255, 255, 0.012)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '16px',
-                        fontSize: '0.78rem',
-                        fontFamily: 'monospace',
-                      }}>
+                      <div className="rag-telemetry-col">
                         {/* Sidebar Header */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                           <IconZap size={15} style={{ color: 'var(--bronze-highlight)' }} />

@@ -316,9 +316,9 @@
 
 .nav-link--dashboard {
   gap: 6px;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  margin-left: 2px;
-  padding-left: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 2px;
+  padding-right: 16px;
 }
 
 .loader-container {
