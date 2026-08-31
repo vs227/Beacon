@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AuthOverlay.css'
@@ -33,6 +33,32 @@ function IconLogOut({ size = 16 }) {
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
+  )
+}
+
+function AnimatedFormContainer({ children }) {
+  const containerRef = useRef(null)
+  const [height, setHeight] = useState('auto')
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        setHeight(entry.contentRect.height)
+      }
+    })
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <motion.div
+      animate={{ height }}
+      transition={{ type: 'spring', stiffness: 220, damping: 26, mass: 0.8 }}
+      style={{ overflow: 'hidden', position: 'relative' }}
+    >
+      <div ref={containerRef}>{children}</div>
+    </motion.div>
   )
 }
 
@@ -192,100 +218,124 @@ export default function AuthOverlay({ heroProgress = 0, auth }) {
         ) : (
           <motion.div
             key="auth-overlay"
+            layout
             className="auth-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{
+              opacity: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+              layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+            }}
           >
             <div className="auth-tabs">
               <button
                 className={`auth-tab${tab === 'register' ? ' active' : ''}`}
                 onClick={() => { setTab('register'); setResponse(null) }}
               >
-                Register
+                {tab === 'register' && (
+                  <motion.div
+                    layoutId="authActiveTabPill"
+                    className="auth-tab-pill"
+                    transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                  />
+                )}
+                <span className="auth-tab-label">Register</span>
               </button>
               <button
                 className={`auth-tab${tab === 'login' ? ' active' : ''}`}
                 onClick={() => { setTab('login'); setResponse(null) }}
               >
-                Login
+                {tab === 'login' && (
+                  <motion.div
+                    layoutId="authActiveTabPill"
+                    className="auth-tab-pill"
+                    transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                  />
+                )}
+                <span className="auth-tab-label">Login</span>
               </button>
             </div>
 
-            <AnimatePresence mode="wait">
-              {tab === 'register' && (
-                <motion.div
-                  key="reg"
-                  className="auth-form"
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <input
-                    className="auth-input"
-                    placeholder="Username"
-                    value={regUsername}
-                    onChange={e => setRegUsername(e.target.value)}
-                  />
-                  <input
-                    className="auth-input"
-                    type="email"
-                    placeholder="Email"
-                    value={regEmail}
-                    onChange={e => setRegEmail(e.target.value)}
-                  />
-                  <input
-                    className="auth-input"
-                    type="password"
-                    placeholder="Password"
-                    value={regPassword}
-                    onChange={e => setRegPassword(e.target.value)}
-                  />
-                  <button
-                    className="auth-btn-primary"
-                    onClick={doRegister}
-                    disabled={auth?.pending}
-                  >
-                    {auth?.pending ? 'Creating…' : 'Create Account'}
-                  </button>
-                </motion.div>
-              )}
-              {tab === 'login' && (
-                <motion.div
-                  key="log"
-                  className="auth-form"
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <input
-                    className="auth-input"
-                    type="email"
-                    placeholder="Email"
-                    value={loginEmail}
-                    onChange={e => setLoginEmail(e.target.value)}
-                  />
-                  <input
-                    className="auth-input"
-                    type="password"
-                    placeholder="Password"
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                  />
-                  <button
-                    className="auth-btn-primary"
-                    onClick={doLogin}
-                    disabled={auth?.pending || (isError && response?.includes('Too many'))}
-                    style={isError && response?.includes('Too many') ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                  >
-                    {auth?.pending ? 'Logging in…' : 'Login'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <AnimatedFormContainer>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {tab === 'register' && (
+                    <motion.div
+                      key="reg"
+                      className="auth-form"
+                      style={{ gridArea: '1 / 1' }}
+                      initial={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
+                      transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                    >
+                      <input
+                        className="auth-input"
+                        placeholder="Username"
+                        value={regUsername}
+                        onChange={e => setRegUsername(e.target.value)}
+                      />
+                      <input
+                        className="auth-input"
+                        type="email"
+                        placeholder="Email"
+                        value={regEmail}
+                        onChange={e => setRegEmail(e.target.value)}
+                      />
+                      <input
+                        className="auth-input"
+                        type="password"
+                        placeholder="Password"
+                        value={regPassword}
+                        onChange={e => setRegPassword(e.target.value)}
+                      />
+                      <button
+                        className="auth-btn-primary"
+                        onClick={doRegister}
+                        disabled={auth?.pending}
+                      >
+                        {auth?.pending ? 'Creating…' : 'Create Account'}
+                      </button>
+                    </motion.div>
+                  )}
+                  {tab === 'login' && (
+                    <motion.div
+                      key="log"
+                      className="auth-form"
+                      style={{ gridArea: '1 / 1' }}
+                      initial={{ opacity: 0, y: 6, filter: 'blur(3px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: 6, filter: 'blur(3px)' }}
+                      transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                    >
+                      <input
+                        className="auth-input"
+                        type="email"
+                        placeholder="Email"
+                        value={loginEmail}
+                        onChange={e => setLoginEmail(e.target.value)}
+                      />
+                      <input
+                        className="auth-input"
+                        type="password"
+                        placeholder="Password"
+                        value={loginPassword}
+                        onChange={e => setLoginPassword(e.target.value)}
+                      />
+                      <button
+                        className="auth-btn-primary"
+                        onClick={doLogin}
+                        disabled={auth?.pending || (isError && response?.includes('Too many'))}
+                        style={isError && response?.includes('Too many') ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        {auth?.pending ? 'Logging in…' : 'Login'}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </AnimatedFormContainer>
 
             <div className="auth-divider"><span>OR</span></div>
 
