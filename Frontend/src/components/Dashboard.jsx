@@ -928,114 +928,104 @@ export default function Dashboard({ auth }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '110px 24px 60px 24px' }}
+                style={{ maxWidth: '980px', width: '100%', margin: '0 auto', padding: '110px 24px 60px 24px' }}
               >
-                {/* Developer Account Stats Bar - Compact Flex Row */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '40px',
-                  marginBottom: '32px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-                  paddingBottom: '24px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
-                      ACCOUNT STATUS
-                    </div>
-                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      ACTIVE ADMINISTRATOR
-                    </div>
-                  </div>
-                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
-                      AUTHENTICATION
-                    </div>
-                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      BEARER JWT
-                    </div>
-                  </div>
-                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
-                      SECURITY TIER
-                    </div>
-                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      DEVELOPER ENCRYPTED
-                    </div>
-                  </div>
-                </div>
-
-                {/* Profile Card & Info */}
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.035)',
-                  backdropFilter: 'blur(24px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '24px 28px',
-                  marginBottom: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '20px',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
-                }}>
+                <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.05)', paddingLeft: '20px' }}>
+                  {/* Developer Account Stats Bar - Compact Flex Row */}
                   <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.06)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontFamily: 'Outfit, sans-serif',
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    flexShrink: 0
+                    gap: '40px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                    paddingBottom: '24px',
+                    flexWrap: 'wrap'
                   }}>
-                    {(auth.user?.username || auth.user?.email || 'U')[0].toUpperCase()}
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        ACCOUNT STATUS
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        ACTIVE ADMINISTRATOR
+                      </div>
+                    </div>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        AUTHENTICATION
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        BEARER JWT
+                      </div>
+                    </div>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        SECURITY TIER
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        DEVELOPER ENCRYPTED
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                      <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: 600, color: '#fff', margin: 0 }}>
-                        {auth.user?.username || 'Beacon Developer'}
-                      </h2>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 600,
-                        letterSpacing: '0.12em',
-                        textTransform: 'uppercase',
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        padding: '4px 10px',
-                        borderRadius: '100px'
-                      }}>
-                        Verified
+
+                  {/* Profile Info Header */}
+                  <div style={{
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '20px',
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontFamily: 'Outfit, sans-serif',
+                      fontSize: '1.15rem',
+                      fontWeight: 600,
+                      flexShrink: 0
+                    }}>
+                      {(auth.user?.username || auth.user?.email || 'U')[0].toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                        <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+                          {auth.user?.username || 'Beacon Developer'}
+                        </h2>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 600,
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          padding: '4px 10px',
+                          borderRadius: '100px'
+                        }}>
+                          Verified
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.5)' }}>
+                        {auth.user?.email}
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.5)' }}>
-                      {auth.user?.email}
-                    </span>
                   </div>
-                </div>
 
-                {/* Account Details & Settings Panel Grid */}
-                <div style={{ display: 'grid', gap: '20px' }}>
                   {/* Public Profile Fields */}
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.035)',
-                    backdropFilter: 'blur(24px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                    border: 'none',
-                    borderRadius: '20px',
-                    padding: '28px',
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
                   }}>
-                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.98rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
                       Account & Access Profile
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
@@ -1050,9 +1040,9 @@ export default function Dashboard({ auth }) {
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            background: 'rgba(255, 255, 255, 0.03)',
+                            background: 'rgba(255, 255, 255, 0.04)',
                             border: 'none',
-                            borderRadius: '12px',
+                            borderRadius: '8px',
                             padding: '12px 16px',
                             color: '#fff',
                             fontFamily: 'Outfit, sans-serif',
@@ -1072,9 +1062,9 @@ export default function Dashboard({ auth }) {
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            background: 'rgba(255, 255, 255, 0.03)',
+                            background: 'rgba(255, 255, 255, 0.04)',
                             border: 'none',
-                            borderRadius: '12px',
+                            borderRadius: '8px',
                             padding: '12px 16px',
                             color: '#fff',
                             fontFamily: 'Outfit, sans-serif',
@@ -1094,9 +1084,9 @@ export default function Dashboard({ auth }) {
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            background: 'rgba(255, 255, 255, 0.03)',
+                            background: 'rgba(255, 255, 255, 0.04)',
                             border: 'none',
-                            borderRadius: '12px',
+                            borderRadius: '8px',
                             padding: '12px 16px',
                             color: '#fff',
                             fontFamily: 'Outfit, sans-serif',
@@ -1116,9 +1106,9 @@ export default function Dashboard({ auth }) {
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            background: 'rgba(255, 255, 255, 0.03)',
+                            background: 'rgba(255, 255, 255, 0.04)',
                             border: 'none',
-                            borderRadius: '12px',
+                            borderRadius: '8px',
                             padding: '12px 16px',
                             color: '#fff',
                             fontFamily: 'Outfit, sans-serif',
@@ -1132,19 +1122,15 @@ export default function Dashboard({ auth }) {
 
                   {/* Security & API Credentials Section */}
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.035)',
-                    backdropFilter: 'blur(24px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                    border: 'none',
-                    borderRadius: '20px',
-                    padding: '28px',
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
                   }}>
-                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.98rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
                       Security & Access Credentials
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                         <div>
                           <div style={{ fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
                             User Account Identifier (UUID)
@@ -1154,17 +1140,17 @@ export default function Dashboard({ auth }) {
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(0, 0, 0, 0.4)', padding: '6px 12px', borderRadius: '8px' }}>
+                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '6px' }}>
                             {auth.user?.user_id || 'Generating...'}
                           </code>
                           <button
                             onClick={() => auth.user?.user_id && navigator.clipboard.writeText(auth.user.user_id)}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.04)',
+                              background: 'rgba(255, 255, 255, 0.06)',
                               border: 'none',
                               borderRadius: '100px',
                               padding: '6px 16px',
-                              color: 'rgba(255, 255, 255, 0.8)',
+                              color: '#fff',
                               fontFamily: 'Outfit, sans-serif',
                               fontSize: '0.78rem',
                               fontWeight: 600,
@@ -1176,7 +1162,7 @@ export default function Dashboard({ auth }) {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px 0' }}>
                         <div>
                           <div style={{ fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
                             Active JWT Access Token
@@ -1186,17 +1172,17 @@ export default function Dashboard({ auth }) {
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(0, 0, 0, 0.4)', padding: '6px 12px', borderRadius: '8px' }}>
+                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '6px' }}>
                             {auth.token ? `${auth.token.substring(0, 24)}...` : 'No Token'}
                           </code>
                           <button
                             onClick={() => auth.token && navigator.clipboard.writeText(auth.token)}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.04)',
+                              background: 'rgba(255, 255, 255, 0.06)',
                               border: 'none',
                               borderRadius: '100px',
                               padding: '6px 16px',
-                              color: 'rgba(255, 255, 255, 0.8)',
+                              color: '#fff',
                               fontFamily: 'Outfit, sans-serif',
                               fontSize: '0.78rem',
                               fontWeight: 600,
@@ -1212,21 +1198,15 @@ export default function Dashboard({ auth }) {
 
                   {/* Danger & Session Actions */}
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.035)',
-                    backdropFilter: 'blur(24px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                    border: 'none',
-                    borderRadius: '20px',
-                    padding: '24px 28px',
+                    paddingTop: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
-                    gap: '16px',
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                    gap: '16px'
                   }}>
                     <div>
-                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', margin: '0 0 4px 0' }}>
+                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.98rem', fontWeight: 600, color: '#fff', margin: '0 0 4px 0' }}>
                         Session Termination
                       </h3>
                       <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.82rem', margin: 0 }}>
@@ -1236,13 +1216,13 @@ export default function Dashboard({ auth }) {
                     <button
                       onClick={() => auth.logout()}
                       style={{
-                        background: 'rgba(239, 68, 68, 0.12)',
+                        background: 'rgba(239, 68, 68, 0.14)',
                         border: 'none',
                         borderRadius: '100px',
-                        padding: '10px 24px',
+                        padding: '10px 22px',
                         color: '#f87171',
                         fontFamily: 'Outfit, sans-serif',
-                        fontSize: '0.86rem',
+                        fontSize: '0.84rem',
                         fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
@@ -1250,8 +1230,7 @@ export default function Dashboard({ auth }) {
                         gap: '8px'
                       }}
                     >
-                      <IconLogOut size={14} />
-                      <span>Sign Out Account</span>
+                      <IconLogOut size={16} /> Sign Out
                     </button>
                   </div>
                 </div>
