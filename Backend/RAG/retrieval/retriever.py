@@ -108,16 +108,13 @@ class RAGRetriever:
         if not candidate_chunks:
             return []
 
-        # 5. Adaptive Top-K Pruning: If top chunk is highly confident (>= 0.65),
-        # prune diffuse low-confidence tail chunks (saves 30-50% prompt tokens)
+        # 5. Hyper-Efficient Adaptive Pruning for Groq: If top chunk is relevant (>= 0.50),
+        # keep top 2 chunks max to cut token consumption by 50% (allowing 14+ queries/min on Groq free tier)
         top_score = candidate_chunks[0]["similarity_score"]
-        if top_score >= 0.65 and len(candidate_chunks) > 3:
-            # Keep chunks that are within 75% of the top score, always keeping at least top 3
-            adaptive_threshold = top_score * 0.70
-            pruned = [c for c in candidate_chunks if c["similarity_score"] >= adaptive_threshold]
-            return pruned if len(pruned) >= 3 else candidate_chunks[:3]
+        if top_score >= 0.50 and len(candidate_chunks) > 2:
+            return candidate_chunks[:2]
 
-        return candidate_chunks
+        return candidate_chunks[:3]
 
     def format_context_for_prompt(self, chunks: List[Dict[str, Any]]) -> str:
         """

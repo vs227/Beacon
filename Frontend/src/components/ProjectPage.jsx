@@ -131,6 +131,11 @@ function IconRefresh({ size = 16 }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
   )
 }
+function IconX({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+  )
+}
 
 const API_BASE = ''
 
@@ -179,9 +184,18 @@ export default function ProjectPage({ auth }) {
   const [ragInput, setRagInput] = useState('')
   const [ragLoading, setRagLoading] = useState(false)
   const [ragProvider, setRagProvider] = useState('groq')
-  const [byokKey, setByokKey] = useState('')
+  const [byokKey, setByokKey] = useState(() => localStorage.getItem('beacon_byok_key') || '')
   const [showByokModal, setShowByokModal] = useState(false)
   const [topK, setTopK] = useState(4)
+  const [nowTimestamp, setNowTimestamp] = useState(Date.now())
+
+  // Real-time 1-second ticker to decay tokens automatically as 60s passes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTimestamp(Date.now())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Real API Keys & Activity Logs State
   const [apiKeys, setApiKeys] = useState([])
@@ -363,6 +377,8 @@ export default function ProjectPage({ auth }) {
   }
 
   const chatScrollRef = useRef(null)
+  const ragInputRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   // Load saved project chat history from localStorage on load or project switch
   useEffect(() => {
@@ -412,14 +428,33 @@ export default function ProjectPage({ auth }) {
         sources: [],
       }
     ])
+    setTimeout(() => ragInputRef.current?.focus(), 50)
   }
 
-  // Auto-scroll chat to bottom as messages arrive or type out
-  useEffect(() => {
+  // Scroll to bottom helper
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'instant', block: 'end' })
+    }
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
-  }, [ragMessages, ragLoading])
+  }, [])
+
+  // Always auto-scroll chat to bottom as messages arrive, type out, or when switching tabs
+  useEffect(() => {
+    if (activeSection === 'rag-chat') {
+      scrollToBottom()
+      const t1 = setTimeout(scrollToBottom, 50)
+      const t2 = setTimeout(scrollToBottom, 150)
+      const t3 = setTimeout(scrollToBottom, 350)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+        clearTimeout(t3)
+      }
+    }
+  }, [ragMessages, ragLoading, activeSection, scrollToBottom])
 
   // Formatter for AI output: renders bold headers and styled bullet points
   function renderFormattedMessage(text) {
@@ -465,42 +500,31 @@ export default function ProjectPage({ auth }) {
     })
   }
 
-  // Realistic Human Live Typing Animation
+  // High-Speed Smooth Live Typing Animation (60fps chunked rendering)
   const typeTextHumanLike = async (fullText, assistantIndex) => {
-    let currentText = ''
+    if (!fullText) return
+
     let idx = 0
+    const totalLen = fullText.length
+    // Chunk size dynamically scales with response length for uniform high speed (4-10 chars per frame step)
+    const chunkSize = Math.max(4, Math.ceil(totalLen / 50))
 
-    while (idx < fullText.length) {
-      // Reveal 1 to 2 characters per keystroke tick
-      const char = fullText[idx]
-      const nextChar = fullText[idx + 1] || ''
-      const increment = (char === ' ' || char === '\n') ? 1 : Math.min(2, fullText.length - idx)
-
-      idx += increment
-      currentText = fullText.slice(0, idx)
+    while (idx < totalLen) {
+      idx = Math.min(totalLen, idx + chunkSize)
+      const currentText = fullText.slice(0, idx)
 
       setRagMessages(prev => {
         const copy = [...prev]
         if (copy[assistantIndex]) {
-          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: idx < fullText.length }
+          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: idx < totalLen }
         }
         return copy
       })
 
-      // Calculate realistic human typing pause:
-      let delay = Math.floor(Math.random() * 15) + 18 // Base keystroke: 18-33ms
-
-      // Human pause on punctuation marks
-      if (['.', '!', '?', '\n'].includes(char)) {
-        delay = Math.floor(Math.random() * 80) + 140 // Pause on sentence ends / line breaks
-      } else if ([',', ';', ':', '-'].includes(char)) {
-        delay = Math.floor(Math.random() * 40) + 70  // Slight pause on commas & clauses
-      }
-
-      await new Promise(res => setTimeout(res, delay))
+      // Fast, non-laggy frame delay (10ms)
+      await new Promise(res => setTimeout(res, 10))
     }
 
-    // Ensure final state is clean and typing indicator is turned off
     setRagMessages(prev => {
       const copy = [...prev]
       if (copy[assistantIndex]) {
@@ -510,14 +534,31 @@ export default function ProjectPage({ auth }) {
     })
   }
 
-  // Derived token telemetry & chat locking status
+  // Derived token telemetry (Tokens Per Minute — 60s rolling window)
   const lastAssistantMessage = [...ragMessages].reverse().find(m => m.role === 'assistant' && m.tokens)
   const lastQueryTokens = lastAssistantMessage ? lastAssistantMessage.tokens : null
-  const sessionTokens = ragMessages.reduce((sum, msg) => sum + (msg.tokens?.total_tokens || 0), 0)
+
+  // Rolling 1-minute (60s) Tokens Per Minute (TPM) calculation
+  const recent1MinMessages = ragMessages.filter(
+    m => m.role === 'assistant' && m.tokens && m.timestamp && (nowTimestamp - m.timestamp < 60000)
+  )
+  const tpmTokens = recent1MinMessages.reduce((sum, msg) => sum + (msg.tokens?.total_tokens || 0), 0)
+
+  const TPM_LIMIT = 6000
 
   const isGenerating = ragLoading || ragMessages.some(m => m.typing)
   const isFreeTier = !byokKey.trim() && ragProvider !== 'gemini'
-  const isChatLocked = isFreeTier && ((lastQueryTokens?.total_tokens || 0) >= 6000)
+  const isChatLocked = isFreeTier && (tpmTokens >= TPM_LIMIT)
+
+  // Always default focus to input box when on RAG chat tab or when generation completes
+  useEffect(() => {
+    if (activeSection === 'rag-chat' && !isGenerating && !isChatLocked) {
+      const timer = setTimeout(() => {
+        ragInputRef.current?.focus()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [activeSection, isGenerating, isChatLocked])
 
   // Handle RAG AI Query
   const handleSendRagQuery = async (e) => {
@@ -563,18 +604,25 @@ export default function ProjectPage({ auth }) {
 
         logActivityEvent('VECTOR_SEARCH_QUERY', `RAG query: "${userMsg.substring(0, 45)}"`, `${data.execution_time_ms || 28}ms`, '200 OK', '#4ade80')
 
-        // Hide loading spinner and insert initial empty assistant message
+        // Clean raw technical error strings into user-friendly admin notification
+        let cleanAnswer = fullAnswer
+        if (cleanAnswer.includes('LLM generation failed') || cleanAnswer.includes('rate limit') || cleanAnswer.includes('Tokens/Min')) {
+          cleanAnswer = '⚠️ Token limit reached. Please contact your administrator to upgrade tokens or add a BYOK API key.'
+        }
+
+        // Hide loading spinner immediately before adding assistant response
         setRagLoading(false)
 
         setRagMessages(prev => {
           const assistantIndex = prev.length
-          // Add placeholder message
-          const withPlaceholder = [
+          setTimeout(() => typeTextHumanLike(cleanAnswer, assistantIndex), 0)
+          return [
             ...prev,
             {
               role: 'assistant',
               content: '',
               typing: true,
+              timestamp: Date.now(),
               sources: data.sources || [],
               confidence: data.confidence_score,
               provider: data.provider_used,
@@ -583,9 +631,6 @@ export default function ProjectPage({ auth }) {
               executionTime: data.execution_time_ms,
             }
           ]
-          // Trigger dynamic typing
-          typeTextHumanLike(fullAnswer, assistantIndex)
-          return withPlaceholder
         })
       } else {
         const err = await res.json()
@@ -594,21 +639,22 @@ export default function ProjectPage({ auth }) {
           ...prev,
           {
             role: 'assistant',
-            content: `⚠️ Error: ${err.detail || 'RAG Query failed.'}`,
+            content: '⚠️ Token limit reached. Please contact your administrator to upgrade tokens or add a BYOK API key.',
             sources: [],
           }
         ])
       }
     } catch (err) {
-      setRagLoading(false)
       setRagMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ Connection Error: ${err.message}`,
+          content: '⚠️ Token limit reached. Please contact your administrator.',
           sources: [],
         }
       ])
+    } finally {
+      setRagLoading(false)
     }
   }
 
@@ -1014,9 +1060,17 @@ export default function ProjectPage({ auth }) {
       </header>
 
       {/* Main Content Area */}
-      <main style={{ width: '100%', padding: '36px 32px 24px 32px', boxSizing: 'border-box' }}>
+      <main style={{
+        width: '100%',
+        padding: activeSection === 'rag-chat' ? '12px 24px 16px 24px' : '36px 32px 40px 32px',
+        boxSizing: 'border-box',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflowY: activeSection === 'rag-chat' ? 'hidden' : 'auto'
+      }}>
         {/* Back to Projects link on far left under BEACON logo */}
-        <div style={{ marginBottom: '24px', marginTop: '6px' }}>
+        <div style={{ marginBottom: activeSection === 'rag-chat' ? '6px' : '24px', marginTop: '2px', flexShrink: 0 }}>
           <button
             onClick={() => navigate(`/dashboard/org/${orgId}`)}
             style={{
@@ -1027,7 +1081,7 @@ export default function ProjectPage({ auth }) {
               border: 'none',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: '0.84rem',
+              fontSize: '0.82rem',
               padding: 0,
               transition: 'color 0.2s ease',
             }}
@@ -1040,12 +1094,23 @@ export default function ProjectPage({ auth }) {
         </div>
 
         {/* Centered Container for Project Details & Tabs */}
-        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
-              {project?.name || 'Project'}
-            </h1>
-          </div>
+        <div style={{
+          maxWidth: '1080px',
+          width: '100%',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+          overflow: activeSection === 'rag-chat' ? 'hidden' : 'visible'
+        }}>
+          {activeSection !== 'rag-chat' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+                {project?.name || 'Project'}
+              </h1>
+            </div>
+          )}
           {loading ? (
             <div className="spinner-container">
               <div className="dashboard-spinner"></div>
@@ -1894,422 +1959,284 @@ export default function ProjectPage({ auth }) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  style={{ maxWidth: '940px', width: '100%', margin: '0 auto' }}
+                  style={{ maxWidth: '980px', width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                 >
                   {/* Consolidated RAG Playground Container */}
-                  <div className="rag-playground-card">
-                    {/* Integrated Console Header Toolbar */}
-                    <div className="rag-header-toolbar">
-                      {/* Left Status Indicator */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px rgba(74, 222, 128, 0.6)' }}></span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'monospace' }}>
-                          RAG Playground
-                        </span>
-                      </div>
-
-                      {/* Integrated Control Pills */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        {/* Provider Selector */}
-                        <select
-                          value={ragProvider}
-                          onChange={(e) => setRagProvider(e.target.value)}
+                  <div className="rag-playground-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', borderRadius: '12px' }}>
+                    {/* Integrated Console Header Toolbar at TOP */}
+                    <div className="rag-header-toolbar" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderBottom: '1px solid rgba(255, 255, 255, 0.04)', background: 'rgba(255, 255, 255, 0.015)' }}>
+                      {/* Integrated Telemetry & Clear Controls (Right-aligned at top) */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', width: '100%' }}>
+                        {/* TPM Telemetry Badge Pill */}
+                        <div
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
-                            color: '#fff',
-                            border: 'none',
                             borderRadius: '6px',
                             padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
-                        >
-                          <option value="groq" style={{ background: '#121217' }}>Groq (GPT-OSS 120B)</option>
-                          <option value="qwen" style={{ background: '#121217' }}>Groq (Qwen 3.8 27B)</option>
-                          <option value="gemini" style={{ background: '#121217' }}>Gemini (2.0 Flash)</option>
-                          <option value="openai" style={{ background: '#121217' }}>OpenAI (GPT-4o)</option>
-                          <option value="claude" style={{ background: '#121217' }}>Anthropic (Claude 3.5)</option>
-                          <option value="local" style={{ background: '#121217' }}>Local DeepSeek R1</option>
-                        </select>
-
-                        {/* BYOK Key Toggle Pill */}
-                        <button
-                          type="button"
-                          onClick={() => setShowByokModal(!showByokModal)}
-                          style={{
-                            background: byokKey.trim() ? 'rgba(182, 122, 70, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                            color: byokKey.trim() ? 'var(--bronze-highlight)' : 'var(--text-secondary)',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            transition: 'all 0.2s ease',
-                          }}
-                          title="Manage custom API Keys (BYOK)"
-                        >
-                          <IconKey size={13} />
-                          <span>{byokKey.trim() ? 'BYOK Active' : 'BYOK Key'}</span>
-                        </button>
-
-                        {/* Context Depth Selector Pill */}
-                        <select
-                          value={topK}
-                          onChange={(e) => setTopK(Number(e.target.value))}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            color: 'var(--text-secondary)',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
-                          title="Context depth for retrieval (Top-K)"
-                        >
-                          <option value={2} style={{ background: '#121217' }}>Concise (K=2)</option>
-                          <option value={4} style={{ background: '#121217' }}>Balanced (K=4)</option>
-                          <option value={6} style={{ background: '#121217' }}>Deep (K=6)</option>
-                        </select>
-
-                        {/* Clear Chat Button Pill */}
-                        {ragMessages.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={handleClearChat}
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              color: '#fca5a5',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '0.78rem',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              transition: 'all 0.2s ease',
-                            }}
-                            title="Reset conversation"
-                          >
-                            <IconTrash size={13} />
-                            <span>Clear</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Flex Layout: Chat Console (Left) + Vertical Telemetry Sidebar (Right) */}
-                    <div className="rag-main-flex">
-                      {/* Left Column: Chat Console & Input */}
-                      <div className="rag-chat-col">
-                        {/* Messages Scroll Area */}
-                        <div className="rag-messages-scroll" ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-                          {ragMessages.length === 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '18px', padding: '40px 20px' }}>
-                              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
-                                <IconCpu size={28} />
-                              </div>
-                              <div style={{ maxWidth: '460px' }}>
-                                <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>RAG Grounding Console</h4>
-                                <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
-                                  Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
-                                </p>
-                              </div>
-                              <div className="rag-prompts-grid">
-                                {[
-                                  { title: '⚡ System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
-                                  { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
-                                  { title: '🛡️ Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
-                                  { title: '📊 RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
-                                ].map((chip, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => {
-                                      if (!isGenerating && !isChatLocked) setRagInput(chip.prompt)
-                                    }}
-                                    disabled={isGenerating || isChatLocked}
-                                    style={{
-                                      background: 'rgba(255, 255, 255, 0.03)',
-                                      border: 'none',
-                                      color: isGenerating || isChatLocked ? 'var(--text-secondary)' : '#fff',
-                                      padding: '12px 14px',
-                                      borderRadius: '8px',
-                                      fontSize: '0.78rem',
-                                      textAlign: 'left',
-                                      cursor: isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
-                                      opacity: isGenerating || isChatLocked ? 0.6 : 1,
-                                      transition: 'all 0.2s ease',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '4px',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (!isGenerating && !isChatLocked) {
-                                        e.currentTarget.style.background = 'rgba(182, 122, 70, 0.12)'
-                                        e.currentTarget.style.transform = 'translateY(-1px)'
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (!isGenerating && !isChatLocked) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
-                                        e.currentTarget.style.transform = 'translateY(0)'
-                                      }
-                                    }}
-                                  >
-                                    <span style={{ fontWeight: 600, color: 'var(--bronze-highlight)', fontSize: '0.80rem' }}>{chip.title}</span>
-                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.4 }}>{chip.prompt}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            ragMessages.map((msg, idx) => (
-                              <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
-                                <div className="rag-message-avatar">
-                                  {msg.role === 'assistant' ? <IconCpu size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>YOU</span>}
-                                </div>
-
-                                <div className="rag-message-bubble" style={{ position: 'relative' }}>
-                                  <div className="rag-message-content">
-                                    {renderFormattedMessage(msg.content)}
-                                    {msg.typing && <span className="typing-cursor">▌</span>}
-                                  </div>
-
-                                  {msg.role === 'assistant' && msg.tokens && !msg.typing && (
-                                    <div style={{
-                                      marginTop: '8px',
-                                      paddingTop: '6px',
-                                      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      flexWrap: 'wrap',
-                                      gap: '6px',
-                                      fontSize: '0.70rem',
-                                      color: 'var(--text-secondary)',
-                                      fontFamily: 'monospace'
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--bronze-highlight)', fontWeight: 600 }}>
-                                          <IconZap size={11} />
-                                          <span>{msg.tokens.total_tokens || 0} tokens</span>
-                                        </span>
-                                        <span style={{ opacity: 0.3 }}>•</span>
-                                        <span>{msg.tokens.prompt_tokens || 0} in / {msg.tokens.completion_tokens || 0} out</span>
-                                        {msg.executionTime && (
-                                          <>
-                                            <span style={{ opacity: 0.3 }}>•</span>
-                                            <span>{msg.executionTime}ms</span>
-                                          </>
-                                        )}
-                                      </div>
-                                      {msg.sources && msg.sources.length > 0 && (
-                                        <span style={{ color: '#4ade80', background: 'rgba(74, 222, 128, 0.08)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem' }}>
-                                          {msg.sources.length} {msg.sources.length === 1 ? 'chunk' : 'chunks'}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-
-                          {ragLoading && (
-                            <div className="rag-message-wrapper assistant">
-                              <div className="rag-message-avatar">
-                                <IconCpu size={16} />
-                              </div>
-                              <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 18px' }}>
-                                <IconLoader size={14} className="spin" style={{ color: 'var(--bronze-highlight)' }} />
-                                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                  Retrieving vector chunks & generating answer...
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Locked Banner Notification */}
-                        {isChatLocked && (
-                          <div style={{
-                            padding: '10px 18px',
-                            background: 'rgba(239, 68, 68, 0.10)',
-                            borderTop: '1px solid rgba(239, 68, 68, 0.20)',
-                            color: '#fca5a5',
-                            fontSize: '0.78rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 500,
+                            color: tpmTokens >= 6000 ? '#f87171' : 'var(--text-secondary)',
                             fontFamily: 'monospace'
-                          }}>
-                            <IconLock size={14} style={{ color: '#f87171', flexShrink: 0 }} />
-                            <span><strong>Chat Locked:</strong> Free Tier 6,000 TPM limit reached. Switch provider or configure BYOK key above to continue.</span>
-                          </div>
-                        )}
-
-                        {/* Chat Input Console Form */}
-                        <form
-                          className="rag-input-form"
-                          onSubmit={handleSendRagQuery}
-                          style={{ padding: '14px 18px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', gap: '12px' }}
+                          }}
+                          title="Rolling 1-minute token usage limit"
                         >
-                          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                            <div style={{ position: 'absolute', left: '14px', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: isChatLocked ? '#f87171' : 'var(--text-secondary)' }}>
-                              {isChatLocked ? <IconLock size={18} /> : <IconTwinkle size={18} />}
-                            </div>
-                            <input
-                              type="text"
-                              className="rag-chat-input"
-                              placeholder={
-                                isChatLocked
-                                  ? 'Chat locked (Free Tier 6k TPM limit reached)'
-                                  : isGenerating
-                                    ? 'Generating response... Please wait for output'
-                                    : 'Ask a question grounded in your documents...'
-                              }
-                              value={ragInput}
-                              onChange={(e) => setRagInput(e.target.value)}
-                              disabled={isGenerating || isChatLocked}
-                              style={{
-                                width: '100%',
-                                borderRadius: '6px',
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: 'none',
-                                padding: '12px 16px 12px 42px',
-                                color: isChatLocked ? '#f87171' : '#fff',
-                                fontSize: '0.88rem',
-                                outline: 'none',
-                                cursor: (isGenerating || isChatLocked) ? 'not-allowed' : 'text',
-                                opacity: (isGenerating || isChatLocked) ? 0.7 : 1,
-                              }}
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            className="rag-send-btn"
-                            disabled={!ragInput.trim() || isGenerating || isChatLocked}
-                            style={{
-                              background: !ragInput.trim() || isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
-                              color: !ragInput.trim() || isGenerating || isChatLocked ? 'var(--text-secondary)' : '#000000',
-                              borderRadius: '6px',
-                              padding: '0 18px',
-                              height: '42px',
-                              border: 'none',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              cursor: !ragInput.trim() || isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
-                              transition: 'all 0.2s ease',
-                              fontSize: '0.82rem',
-                              fontWeight: 600,
-                              fontFamily: 'var(--font-sans)',
-                            }}
-                          >
-                            {isGenerating ? (
-                              <>
-                                <IconLoader size={16} className="spin" />
-                                <span>Generating</span>
-                              </>
-                            ) : isChatLocked ? (
-                              <>
-                                <IconLock size={16} />
-                                <span>Locked</span>
-                              </>
-                            ) : (
-                              <>
-                                <IconSend size={16} style={{ color: !ragInput.trim() ? 'var(--text-secondary)' : '#000000' }} />
-                                <span>Ask</span>
-                              </>
-                            )}
-                          </button>
-                        </form>
-                      </div>
-
-                      {/* Right Column: Vertical Token Telemetry Sidebar */}
-                      <div className="rag-telemetry-col">
-                        {/* Sidebar Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <IconZap size={15} style={{ color: 'var(--bronze-highlight)' }} />
-                          <span style={{ color: '#fff', fontWeight: 600, fontSize: '0.82rem', letterSpacing: '0.03em' }}>Token Telemetry</span>
-                        </div>
-
-                        {/* Lock / Live Status Pill */}
-                        {isChatLocked ? (
-                          <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontWeight: 600, fontSize: '0.72rem' }}>
-                            <IconLock size={14} />
-                            <span>CHAT LOCKED (Limit)</span>
-                          </div>
-                        ) : isGenerating ? (
-                          <div style={{ background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24', fontWeight: 600, fontSize: '0.72rem' }}>
-                            <IconLoader size={14} className="spin" />
-                            <span>GENERATING OUTPUT</span>
-                          </div>
-                        ) : (
-                          <div style={{ background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '6px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#4ade80', fontWeight: 600, fontSize: '0.72rem' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
-                            <span>CONSOLE READY</span>
-                          </div>
-                        )}
-
-                        {/* Last Query Card */}
-                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Query</span>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
-                            {lastQueryTokens ? (lastQueryTokens.total_tokens || 0).toLocaleString() : '0'}
-                          </div>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.70rem', opacity: 0.85 }}>
-                            {lastQueryTokens ? `${lastQueryTokens.prompt_tokens || 0} prompt · ${lastQueryTokens.completion_tokens || 0} output` : 'No active query'}
-                          </div>
-                        </div>
-
-                        {/* Session Total Card */}
-                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Session Total</span>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--bronze-highlight)' }}>
-                            {sessionTokens.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-secondary)' }}>tokens</span>
-                          </div>
-                        </div>
-
-                        {/* Free Tier Capacity Gauge */}
-                        <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {byokKey.trim() ? 'BYOK Status' : (ragProvider === 'gemini' ? 'Gemini Tier' : 'Free Tier')}
-                            </span>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: (lastQueryTokens?.total_tokens || 0) >= 6000 ? '#f87171' : (lastQueryTokens?.total_tokens || 0) > 3500 ? '#fbbf24' : '#4ade80' }}>
-                              {byokKey.trim() ? 'Unmetered' : (ragProvider === 'gemini' ? '1M TPM' : `${lastQueryTokens ? lastQueryTokens.total_tokens || 0 : 0}/6k TPM`)}
-                            </span>
-                          </div>
-
+                          <span>{byokKey.trim() ? 'Unmetered' : (ragProvider === 'gemini' ? '1M TPM' : `${tpmTokens.toLocaleString()} / 6k TPM`)}</span>
+                          
+                          {/* Modern Visual Progress Meter Line */}
                           {!byokKey.trim() && ragProvider !== 'gemini' && (
-                            <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: '54px',
+                              height: '4px',
+                              borderRadius: '2px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              overflow: 'hidden',
+                              marginLeft: '4px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}>
                               <div style={{
-                                width: `${Math.min(100, Math.max(lastQueryTokens ? Math.round(((lastQueryTokens.total_tokens || 0) / 6000) * 100) : 0, 4))}%`,
                                 height: '100%',
-                                background: (lastQueryTokens?.total_tokens || 0) >= 6000 ? '#f87171' : (lastQueryTokens?.total_tokens || 0) > 3500 ? '#fbbf24' : '#4ade80',
-                                transition: 'width 0.3s ease'
+                                width: `${Math.min(100, Math.max(3, (tpmTokens / 6000) * 100))}%`,
+                                background: tpmTokens >= 6000 
+                                  ? '#f87171' 
+                                  : 'linear-gradient(90deg, var(--bronze-highlight, #f4d1a6) 0%, #e09f58 100%)',
+                                borderRadius: '2px',
+                                boxShadow: tpmTokens > 0 ? '0 0 6px rgba(244, 209, 166, 0.4)' : 'none',
+                                transition: 'width 0.4s ease, background 0.3s ease'
                               }} />
                             </div>
                           )}
                         </div>
 
-                        {/* Engine Provider Info Pill */}
-                        <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
-                          <span>Engine:</span>
-                          <span style={{ color: '#fff', fontWeight: 600, textTransform: 'capitalize' }}>{ragProvider}</span>
-                        </div>
+                        {/* Clear Chat Cross Icon Pill */}
+                        {ragMessages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearChat}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              color: 'var(--text-secondary)',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 8px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'
+                              e.currentTarget.style.color = '#f87171'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'
+                              e.currentTarget.style.color = 'var(--text-secondary)'
+                            }}
+                            title="Clear conversation"
+                          >
+                            <IconX size={15} />
+                          </button>
+                        )}
                       </div>
+                    </div>
+
+                    <div className="rag-chat-col" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                      {/* Messages Scroll Area */}
+                      <div className="rag-messages-scroll" ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                        {ragMessages.length === 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '18px', padding: '40px 20px' }}>
+                            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
+                              <IconCpu size={28} />
+                            </div>
+                            <div style={{ maxWidth: '460px' }}>
+                              <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>RAG Grounding Console</h4>
+                              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
+                                Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
+                              </p>
+                            </div>
+                            <div className="rag-prompts-grid">
+                              {[
+                                { title: 'System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
+                                { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
+                                { title: '🛡️ Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
+                                { title: '📊 RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
+                              ].map((chip, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    if (!isGenerating && !isChatLocked) {
+                                      setRagInput(chip.prompt)
+                                      setTimeout(() => ragInputRef.current?.focus(), 20)
+                                    }
+                                  }}
+                                  disabled={isGenerating || isChatLocked}
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: 'none',
+                                    color: isGenerating || isChatLocked ? 'var(--text-secondary)' : '#fff',
+                                    padding: '12px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.78rem',
+                                    textAlign: 'left',
+                                    cursor: isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
+                                    opacity: isGenerating || isChatLocked ? 0.6 : 1,
+                                    transition: 'all 0.2s ease',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isGenerating && !isChatLocked) {
+                                      e.currentTarget.style.background = 'rgba(182, 122, 70, 0.12)'
+                                      e.currentTarget.style.transform = 'translateY(-1px)'
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isGenerating && !isChatLocked) {
+                                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                                      e.currentTarget.style.transform = 'translateY(0)'
+                                    }
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 600, color: 'var(--bronze-highlight)', fontSize: '0.80rem' }}>{chip.title}</span>
+                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.4 }}>{chip.prompt}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          ragMessages.map((msg, idx) => (
+                            <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
+                              <div className="rag-message-avatar">
+                                {msg.role === 'assistant' ? <IconCpu size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>YOU</span>}
+                              </div>
+
+                              <div className="rag-message-bubble" style={{ position: 'relative' }}>
+                                <div className="rag-message-content">
+                                  {renderFormattedMessage(msg.content)}
+                                  {msg.typing && <span className="typing-cursor">▌</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+
+                        {ragLoading && (
+                          <div className="rag-message-wrapper assistant">
+                            <div className="rag-message-avatar">
+                              <IconCpu size={16} />
+                            </div>
+                            <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '14px 18px' }}>
+                              <span className="dot-typing"></span>
+                              <span className="dot-typing"></span>
+                              <span className="dot-typing"></span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Auto-scroll anchor target */}
+                        <div ref={messagesEndRef} style={{ float: 'left', clear: 'both', height: '1px', width: '100%' }} />
+                      </div>
+
+                      {/* Locked Banner Notification */}
+                      {isChatLocked && (
+                        <div style={{
+                          padding: '10px 18px',
+                          background: 'rgba(239, 68, 68, 0.10)',
+                          borderTop: '1px solid rgba(239, 68, 68, 0.20)',
+                          color: '#fca5a5',
+                          fontSize: '0.78rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontFamily: 'monospace'
+                        }}>
+                          <IconLock size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+                          <span><strong>Chat Locked:</strong> Token limit reached. Switch provider, add a BYOK key, or contact your admin to continue.</span>
+                        </div>
+                      )}
+
+                      {/* Chat Input Console Form */}
+                      <form
+                        className="rag-input-form"
+                        onSubmit={handleSendRagQuery}
+                        style={{ padding: '14px 18px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', gap: '12px' }}
+                      >
+                        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                          <div style={{ position: 'absolute', left: '14px', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: isChatLocked ? '#f87171' : 'var(--text-secondary)' }}>
+                            {isChatLocked ? <IconLock size={18} /> : <IconTwinkle size={18} />}
+                          </div>
+                          <input
+                            ref={ragInputRef}
+                            autoFocus
+                            type="text"
+                            className="rag-chat-input"
+                            placeholder={
+                              isChatLocked
+                                ? 'Chat locked (Free Tier 6k TPM limit reached)'
+                                : isGenerating
+                                  ? 'Generating response... Please wait for output'
+                                  : 'Ask a question grounded in your documents...'
+                            }
+                            value={ragInput}
+                            onChange={(e) => setRagInput(e.target.value)}
+                            disabled={isGenerating || isChatLocked}
+                            style={{
+                              width: '100%',
+                              borderRadius: '6px',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: 'none',
+                              padding: '12px 16px 12px 42px',
+                              color: isChatLocked ? '#f87171' : '#fff',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              cursor: (isGenerating || isChatLocked) ? 'not-allowed' : 'text',
+                              opacity: (isGenerating || isChatLocked) ? 0.7 : 1,
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="rag-send-btn"
+                          disabled={!ragInput.trim() || isGenerating || isChatLocked}
+                          style={{
+                            background: !ragInput.trim() || isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                            color: !ragInput.trim() || isGenerating || isChatLocked ? 'var(--text-secondary)' : '#000000',
+                            borderRadius: '6px',
+                            padding: '0 18px',
+                            height: '42px',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: !ragInput.trim() || isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {isGenerating ? (
+                            <>
+                              <IconLoader size={16} className="spin" />
+                              <span>Generating</span>
+                            </>
+                          ) : isChatLocked ? (
+                            <>
+                              <IconLock size={16} />
+                              <span>Locked</span>
+                            </>
+                          ) : (
+                            <>
+                              <IconSend size={16} style={{ color: !ragInput.trim() ? 'var(--text-secondary)' : '#000000' }} />
+                              <span>Ask</span>
+                            </>
+                          )}
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </motion.div>
@@ -2644,6 +2571,71 @@ export default function ProjectPage({ auth }) {
                     Manage environment configurations, metadata identifiers, and system parameters for this project.
                   </p>
 
+                  {/* RAG Model & Retrieval Configuration */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '4px' }}>
+                      RAG Model & Retrieval Parameters
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginBottom: '16px' }}>
+                      Configure default AI LLM provider models and document context retrieval depth (Top-K chunks) for RAG responses.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+                          AI Model Provider
+                        </label>
+                        <select
+                          value={ragProvider}
+                          onChange={(e) => setRagProvider(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '10px 14px',
+                            fontSize: '0.84rem',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="groq" style={{ background: '#121217' }}>Groq (GPT-OSS 120B)</option>
+                          <option value="qwen" style={{ background: '#121217' }}>Groq (Qwen 3.8 27B)</option>
+                          <option value="gemini" style={{ background: '#121217' }}>Gemini (2.0 Flash)</option>
+                          <option value="openai" style={{ background: '#121217' }}>OpenAI (GPT-4o)</option>
+                          <option value="claude" style={{ background: '#121217' }}>Anthropic (Claude 3.5)</option>
+                          <option value="local" style={{ background: '#121217' }}>Local DeepSeek R1</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+                          Retrieval Depth (Top-K Chunks)
+                        </label>
+                        <select
+                          value={topK}
+                          onChange={(e) => setTopK(Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '10px 14px',
+                            fontSize: '0.84rem',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value={2} style={{ background: '#121217' }}>Concise (K=2 chunks)</option>
+                          <option value={4} style={{ background: '#121217' }}>Balanced (K=4 chunks)</option>
+                          <option value={6} style={{ background: '#121217' }}>Deep (K=6 chunks)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* General Configuration */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '16px' }}>
@@ -2670,6 +2662,69 @@ export default function ProjectPage({ auth }) {
                           style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '0.86rem', fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none' }}
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Custom LLM API Keys (BYOK) */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', margin: 0 }}>
+                          Custom LLM API Keys (BYOK)
+                        </h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '4px', margin: 0 }}>
+                          Provide your own API keys (Groq, OpenAI, or Gemini) for unmetered execution and bypassing free tier rate limits.
+                        </p>
+                      </div>
+                      {byokKey.trim() && (
+                        <span style={{ fontSize: '0.72rem', background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '3px 8px', borderRadius: '4px', fontWeight: 600, fontFamily: 'monospace' }}>
+                          ✓ KEY ACTIVE
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="password"
+                        placeholder="Enter custom API Key (gsk_..., sk-..., AIza...)"
+                        value={byokKey}
+                        onChange={(e) => {
+                          setByokKey(e.target.value)
+                          localStorage.setItem('beacon_byok_key', e.target.value)
+                        }}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '10px 14px',
+                          color: '#fff',
+                          fontSize: '0.86rem',
+                          fontFamily: 'monospace',
+                          outline: 'none'
+                        }}
+                      />
+                      {byokKey.trim() && (
+                        <button
+                          onClick={() => {
+                            setByokKey('')
+                            localStorage.removeItem('beacon_byok_key')
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            color: '#f87171',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '10px 14px',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          Remove Key
+                        </button>
+                      )}
                     </div>
                   </div>
 

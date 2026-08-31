@@ -261,16 +261,16 @@ export default function LandingPage({ auth }) {
             <h1 className="title-serif">{section.title}</h1>
             <p className="description-text">{section.desc}</p>
 
-            {/* Original Genesis CTA */}
+            {/* Genesis CTA Button (Only when logged in) */}
             {section.id === 'genesis' && auth?.isLoggedIn && (
-              <button
-                onClick={() => navigate('/dashboard/organizations')}
-                className="btn-terracotta"
-                style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-              >
-                <span>Get Started</span>
-                <span style={{ opacity: 0.7 }}>➔</span>
-              </button>
+              <div className="interactive-content">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="btn-glassy"
+                >
+                  Get Started
+                </button>
+              </div>
             )}
 
             {/* Original Beyond CTA */}
@@ -278,11 +278,11 @@ export default function LandingPage({ auth }) {
               <div className="interactive-content">
                 <a
                   href="https://github.com"
-                  className="btn-terracotta"
+                  className="btn-glassy"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Begin Your Journey
+                  START BUILDING
                 </a>
               </div>
             )}

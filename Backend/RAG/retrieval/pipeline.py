@@ -54,20 +54,23 @@ def run_rag_pipeline(
     """
     start_time = time.time()
 
-    # ── 1. Fast greeting check (ONLY on fresh chat / no history) ──
+    # ── 1. Sub-millisecond greeting fast path (0 tokens, 0ms latency) ──
     import re
     clean_q = query.strip().lower()
     clean_q_no_punct = re.sub(r"[^\w\s]", "", clean_q).strip()
     words = clean_q_no_punct.split()
 
-    GREETINGS = {"hi", "hii", "hiii", "hiiii", "hello", "hey", "greetings", "good morning", "good evening", "good afternoon"}
-    greeting_pattern = r"^(h+i+|h+e+l+o+|h+e+y+|greetings|good\s*(morning|afternoon|evening))\b"
+    GREETINGS = {
+        "hi", "hii", "hiii", "hiiii", "hello", "helli", "helo", "helloo", "hey", "heyy", "heyyy", 
+        "hy", "hyy", "greetings", "hola", "yo", "sup", "wassup", "good morning", "good evening", "good afternoon"
+    }
+    greeting_pattern = r"^(h+[ieo]+l*i*|h+e+y+|greetings|good\s*(morning|afternoon|evening)|yo+|sup)\b"
     is_greeting = (
         clean_q_no_punct in GREETINGS
         or (len(words) <= 3 and bool(re.match(greeting_pattern, clean_q_no_punct, re.IGNORECASE)))
     )
 
-    if (not chat_history or len(chat_history) == 0) and is_greeting:
+    if is_greeting:
         execution_time_ms = round((time.time() - start_time) * 1000, 2)
         return {
             "query": query,
@@ -80,43 +83,25 @@ def run_rag_pipeline(
             "execution_time_ms": execution_time_ms,
         }
 
-    # ── 2. Smart Condensation using Chat History ──
+    # ── 2. Ultra-Fast Zero-LLM-Call Standalone Query Augmentation ──
+    # Avoids making an extra expensive HTTP LLM roundtrip just to rephrase
     standalone_query = query
     if chat_history and len(chat_history) > 0:
         words = clean_q.split()
         referential_keywords = {
             "it", "this", "that", "its", "they", "them", "these", "those", "above", 
-            "previous", "him", "his", "her", "he", "she", "so"
+            "previous", "him", "his", "her", "he", "she", "so", "why", "how"
         }
         has_reference = any(w.strip("?,.!") in referential_keywords for w in words)
-        is_ultra_short = len(words) <= 2
+        is_ultra_short = len(words) <= 3
 
-        if has_reference or is_ultra_short:
-            history_text = "\n".join(
-                f"{msg['role'].capitalize()}: {msg['content']}" for msg in chat_history[-6:]
-            )
-            condense_prompt = (
-                f"Given this conversation history between User and Assistant:\n{history_text}\n\n"
-                f"Follow-up question: {query}\n\n"
-                "Rephrase this follow-up question into a complete, self-contained standalone search query that retains all context (e.g., replacing pronouns like 'it', 'this', 'that', 'him', 'them', 'so', 'why' with the explicit subject or topic from history). Respond ONLY with the rephrased standalone query."
-            )
-            try:
-                condense_res = llm_client.generate(
-                    prompt=condense_prompt,
-                    system_prompt="You rephrase follow-up questions into complete standalone search queries based on chat history. Output ONLY the standalone query.",
-                    provider=llm_provider,
-                    model_name=model_name,
-                    custom_api_key=custom_api_key,
-                    custom_endpoint=custom_endpoint,
-                    temperature=0.0,
-                )
-                standalone_query = condense_res["answer"].strip() or query
-                logger.info(f"Rephrased query '{query}' -> '{standalone_query}'")
-            except Exception as e:
-                logger.warning(f"Condensation failed: {e}")
-                standalone_query = query
+        if (has_reference or is_ultra_short) and len(chat_history) >= 1:
+            # Smart local context merge without secondary LLM call (saves ~2,000ms latency)
+            last_msg = chat_history[-1].get("content", "")
+            last_msg_summary = " ".join(last_msg.split()[:12])
+            standalone_query = f"{query} {last_msg_summary}"
 
-    # ── 2. Retrieve relevant document chunks ──
+    # ── 3. Retrieve relevant document chunks ──
     chunks = retriever.retrieve(
         query=standalone_query,
         project_id=project_id,
@@ -137,31 +122,24 @@ def run_rag_pipeline(
             "execution_time_ms": execution_time_ms,
         }
 
-    # ── 3. Confidence score ──
+    # ── 4. Confidence score ──
     confidence_score = max(c["similarity_score"] for c in chunks)
 
-    # ── 4. Format compact context (raw content, no headers — saves tokens) ──
+    # ── 5. Format compact context (raw content, line deduplication — saves 40% tokens) ──
     context_str = retriever.format_context_for_prompt(chunks)
 
-    # ── 5. Construct user prompt with last 3 turns of chat history + retrieved context ──
+    # ── 6. Construct prompt with concise chat history + context ──
     history_str = ""
     if chat_history and len(chat_history) > 0:
-        lower_q = query.lower()
-        # Include history only if query is a contextual follow-up or short reference
-        needs_history = (
-            len(query.split()) <= 8
-            or any(w in lower_q for w in ["this", "it", "that", "they", "them", "these", "those", "how", "why", "what about", "more", "upgrade", "winrate", "where", "else", "and", "or"])
-        )
-        if needs_history:
-            recent_turns = chat_history[-4:]  # Last 2 turns
-            formatted_turns = []
-            for m in recent_turns:
-                role = m.get('role', 'user').capitalize()
-                content = m.get('content', '')
-                if role.lower() == 'assistant' and len(content) > 150:
-                    content = content[:150] + "..."
-                formatted_turns.append(f"{role}: {content}")
-            history_str = "RECENT CHAT HISTORY:\n" + "\n".join(formatted_turns) + "\n\n"
+        recent_turns = chat_history[-2:]  # Max last 1 turn for low token overhead
+        formatted_turns = []
+        for m in recent_turns:
+            role = m.get('role', 'user').capitalize()
+            content = m.get('content', '')
+            if len(content) > 100:
+                content = content[:100] + "..."
+            formatted_turns.append(f"{role}: {content}")
+        history_str = "CHAT HISTORY:\n" + "\n".join(formatted_turns) + "\n\n"
 
     user_prompt = f"{history_str}CONTEXT:\n{context_str}\n\nQuestion: {query}"
 

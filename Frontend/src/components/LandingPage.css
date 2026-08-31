@@ -73,7 +73,7 @@
 
 .tag-label {
   font-family: var(--font-sans);
-  color: var(--accent-terracotta);
+  color: #94A3B8;
   font-size: 0.85rem;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -161,6 +161,40 @@
   background: #db7d5f;
   box-shadow: 0 6px 24px rgba(200, 111, 82, 0.4);
   transform: translateY(-1px);
+}
+
+/* ── Glassmorphism Button ──────────────────────────────────────────────── */
+.btn-glassy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2.2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.btn-glassy:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.4), 0 12px 35px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.btn-glassy:active {
+  transform: translateY(0px) scale(0.98);
 }
 
 .stats-container {
@@ -398,29 +432,35 @@
 .btn-void {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 2rem;
-  background: transparent;
-  border: 1px solid rgba(82, 168, 139, 0.5);
-  border-radius: 6px;
-  color: #52A88B;
+  justify-content: center;
+  padding: 0.85rem 2.2rem;
+  background: rgba(10, 10, 16, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: #E2E8F0;
   font-family: var(--font-sans);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(82, 168, 139, 0.08), inset 0 0 20px rgba(82, 168, 139, 0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
-  letter-spacing: 0.04em;
 }
 
 .btn-void:hover {
-  background: rgba(82, 168, 139, 0.1);
-  border-color: rgba(82, 168, 139, 0.8);
-  box-shadow: 0 0 32px rgba(82, 168, 139, 0.25), inset 0 0 20px rgba(82, 168, 139, 0.08);
-  color: #7DD4BA;
-  transform: translateY(-1px);
+  background: rgba(18, 18, 26, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+.btn-void:active {
+  transform: translateY(0px) scale(0.98);
 }
 
 /* ── Extended Section Inline Extras (matching original palette) ── */

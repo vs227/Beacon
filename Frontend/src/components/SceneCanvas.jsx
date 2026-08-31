@@ -94,7 +94,7 @@ function SceneContents({ scrollProgress = 0, cameraProgress = 0, onReady }) {
 
         <ContactShadows
           position={[3.5, 0.002, -2.3]}
-          opacity={0.8}
+          opacity={0.35}
           width={8}
           height={8}
           blur={2.2}

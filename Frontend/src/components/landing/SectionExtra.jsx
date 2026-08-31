@@ -46,9 +46,8 @@ export default function SectionExtra({
   if (section.showFinalCta) {
     return (
       <div className="interactive-content" style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-        <button onClick={() => onNavigate('/dashboard')} className="btn-terracotta">
-          <span>START BUILDING</span>
-          <span>➔</span>
+        <button onClick={() => onNavigate('/dashboard')} className="btn-glassy">
+          START BUILDING
         </button>
         <a href="https://github.com" className="btn-void" target="_blank" rel="noopener noreferrer">
           READ THE DOCS

@@ -124,7 +124,7 @@ class MultiProviderLLMClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
-            "max_tokens": 4096,
+            "max_tokens": 1024,
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -145,8 +145,33 @@ class MultiProviderLLMClient:
                     model = "openai/gpt-oss-120b"
                     resp = client.post(base_url, headers=headers, json=payload)
 
+            if resp.status_code == 429 and provider_name == "groq":
+                groq_fallbacks = ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "llama-3.3-70b-versatile"]
+                for alt_model in groq_fallbacks:
+                    if alt_model != model:
+                        logger.warning(f"Groq 429 on {model}. Auto-switching to Groq model {alt_model}")
+                        payload["model"] = alt_model
+                        resp = client.post(base_url, headers=headers, json=payload)
+                        if resp.status_code == 200:
+                            model = alt_model
+                            break
+
             if resp.status_code == 429:
-                raise ValueError("Groq rate limit reached (6,000 Tokens/Min limit on free tier). Please wait 5 seconds before asking your next question, or select Gemini in settings.")
+                if settings.GEMINI_API_KEY:
+                    logger.warning("Groq rate limit reached across models. Auto-failing over to Gemini 2.0 Flash.")
+                    return self._call_gemini(settings.GEMINI_API_KEY, "gemini-2.0-flash", prompt, system_prompt, temperature)
+                elif settings.OPENAI_API_KEY:
+                    logger.warning("Groq rate limit reached across models. Auto-failing over to OpenAI.")
+                    return self._call_openai_compatible(
+                        base_url="https://api.openai.com/v1/chat/completions",
+                        api_key=settings.OPENAI_API_KEY,
+                        model="gpt-4o-mini",
+                        prompt=prompt,
+                        system_prompt=system_prompt,
+                        temperature=temperature,
+                        provider_name="openai",
+                    )
+                raise ValueError("Token limit reached. Please contact your admin.")
 
             if resp.status_code != 200:
                 raise ValueError(f"{provider_name} API Error ({resp.status_code}): {resp.text[:300]}")
@@ -175,7 +200,7 @@ class MultiProviderLLMClient:
 
         payload = {
             "contents": [{"parts": [{"text": f"System Instructions: {system_prompt}\n\nUser Question: {prompt}"}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 1024},
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -213,7 +238,7 @@ class MultiProviderLLMClient:
             "model": model if "claude" in model else "claude-3-5-sonnet-20241022",
             "system": system_prompt,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 4096,
+            "max_tokens": 1024,
             "temperature": temperature,
         }
 

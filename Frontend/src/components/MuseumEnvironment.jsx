@@ -1,5 +1,6 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { MeshReflectorMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 
 // ─── PLASTER TEXTURE GENERATOR ───────────────────────────────────────────────
@@ -399,16 +400,21 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
       {/* Right Wall — Extended height matching left wall */}
       <FluidFieldWall position={[9.2, 6.0, 0]} rotation={[0, -Math.PI / 2, 0]} args={[20, 14]} />
 
-      {/* ─── FLOOR (REALISTIC SATIN POLISHED MUSEUM FLOOR) ─────────── */}
+      {/* ─── FLOOR (HIGH-GLOSS REFLECTIVE GLASSY MUSEUM FLOOR) ─────────── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[28, 24]} />
-        <meshPhysicalMaterial
-          color="#0A0C14"
-          roughness={0.35}
-          metalness={0.05}
-          clearcoat={0.35}
-          clearcoatRoughness={0.25}
-          reflectivity={0.5}
+        <MeshReflectorMaterial
+          blur={[30, 30]}
+          resolution={1024}
+          mirror={0.85}
+          mixBlur={0.2}
+          mixStrength={4.0}
+          roughness={0.08}
+          depthScale={1.2}
+          minDepthThreshold={0.0}
+          maxDepthThreshold={20.0}
+          color="#0e1220"
+          metalness={0.25}
         />
       </mesh>
 
@@ -472,16 +478,16 @@ export default function MuseumEnvironment({ spotlightIntensity = 200, spotlightC
 
       <pointLight position={[3.5, 4.32, -2.3]} intensity={14} color="#FFF3CC" distance={1.8} decay={2.0} />
 
-      {/* PEDESTAL BOX — Same material plain matching the floor */}
+      {/* PEDESTAL BOX — Glassy dark polished pedestal */}
       <mesh position={[3.5, 0.38, -2.3]} castShadow receiveShadow>
         <boxGeometry args={[4.2, 0.76, 2.8]} />
         <meshPhysicalMaterial
-          color="#0A0C14"
-          roughness={0.35}
-          metalness={0.05}
-          clearcoat={0.35}
-          clearcoatRoughness={0.25}
-          reflectivity={0.5}
+          color="#060810"
+          roughness={0.08}
+          metalness={0.3}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+          reflectivity={0.9}
         />
       </mesh>
 
