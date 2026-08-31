@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import LandingHeader from './landing/LandingHeader'
 import './Dashboard.css'
+import './LandingPage.css'
 
 
 // SVG Icons for horizontal navbar to keep things compact & modern
@@ -408,88 +410,14 @@ export default function Dashboard({ auth }) {
     <div className="dashboard-container">
 
 
-      {/* Top Navbar */}
-      <header className="dashboard-navbar">
-        <div className="navbar-left">
-          <div className="logo-text navbar-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <span>Beacon</span>
-          </div>
-        </div>
-
-        {/* Right User profile with Nav Items */}
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            className={`nav-item${activeTab === 'organizations' ? ' active' : ''}`}
-            onClick={() => navigate('/dashboard/organizations')}
-          >
-            <span>Organizations</span>
-          </button>
-
-          {selectedOrg && (
-            <button
-              className={`nav-item${activeTab === 'projects' ? ' active' : ''}`}
-              onClick={() => navigate(`/dashboard/org/${selectedOrg?.id || selectedOrg?.organization_id}`)}
-            >
-              <span>Projects</span>
-            </button>
-          )}
-
-          <button
-            className="user-avatar-btn"
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            aria-label="User menu"
-          >
-            <div className="user-avatar">
-              {auth.user?.username?.[0]?.toUpperCase() || auth.user?.email?.[0]?.toUpperCase() || 'U'}
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {showProfileDropdown && (
-              <>
-                <div
-                  className="dropdown-overlay"
-                  onClick={() => setShowProfileDropdown(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="profile-dropdown"
-                >
-                  <div className="dropdown-header">
-                    <span className="dropdown-username">{auth.user?.username || 'Explorer'}</span>
-                    <span className="dropdown-email">{auth.user?.email}</span>
-                  </div>
-                  <div className="dropdown-divider" />
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      setShowProfileDropdown(false)
-                      navigate('/dashboard/settings')
-                    }}
-                  >
-                    <IconSettings size={14} />
-                    <span>Account Settings</span>
-                  </button>
-                  <div className="dropdown-divider" />
-                  <button
-                    className="dropdown-item logout"
-                    onClick={() => {
-                      setShowProfileDropdown(false)
-                      auth.logout()
-                    }}
-                  >
-                    <IconLogOut size={14} />
-                    <span>Sign Out</span>
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
+      {/* Top Floating Landing-Style Navbar */}
+      <LandingHeader
+        auth={auth}
+        isDashboard={true}
+        activeTab={activeTab}
+        selectedOrg={selectedOrg}
+        onNavigate={navigate}
+      />
 
       {/* Main Content Pane */}
       <main className="dashboard-content">
@@ -509,50 +437,51 @@ export default function Dashboard({ auth }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', padding: '10px 0' }}
+                style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '110px 24px 60px 24px' }}
               >
-                <div style={{ marginBottom: '24px' }}>
-                  <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                    Your Organizations
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0 }}>
-                    Manage multi-tenant workspace environments and project access.
-                  </p>
-                </div>
-
-                {/* Developer Workspace Stats Bar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '22px' }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                {/* Developer Workspace Stats Bar - Compact Flex Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '40px',
+                  marginBottom: '32px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  paddingBottom: '24px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                       TOTAL ORGANIZATIONS
                     </div>
-                    <div style={{ fontSize: '1rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ fontSize: '1.15rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.04em' }}>
                       {loadingOrgs ? '-' : orgs.length}
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                       WORKSPACE TIER
                     </div>
-                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                       DEVELOPER FREE TIER
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                       VECTOR DATABASE
                     </div>
-                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                       SUPABASE PGVECTOR
                     </div>
                   </div>
                 </div>
 
-                {/* Control Bar: Search Input (left) & New Organization (right) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
+                {/* Control Bar: Search Input & New Organization + Button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '28px', gap: '12px', flexWrap: 'wrap' }}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                      <IconSearch size={14} />
+                    <span style={{ position: 'absolute', left: '16px', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <IconSearch size={15} />
                     </span>
                     <input
                       type="text"
@@ -560,40 +489,55 @@ export default function Dashboard({ auth }) {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.04)',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(16px)',
                         border: 'none',
-                        borderRadius: '6px',
-                        padding: '7px 12px 7px 34px',
+                        borderRadius: '100px',
+                        padding: '0 20px 0 42px',
+                        height: '40px',
+                        boxSizing: 'border-box',
                         color: '#fff',
-                        fontSize: '0.84rem',
-                        fontFamily: 'var(--font-sans)',
+                        fontSize: '0.82rem',
+                        fontFamily: 'Outfit, sans-serif',
+                        letterSpacing: '0.06em',
                         outline: 'none',
-                        width: '260px',
+                        width: '320px',
+                        transition: 'all 0.2s ease',
                       }}
                     />
                   </div>
                   <button
                     onClick={() => setShowCreateModal(true)}
                     style={{
-                      background: 'var(--bronze-base)',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(16px)',
                       border: 'none',
-                      color: '#fff',
-                      borderRadius: '6px',
-                      padding: '6px 14px',
-                      fontSize: '0.82rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      fontFamily: 'var(--font-sans)',
-                      boxShadow: '0 2px 10px rgba(182, 122, 70, 0.25)',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontFamily: 'Outfit, sans-serif',
+                      lineHeight: 1,
+                      cursor: 'pointer',
                       transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                      boxSizing: 'border-box',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bronze-shadow)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bronze-base)')}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+                      e.currentTarget.style.color = '#ffffff'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)'
+                    }}
+                    title="New organization"
                   >
-                    <span>+ New organization</span>
+                    +
                   </button>
                 </div>
 
@@ -604,33 +548,24 @@ export default function Dashboard({ auth }) {
                     <span>Loading organization directories...</span>
                   </div>
                 ) : orgs.filter(o => o.name?.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
-                    <h3 style={{ fontSize: '1.05rem', color: '#fff', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
+                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.025)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '54px 20px', borderRadius: '18px', textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '1.15rem', color: '#fff', marginBottom: '8px', fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
                       {searchQuery ? 'No matching organizations found' : 'No Organizations Found'}
                     </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+                    <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.88rem', marginBottom: '20px' }}>
                       {searchQuery ? 'Try adjusting your search query.' : 'Create an organization to get started.'}
                     </p>
                     {!searchQuery && (
                       <button
                         onClick={() => setShowCreateModal(true)}
-                        style={{
-                          background: 'var(--bronze-base)',
-                          border: 'none',
-                          color: '#fff',
-                          borderRadius: '6px',
-                          padding: '6px 14px',
-                          fontSize: '0.82rem',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                        }}
+                        className="btn-glassy"
                       >
                         + New organization
                       </button>
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
                     {orgs
                       .filter(o => o.name?.toLowerCase().includes(searchQuery.toLowerCase()))
                       .map((org) => (
@@ -638,38 +573,44 @@ export default function Dashboard({ auth }) {
                           key={org.id || org.organization_id}
                           onClick={() => navigate(`/dashboard/org/${org.id || org.organization_id}`)}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.025)',
-                            borderRadius: '8px',
-                            padding: '16px',
+                            background: 'rgba(255, 255, 255, 0.035)',
+                            backdropFilter: 'blur(24px) saturate(180%)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                            border: 'none',
+                            borderRadius: '16px',
+                            padding: '22px 24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             cursor: 'pointer',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
+                            e.currentTarget.style.transform = 'translateY(-2px)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.035)'
+                            e.currentTarget.style.transform = 'translateY(0px)'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <IconOrgCluster size={16} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <IconOrgCluster size={18} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.94rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+                              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
                                 {org.name}
                               </h2>
-                              <div style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span>ACTIVE WORKSPACE</span>
                               </div>
                             </div>
                           </div>
-                          <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                            &rarr;
-                          </span>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                            ➔
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -683,50 +624,51 @@ export default function Dashboard({ auth }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', padding: '10px 0' }}
+                style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '110px 24px 60px 24px' }}
               >
-                <div style={{ marginBottom: '24px' }}>
-                  <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                    Your Projects
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0 }}>
-                    Deploy knowledge bases, document ingestion pipelines, and search endpoints.
-                  </p>
-                </div>
-
-                {/* Developer Projects Stats Bar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '22px' }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                      ACTIVE PROJECTS
+                {/* Developer Projects Stats Bar - Compact Flex Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '40px',
+                  marginBottom: '32px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  paddingBottom: '24px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                      TOTAL PROJECTS
                     </div>
-                    <div style={{ fontSize: '1rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                       {loadingProjects ? '-' : projects.length}
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                       ACTIVE ORGANIZATION
                     </div>
-                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {selectedOrg?.name || 'DEFAULT'}
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                      RAG PIPELINE
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                      VECTOR DATABASE
                     </div>
-                    <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
-                      ACTIVE & OPTIMIZED
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      SUPABASE PGVECTOR
                     </div>
                   </div>
                 </div>
 
-                {/* Control Bar: Search Input (left) & New Project (right) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                      <IconSearch size={14} />
+                {/* Control Bar: Search Input & New Project + Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <IconSearch size={16} />
                     </span>
                     <input
                       type="text"
@@ -734,40 +676,43 @@ export default function Dashboard({ auth }) {
                       value={projectSearchQuery}
                       onChange={(e) => setProjectSearchQuery(e.target.value)}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.04)',
+                        width: '100%',
+                        height: '40px',
+                        boxSizing: 'border-box',
+                        background: 'rgba(255, 255, 255, 0.03)',
                         border: 'none',
-                        borderRadius: '6px',
-                        padding: '7px 12px 7px 34px',
+                        borderRadius: '12px',
+                        paddingLeft: '44px',
+                        paddingRight: '16px',
                         color: '#fff',
-                        fontSize: '0.84rem',
-                        fontFamily: 'var(--font-sans)',
+                        fontSize: '0.88rem',
+                        fontFamily: 'Outfit, sans-serif',
                         outline: 'none',
-                        width: '260px',
                       }}
                     />
                   </div>
                   <button
                     onClick={() => setShowProjectModal(true)}
+                    title="Create Project"
                     style={{
-                      background: 'var(--bronze-base)',
+                      height: '40px',
+                      width: '40px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       border: 'none',
-                      color: '#fff',
-                      borderRadius: '6px',
-                      padding: '6px 14px',
-                      fontSize: '0.82rem',
-                      fontWeight: 500,
+                      color: '#ffffff',
+                      fontSize: '1.2rem',
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 400,
                       cursor: 'pointer',
-                      display: 'inline-flex',
+                      display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      fontFamily: 'var(--font-sans)',
-                      boxShadow: '0 2px 10px rgba(182, 122, 70, 0.25)',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                       transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bronze-shadow)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bronze-base)')}
                   >
-                    <span>+ New project</span>
+                    +
                   </button>
                 </div>
 
@@ -778,24 +723,25 @@ export default function Dashboard({ auth }) {
                     <span>Loading projects...</span>
                   </div>
                 ) : projects.filter(p => p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase())).length === 0 ? (
-                  <div className="empty-state" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '44px 20px', borderRadius: '8px', textAlign: 'center' }}>
-                    <h3 style={{ fontSize: '1.05rem', color: '#fff', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '60px 20px', borderRadius: '16px', textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '8px', fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
                       {projectSearchQuery ? 'No matching projects found' : 'No Projects Found'}
                     </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+                    <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', marginBottom: '20px' }}>
                       {projectSearchQuery ? 'Try adjusting your search query.' : 'Create a project inside this organization to build indexing and knowledge bases.'}
                     </p>
                     {!projectSearchQuery && (
                       <button
                         onClick={() => setShowProjectModal(true)}
                         style={{
-                          background: 'var(--bronze-base)',
+                          background: 'rgba(255, 255, 255, 0.88)',
                           border: 'none',
-                          color: '#fff',
-                          borderRadius: '6px',
-                          padding: '6px 14px',
-                          fontSize: '0.82rem',
-                          fontWeight: 500,
+                          color: '#000',
+                          borderRadius: '100px',
+                          padding: '10px 24px',
+                          fontSize: '0.86rem',
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
@@ -804,7 +750,7 @@ export default function Dashboard({ auth }) {
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                     {projects
                       .filter(p => p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase()))
                       .map((proj) => (
@@ -815,38 +761,44 @@ export default function Dashboard({ auth }) {
                             navigate(`/dashboard/org/${orgId}/project/${proj.id}`)
                           }}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.025)',
-                            borderRadius: '8px',
-                            padding: '16px',
+                            background: 'rgba(255, 255, 255, 0.035)',
+                            backdropFilter: 'blur(24px) saturate(180%)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                            border: 'none',
+                            borderRadius: '16px',
+                            padding: '22px 24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             cursor: 'pointer',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
+                            e.currentTarget.style.transform = 'translateY(-2px)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.035)'
+                            e.currentTarget.style.transform = 'translateY(0px)'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <IconLayers size={16} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <IconLayers size={18} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.94rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+                              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
                                 {proj.name}
                               </h2>
-                              <div style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span>{(proj.project_type || proj.environment || 'DEVELOPMENT').toUpperCase()}</span>
                               </div>
                             </div>
                           </div>
-                          <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                            &rarr;
-                          </span>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                            ➔
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -855,7 +807,7 @@ export default function Dashboard({ auth }) {
             )}
 
             {activeTab === 'workspaces' && (
-              <motion.div key="workspaces" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="dashboard-grid">
+              <motion.div key="workspaces" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }} className="dashboard-grid">
                 {workspaces.length === 0 ? (
                   <div className="empty-state">
                     <h3>No Workspaces Provisioned</h3>
@@ -886,7 +838,7 @@ export default function Dashboard({ auth }) {
             )}
 
             {activeTab === 'knowledge-bases' && (
-              <motion.div key="kbs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="dashboard-grid">
+              <motion.div key="kbs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }} className="dashboard-grid">
                 {knowledgeBases.length === 0 ? (
                   <div className="empty-state">
                     <h3>No Knowledge Bases Found</h3>
@@ -917,7 +869,7 @@ export default function Dashboard({ auth }) {
             )}
 
             {activeTab === 'api-keys' && (
-              <motion.div key="keys" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="keys-tab-container">
+              <motion.div key="keys" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }} className="keys-tab-container">
                 <form className="key-creation-form" onSubmit={handleGenerateKey}>
                   <h3>Generate API Access Key</h3>
                   <div className="form-group-inline">
@@ -976,152 +928,331 @@ export default function Dashboard({ auth }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="full-page-settings"
+                style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '110px 24px 60px 24px' }}
               >
-                {/* Page Title & Subtitle */}
-                <div className="settings-page-header">
+                {/* Developer Account Stats Bar - Compact Flex Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '40px',
+                  marginBottom: '32px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  paddingBottom: '24px',
+                  flexWrap: 'wrap'
+                }}>
                   <div>
-                    <h2 className="settings-page-title">Account Settings</h2>
-                    <p className="settings-page-subtitle">
-                      Manage your public profile, security credentials, and active session tokens.
-                    </p>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                      ACCOUNT STATUS
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      ACTIVE ADMINISTRATOR
+                    </div>
+                  </div>
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                      AUTHENTICATION
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      BEARER JWT
+                    </div>
+                  </div>
+                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                      SECURITY TIER
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      DEVELOPER ENCRYPTED
+                    </div>
                   </div>
                 </div>
 
-                {/* Profile Banner */}
-                <div className="profile-banner-card">
-                  <div className="profile-avatar-wrapper">
-                    <div className="profile-avatar-main">
-                      {(auth.user?.username || auth.user?.email || 'U')[0].toUpperCase()}
-                    </div>
+                {/* Profile Card & Info */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.035)',
+                  backdropFilter: 'blur(24px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '24px 28px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                }}>
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    {(auth.user?.username || auth.user?.email || 'U')[0].toUpperCase()}
                   </div>
-
-                  <div className="profile-banner-info">
-                    <div className="profile-name-row">
-                      <h3 className="profile-display-name">{auth.user?.username || 'Beacon Developer'}</h3>
-                      <span className="profile-status-pill">Active Administrator</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                      <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+                        {auth.user?.username || 'Beacon Developer'}
+                      </h2>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        letterSpacing: '0.12em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        padding: '4px 10px',
+                        borderRadius: '100px'
+                      }}>
+                        Verified
+                      </span>
                     </div>
-                    <span className="profile-email-text">{auth.user?.email}</span>
+                    <span style={{ fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      {auth.user?.email}
+                    </span>
                   </div>
                 </div>
 
-                {/* Main Settings Panel Grid */}
-                <div className="settings-full-grid">
-                  {/* Public Profile Section */}
-                  <div className="settings-panel">
-                    <div className="settings-panel-header">
-                      <h3>Public Profile</h3>
-                      <span>Information associated with your account</span>
-                    </div>
-
-                    <div className="settings-row-2col">
-                      <div className="settings-input-group">
-                        <label className="settings-field-label">Username / Display Name</label>
+                {/* Account Details & Settings Panel Grid */}
+                <div style={{ display: 'grid', gap: '20px' }}>
+                  {/* Public Profile Fields */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.035)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '28px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                  }}>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
+                      Account & Access Profile
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px' }}>
+                          USERNAME / DISPLAY NAME
+                        </label>
                         <input
                           type="text"
-                          className="settings-text-input"
                           value={auth.user?.username || ''}
                           readOnly
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '12px 16px',
+                            color: '#fff',
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '0.88rem',
+                            outline: 'none'
+                          }}
                         />
                       </div>
-
-                      <div className="settings-input-group">
-                        <label className="settings-field-label">Primary Email Address</label>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="email"
-                            className="settings-text-input"
-                            value={auth.user?.email || ''}
-                            readOnly
-                            style={{ paddingRight: '90px' }}
-                          />
-                          <span className="verified-badge-tag">Verified</span>
-                        </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px' }}>
+                          PRIMARY EMAIL ADDRESS
+                        </label>
+                        <input
+                          type="email"
+                          value={auth.user?.email || ''}
+                          readOnly
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '12px 16px',
+                            color: '#fff',
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '0.88rem',
+                            outline: 'none'
+                          }}
+                        />
                       </div>
-                    </div>
-
-                    <div className="settings-row-2col" style={{ marginTop: '16px' }}>
-                      <div className="settings-input-group">
-                        <label className="settings-field-label">Account Role</label>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px' }}>
+                          ACCOUNT ROLE
+                        </label>
                         <input
                           type="text"
-                          className="settings-text-input"
                           value="Workspace Administrator"
                           readOnly
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '12px 16px',
+                            color: '#fff',
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '0.88rem',
+                            outline: 'none'
+                          }}
                         />
                       </div>
-
-                      <div className="settings-input-group">
-                        <label className="settings-field-label">Authentication Method</label>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px' }}>
+                          AUTHENTICATION METHOD
+                        </label>
                         <input
                           type="text"
-                          className="settings-text-input"
                           value="Bearer JWT / OAuth Pass"
                           readOnly
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '12px 16px',
+                            color: '#fff',
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '0.88rem',
+                            outline: 'none'
+                          }}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Security & Access Tokens Section */}
-                  <div className="settings-panel">
-                    <div className="settings-panel-header">
-                      <h3>Security & API Credentials</h3>
-                      <span>Identifiers and active session access tokens</span>
-                    </div>
+                  {/* Security & API Credentials Section */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.035)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '28px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                  }}>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '20px', letterSpacing: '0.02em' }}>
+                      Security & Access Credentials
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '14px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
+                            User Account Identifier (UUID)
+                          </div>
+                          <div style={{ fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>
+                            Global unique user reference for API requests
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(0, 0, 0, 0.4)', padding: '6px 12px', borderRadius: '8px' }}>
+                            {auth.user?.user_id || 'Generating...'}
+                          </code>
+                          <button
+                            onClick={() => auth.user?.user_id && navigator.clipboard.writeText(auth.user.user_id)}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: 'none',
+                              borderRadius: '100px',
+                              padding: '6px 16px',
+                              color: 'rgba(255, 255, 255, 0.8)',
+                              fontFamily: 'Outfit, sans-serif',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Copy ID
+                          </button>
+                        </div>
+                      </div>
 
-                    <div className="settings-detail-item">
-                      <div>
-                        <span className="settings-item-title">User Account Identifier (UUID)</span>
-                        <span className="settings-item-desc">Global unique user reference for API requests</span>
-                      </div>
-                      <div className="settings-code-box">
-                        <code>{auth.user?.user_id || 'Generating...'}</code>
-                        <button
-                          className="copy-code-btn"
-                          onClick={() => auth.user?.user_id && navigator.clipboard.writeText(auth.user.user_id)}
-                        >
-                          Copy ID
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="settings-detail-item">
-                      <div>
-                        <span className="settings-item-title">Active JWT Access Token</span>
-                        <span className="settings-item-desc">Current session authorization token</span>
-                      </div>
-                      <div className="settings-code-box">
-                        <code>{auth.token ? `${auth.token.substring(0, 32)}...` : 'No Token'}</code>
-                        <button
-                          className="copy-code-btn"
-                          onClick={() => auth.token && navigator.clipboard.writeText(auth.token)}
-                        >
-                          Copy Token
-                        </button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '14px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
+                            Active JWT Access Token
+                          </div>
+                          <div style={{ fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>
+                            Current session authorization token
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <code style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', background: 'rgba(0, 0, 0, 0.4)', padding: '6px 12px', borderRadius: '8px' }}>
+                            {auth.token ? `${auth.token.substring(0, 24)}...` : 'No Token'}
+                          </code>
+                          <button
+                            onClick={() => auth.token && navigator.clipboard.writeText(auth.token)}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: 'none',
+                              borderRadius: '100px',
+                              padding: '6px 16px',
+                              color: 'rgba(255, 255, 255, 0.8)',
+                              fontFamily: 'Outfit, sans-serif',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Copy Token
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Danger & Session Actions */}
-                  <div className="settings-panel danger-panel">
-                    <div className="settings-panel-header">
-                      <h3 style={{ color: '#fca5a5' }}>Session & Security Actions</h3>
-                      <span style={{ color: '#f87171' }}>Active session controls</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                      <p style={{ color: '#cbd5e1', fontSize: '0.86rem', margin: 0 }}>
-                        Terminating your session will revoke your active authentication token and log you out immediately.
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.035)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '24px 28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
+                  }}>
+                    <div>
+                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff', margin: '0 0 4px 0' }}>
+                        Session Termination
+                      </h3>
+                      <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.82rem', margin: 0 }}>
+                        Revoke active authentication token and log out of workspace.
                       </p>
-                      <button
-                        className="btn-danger-delete"
-                        onClick={() => auth.logout()}
-                      >
-                        <IconLogOut size={14} />
-                        <span>Sign Out Account</span>
-                      </button>
                     </div>
+                    <button
+                      onClick={() => auth.logout()}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: 'none',
+                        borderRadius: '100px',
+                        padding: '10px 24px',
+                        color: '#f87171',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontSize: '0.86rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <IconLogOut size={14} />
+                      <span>Sign Out Account</span>
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -1132,38 +1263,88 @@ export default function Dashboard({ auth }) {
 
       {/* Create Organization Modal */}
       {showCreateModal && (
-        <div className="dashboard-modal-backdrop">
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="dashboard-modal">
-            <header className="modal-header">
-              <h2>New Organization</h2>
+        <div
+          className="dashboard-modal-backdrop"
+          onClick={() => { setShowCreateModal(false); setErrorMsg('') }}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="dashboard-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(255, 255, 255, 0.035)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <header className="modal-header" style={{ marginBottom: '20px' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 600, color: '#fff', margin: 0 }}>New Organization</h2>
               <button className="btn-close-modal" onClick={() => { setShowCreateModal(false); setErrorMsg('') }}>×</button>
             </header>
             <form onSubmit={handleCreateOrg}>
-              <div className="form-group">
-                <label className="form-label">Organization Name</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>ORGANIZATION NAME</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Acme Corporation"
+                  placeholder=""
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
+                  style={{ background: 'rgba(255, 255, 255, 0.03)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                   required
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Description (Optional)</label>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>DESCRIPTION (OPTIONAL)</label>
                 <textarea
                   className="form-input textarea"
-                  placeholder="Context, workspace ownership goals..."
+                  placeholder=""
                   value={newOrgDesc}
                   onChange={(e) => setNewOrgDesc(e.target.value)}
+                  style={{ background: 'rgba(255, 255, 255, 0.03)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '90px' }}
                 />
               </div>
-              <footer className="modal-footer">
-                <button type="button" className="btn-modal-cancel" onClick={() => { setShowCreateModal(false); setErrorMsg('') }}>
+              <footer className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'none', paddingTop: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateModal(false); setErrorMsg('') }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '100px',
+                    padding: '10px 24px',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-submit">
+                <button
+                  type="submit"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.88)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '100px',
+                    padding: '10px 24px',
+                    color: '#000000',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
                   Create Organization
                 </button>
               </footer>
@@ -1174,42 +1355,61 @@ export default function Dashboard({ auth }) {
 
       {/* Create Project Modal Scoped to Organization */}
       {showProjectModal && (
-        <div className="dashboard-modal-backdrop">
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="dashboard-modal">
-            <header className="modal-header">
-              <h2>New Project</h2>
+        <div
+          className="dashboard-modal-backdrop"
+          onClick={() => setShowProjectModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="dashboard-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(255, 255, 255, 0.035)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <header className="modal-header" style={{ marginBottom: '20px' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 600, color: '#fff', margin: 0 }}>New Project</h2>
               <button className="btn-close-modal" onClick={() => setShowProjectModal(false)}>×</button>
             </header>
             <form onSubmit={handleCreateProject}>
-              <div className="form-group">
-                <label className="form-label">Project Name *</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>PROJECT NAME</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Example: Customer Support AI"
+                  placeholder=""
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
+                  style={{ background: 'rgba(255, 255, 255, 0.03)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Project Description</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>PROJECT DESCRIPTION</label>
                 <textarea
                   className="form-input textarea"
-                  placeholder="Example: AI assistant for answering customer support queries from our documentation."
+                  placeholder=""
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
-                  rows={3}
+                  style={{ background: 'rgba(255, 255, 255, 0.03)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px' }}
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Project Type / Use Case</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>PROJECT TYPE / USE CASE</label>
                 <select
                   className="form-input"
                   value={newProjectType}
                   onChange={(e) => setNewProjectType(e.target.value)}
+                  style={{ background: 'rgba(20, 20, 26, 0.95)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                 >
                   <option value="Customer Support">Customer Support</option>
                   <option value="Documentation">Documentation</option>
@@ -1221,36 +1421,69 @@ export default function Dashboard({ auth }) {
               </div>
 
               {newProjectType === 'Custom' && (
-                <div className="form-group">
-                  <label className="form-label">Specify Custom Use Case *</label>
+                <div className="form-group" style={{ marginBottom: '18px' }}>
+                  <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>SPECIFY CUSTOM USE CASE</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Legal Document Search, Code Assistant..."
+                    placeholder=""
                     value={customProjectType}
                     onChange={(e) => setCustomProjectType(e.target.value)}
+                    style={{ background: 'rgba(255, 255, 255, 0.03)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
               )}
 
-              <div className="form-group">
-                <label className="form-label">Environment</label>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '8px', display: 'block' }}>ENVIRONMENT</label>
                 <select
                   className="form-input"
                   value={newProjectEnv}
                   onChange={(e) => setNewProjectEnv(e.target.value)}
+                  style={{ background: 'rgba(20, 20, 26, 0.95)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                 >
                   <option value="Development">Development</option>
                   <option value="Production">Production</option>
                 </select>
               </div>
 
-              <footer className="modal-footer">
-                <button type="button" className="btn-modal-cancel" onClick={() => setShowProjectModal(false)}>
+              <footer className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'none', paddingTop: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowProjectModal(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '100px',
+                    padding: '10px 24px',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-submit">
+                <button
+                  type="submit"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.88)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: 'none',
+                    borderRadius: '100px',
+                    padding: '10px 24px',
+                    color: '#000000',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
                   Create Project
                 </button>
               </footer>

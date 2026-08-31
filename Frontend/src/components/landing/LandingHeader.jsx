@@ -8,54 +8,92 @@ export default function LandingHeader({
   onScrollToSection,
   onScrollToTop,
   onNavigate,
+  isDashboard = false,
+  activeTab = 'organizations',
+  selectedOrg = null,
 }) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
 
-  const navItems = [
+  const landingNavItems = [
     { label: 'STEPS', index: 5 },
     { label: 'SDK', index: 6 },
     { label: 'ARCH', index: 8 },
   ]
 
-  const NavPill = () => (
-    <ul className="nav-links">
-      {auth?.isLoggedIn && (
-        <li>
-          <button
-            onClick={() => onNavigate('/dashboard/organizations')}
-            className="nav-link nav-link--dashboard"
-          >
-            <span className="nav-link-text">Dashboard</span>
-          </button>
-        </li>
-      )}
+  const dashboardNavItems = [
+    { label: 'ORGANIZATIONS', path: '/dashboard/organizations', tab: 'organizations' },
+    ...(selectedOrg ? [{ label: 'PROJECTS', path: `/dashboard/org/${selectedOrg?.id || selectedOrg?.organization_id}`, tab: 'projects' }] : []),
+    { label: 'SETTINGS', path: '/dashboard/settings', tab: 'settings' },
+  ]
 
-      {navItems.map((item) => {
-        const isActive = activeSection === item.index
-        return (
-          <li key={item.label}>
+  const NavPill = () => {
+    if (isDashboard) {
+      return (
+        <ul className="nav-links">
+          {dashboardNavItems.map((item) => {
+            const isActive = activeTab === item.tab
+            return (
+              <li key={item.label}>
+                <button
+                  onClick={() => onNavigate(item.path)}
+                  className={`nav-link${isActive ? ' nav-link--active' : ''}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="dashNavActivePill"
+                      className="nav-active-pill"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="nav-link-text">{item.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )
+    }
+
+    return (
+      <ul className="nav-links">
+        {auth?.isLoggedIn && (
+          <li>
             <button
-              onClick={() => onScrollToSection(item.index)}
-              className={`nav-link${isActive ? ' nav-link--active' : ''}`}
+              onClick={() => onNavigate('/dashboard/organizations')}
+              className="nav-link nav-link--dashboard"
             >
-              {isActive && (
-                <motion.div
-                  layoutId="navActivePill"
-                  className="nav-active-pill"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className="nav-link-text">{item.label}</span>
+              <span className="nav-link-text">Dashboard</span>
             </button>
           </li>
-        )
-      })}
-    </ul>
-  )
+        )}
+
+        {landingNavItems.map((item) => {
+          const isActive = activeSection === item.index
+          return (
+            <li key={item.label}>
+              <button
+                onClick={() => onScrollToSection?.(item.index)}
+                className={`nav-link${isActive ? ' nav-link--active' : ''}`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="navActivePill"
+                    className="nav-active-pill"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="nav-link-text">{item.label}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
 
   return (
     <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div className="logo-text" onClick={onScrollToTop} style={{ cursor: 'pointer' }}>
+      <div className="logo-text" onClick={() => onNavigate ? onNavigate('/') : onScrollToTop?.()} style={{ cursor: 'pointer' }}>
         <span>Beacon</span>
       </div>
 
@@ -91,9 +129,9 @@ export default function LandingHeader({
                       <span className="dropdown-email">{auth.user?.email}</span>
                     </div>
                     <div className="dropdown-divider" />
-                    <button className="dropdown-item" onClick={() => { setShowProfileDropdown(false); onNavigate('/dashboard') }}>
+                    <button className="dropdown-item" onClick={() => { setShowProfileDropdown(false); onNavigate('/dashboard/organizations') }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>
-                      <span>Console Dashboard</span>
+                      <span>Organizations</span>
                     </button>
                     <button className="dropdown-item" onClick={() => { setShowProfileDropdown(false); onNavigate('/dashboard/settings') }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
