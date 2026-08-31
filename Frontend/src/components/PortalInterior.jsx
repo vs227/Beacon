@@ -1,26 +1,21 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
+import { GlobeCollection } from '../shaders/globe/GlobeCollection'
+import '../shaders/threeui.css'
 
-// Portal interior — deep dark emerald void active from page load
-// Portal opening: X[-0.60..+0.60], Y[-1.08..+1.08] in local group space
+// Portal interior — Energy Orb 3D Globe fitting portal frame
 const OPEN_W = 1.20   // portal opening width
 const OPEN_H = 2.16   // portal opening height
 
 export default function PortalInterior({ scrollProgress = 0, ...props }) {
-  const voidLayerRefs = useRef([])
+  const groupRef = useRef()
+  const orbGroupRef = useRef()
+  const htmlContainerRef = useRef()
   const ringRefs = useRef([])
-  const particlesRef = useRef()
   const rimGlowRef = useRef()
   const smoothFade = useRef(0)
-
-  // ─── Materials ────────────────────────────────────────────────────────────
-  const voidMats = useMemo(() => [
-    new THREE.MeshBasicMaterial({ color: '#0B2E23', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ color: '#0F3D2F', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ color: '#153F31', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ color: '#1A4D3A', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }),
-  ], [])
 
   const ringMats = useMemo(() => [
     new THREE.MeshBasicMaterial({ color: '#1E6F5C', transparent: true, opacity: 0, toneMapped: false, depthWrite: false, blending: THREE.AdditiveBlending }),
@@ -33,42 +28,36 @@ export default function PortalInterior({ scrollProgress = 0, ...props }) {
     toneMapped: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   }), [])
 
-  const [positions, velocities] = useMemo(() => {
-    const N = 220
-    const pos = new Float32Array(N * 3)
-    const vel = []
-    for (let i = 0; i < N; i++) {
-      pos[i * 3 + 0] = (Math.random() - 0.5) * 1.12
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 2.10
-      pos[i * 3 + 2] = -(Math.random() * 0.40 + 0.05)
-      vel.push({
-        vx: (Math.random() - 0.5) * 0.0015,
-        vy: Math.random() * 0.0025 + 0.0004,
-        phase: Math.random() * Math.PI * 2,
-      })
-    }
-    return [pos, vel]
-  }, [])
-
-  const particleMat = useMemo(() => new THREE.PointsMaterial({
-    color: '#52A88B', size: 0.007, transparent: true, opacity: 0,
-    sizeAttenuation: true, toneMapped: false, depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  }), [])
-
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
-    
-    const targetFade = Math.max(0, Math.min(1, (scrollProgress - 0.60) / 0.20))
-    smoothFade.current = THREE.MathUtils.lerp(smoothFade.current, targetFade, 0.14)
-    const fade = smoothFade.current
-    if (fade <= 0.001 && targetFade <= 0.001) return
 
-    // Void layers
-    voidLayerRefs.current.forEach((mesh, i) => {
-      if (!mesh) return
-      mesh.material.opacity = fade * (0.85 - i * 0.08) * (0.92 + 0.08 * Math.sin(time * 0.4 + i * 0.9))
-    })
+    // Fade IN: 0.60 → 0.85
+    const fadeIn  = Math.max(0, Math.min(1, (scrollProgress - 0.60) / 0.25))
+    // Darken to black while scrolling forward: 0.85 → 1.0
+    const darkOut = Math.max(0, Math.min(1, (scrollProgress - 0.85) / 0.15))
+    const targetFade = fadeIn
+
+    smoothFade.current = THREE.MathUtils.lerp(smoothFade.current, targetFade, 0.12)
+    const fade = smoothFade.current
+
+    if (groupRef.current) {
+      groupRef.current.visible = fade > 0.001 || targetFade > 0.001
+    }
+
+    if (orbGroupRef.current) {
+      orbGroupRef.current.position.z = THREE.MathUtils.lerp(-1.80, -0.02, fade)
+    }
+
+    if (htmlContainerRef.current) {
+      const cssScale = THREE.MathUtils.lerp(0.10, 0.38, fade)
+      const opacity = fade * (1 - darkOut)
+      const brightness = 1 - darkOut
+      htmlContainerRef.current.style.opacity = String(opacity)
+      htmlContainerRef.current.style.transform = `scale(${cssScale})`
+      htmlContainerRef.current.style.filter = `brightness(${brightness})`
+    }
+
+    if (fade <= 0.001 && targetFade <= 0.001) return
 
     // Rim glow
     if (rimGlowRef.current) {
@@ -86,51 +75,55 @@ export default function PortalInterior({ scrollProgress = 0, ...props }) {
       ring.scale.y = ring.scale.x
       ring.position.z = -0.04 + cycle * 0.06
     })
-
-    // Particles
-    if (particlesRef.current?.geometry) {
-      particleMat.opacity = fade * 0.65
-      const posArr = particlesRef.current.geometry.attributes.position.array
-      for (let i = 0; i < velocities.length; i++) {
-        const v = velocities[i]
-        posArr[i * 3 + 0] += v.vx + Math.sin(time * 0.35 + v.phase) * 0.0006
-        posArr[i * 3 + 1] += v.vy
-        if (posArr[i * 3 + 1] > 1.05) { posArr[i * 3 + 1] = -1.05; posArr[i * 3 + 0] = (Math.random() - 0.5) * 1.10 }
-        if (posArr[i * 3 + 0] > 0.56) posArr[i * 3 + 0] = -0.56
-        if (posArr[i * 3 + 0] < -0.56) posArr[i * 3 + 0] = 0.56
-      }
-      particlesRef.current.geometry.attributes.position.needsUpdate = true
-    }
   })
 
   return (
-    <group {...props} visible={smoothFade.current > 0.001}>
-      {/* Void depth layers */}
-      {[0, 1, 2, 3].map((i) => (
-        <mesh
-          key={`void-${i}`}
-          ref={(el) => (voidLayerRefs.current[i] = el)}
-          position={[0, 0, -(i * 0.15 + 0.05)]}
+    <group ref={groupRef} {...props}>
+      {/* ── Energy Orb in 800px container — canvas is 800px, so CSS scale always supersamples → crisp at all distances ── */}
+      <group ref={orbGroupRef} position={[0, 0, -1.80]}>
+        <Html
+          position={[0, 0, 0]}
+          center
+          style={{
+            width: '800px',
+            height: '800px',
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            overflow: 'visible',
+            pointerEvents: 'none',
+          }}
         >
-          <planeGeometry args={[OPEN_W, OPEN_H]} />
-          <primitive object={voidMats[i]} attach="material" />
-        </mesh>
-      ))}
-
-      {/* Rim glow */}
-      <mesh ref={rimGlowRef} position={[0, 0, 0.02]}>
-        <ringGeometry args={[0.80, 0.88, 64]} />
-        <primitive object={rimMat} attach="material" />
-      </mesh>
-
-      {/* Energy rings */}
-      {[0, 1, 2].map((i) => (
-        <mesh key={`ring-${i}`} ref={(el) => (ringRefs.current[i] = el)} position={[0, 0, 0.01]}>
-          <ringGeometry args={[0.18, 0.22 + i * 0.04, 64]} />
-          <primitive object={ringMats[i]} attach="material" />
-        </mesh>
-      ))}
-
+          <div
+            ref={htmlContainerRef}
+            style={{
+              width: '800px',
+              height: '800px',
+              transformOrigin: 'center center',
+              opacity: 0,
+              transform: 'scale(0.10)',
+            }}
+          >
+            <GlobeCollection
+              variant="energy-orb"
+              speed={1.00}
+              scale={0.75}
+              smokeScale={1.15}
+              smokeStrength={1.40}
+              smokeSpeed={1.00}
+              hue={0}
+              saturation={1.50}
+              glow={0.20}
+              starDensity={0}
+              starSpeed={0}
+              starSize={0}
+              brightness={1.25}
+              opacity={1.00}
+            />
+          </div>
+        </Html>
+      </group>
     </group>
   )
 }
+

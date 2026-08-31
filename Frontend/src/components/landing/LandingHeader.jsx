@@ -4,11 +4,54 @@ import { motion, AnimatePresence } from 'framer-motion'
 export default function LandingHeader({
   auth,
   activeSection,
+  scrollProgress = 0,
   onScrollToSection,
   onScrollToTop,
   onNavigate,
 }) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+
+  const navItems = [
+    { label: 'STEPS', index: 5 },
+    { label: 'SDK', index: 6 },
+    { label: 'ARCH', index: 8 },
+  ]
+
+  const NavPill = () => (
+    <ul className="nav-links">
+      {navItems.map((item) => {
+        const isActive = activeSection === item.index
+        return (
+          <li key={item.label}>
+            <button
+              onClick={() => onScrollToSection(item.index)}
+              className={`nav-link${isActive ? ' nav-link--active' : ''}`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="navActivePill"
+                  className="nav-active-pill"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className="nav-link-text">{item.label}</span>
+            </button>
+          </li>
+        )
+      })}
+
+      {auth?.isLoggedIn && (
+        <li>
+          <button
+            onClick={() => onNavigate('/dashboard/organizations')}
+            className="nav-link nav-link--dashboard"
+          >
+            <span className="nav-link-text">Dashboard</span>
+          </button>
+        </li>
+      )}
+    </ul>
+  )
 
   return (
     <header className="nav-header" style={{ zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -16,51 +59,13 @@ export default function LandingHeader({
         <span>Beacon</span>
       </div>
 
-      <ul className="nav-links">
-        {[
-          { label: 'STEPS', index: 5 },
-          { label: 'SDK', index: 6 },
-          { label: 'ARCH', index: 8 },
-        ].map((item) => (
-          <li key={item.label}>
-            <button
-              onClick={() => onScrollToSection(item.index)}
-              className={`nav-link${activeSection === item.index ? ' nav-link--active' : ''}`}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: activeSection === item.index ? '#fff' : 'var(--text-secondary)',
-              }}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* Centered nav — only when logged out */}
+      {!auth?.isLoggedIn && <NavPill />}
 
-      {auth?.isLoggedIn && (
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '18px' }}>
-          <button
-            onClick={() => onNavigate('/dashboard/organizations')}
-            style={{
-              padding: '4px 10px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#fff',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>Go to Dashboard</span>
-            <span style={{ opacity: 0.7 }}>➔</span>
-          </button>
+      {auth?.isLoggedIn ? (
+        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Nav pill sits here on the right when logged in */}
+          <NavPill />
 
           <button
             className="user-avatar-btn"
@@ -107,6 +112,9 @@ export default function LandingHeader({
             )}
           </AnimatePresence>
         </div>
+      ) : (
+        /* Login button when logged out */
+        <div />
       )}
     </header>
   )

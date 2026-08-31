@@ -170,6 +170,7 @@ export default function LandingPage({ auth }) {
       <LandingHeader
         auth={auth}
         activeSection={activeSection}
+        scrollProgress={scrollProgress}
         onScrollToSection={scrollToSection}
         onScrollToTop={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
         onNavigate={navigate}

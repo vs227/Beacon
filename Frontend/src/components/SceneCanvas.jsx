@@ -23,6 +23,8 @@ function CameraController({ cameraProgress, onReady }) {
   const lookAtRef = useRef(new THREE.Vector3(3.5, 1.55, -2.3))
   const smoothCam = useRef(0)
   const hasCalledReady = useRef(false)
+  // Smooth mouse for parallax — same lerp approach as nebula (0.04)
+  const smoothMouse = useRef({ x: 0, y: 0 })
 
   useFrame((state) => {
     if (onReady && !hasCalledReady.current) {
@@ -31,11 +33,19 @@ function CameraController({ cameraProgress, onReady }) {
     }
     const mouse = state.mouse
 
+    // Smooth mouse lerp — same feel as nebula
+    smoothMouse.current.x = THREE.MathUtils.lerp(smoothMouse.current.x, mouse.x, 0.04)
+    smoothMouse.current.y = THREE.MathUtils.lerp(smoothMouse.current.y, mouse.y, 0.04)
+    const sm = smoothMouse.current
+
     smoothCam.current = THREE.MathUtils.lerp(smoothCam.current, cameraProgress, 0.12)
     const cp = smoothCam.current
 
+    // Mouse parallax strength fades in with cp (subtle in portal, full in hero)
+    const parallaxStrength = THREE.MathUtils.lerp(0.12, 0.06, Math.min(cp * 2, 1))
+
     if (cp < 0.001) {
-      camera.position.set(P_HERO.x + mouse.x * 0.28, P_HERO.y + mouse.y * 0.18, P_HERO.z)
+      camera.position.set(P_HERO.x + sm.x * 0.28, P_HERO.y + sm.y * 0.18, P_HERO.z)
       lookAtRef.current.lerp(L_PORTAL, 0.06)
     } else if (cp <= 0.8) {
       const t = clamp01(cp / 0.8)
@@ -50,7 +60,12 @@ function CameraController({ cameraProgress, onReady }) {
       lookAtRef.current.lerp(LOOK_TEMP, 0.08)
     }
 
-    camera.lookAt(lookAtRef.current)
+    // Apply smooth mouse parallax offset to lookAt — whole scene tilts with cursor
+    const lookWithMouse = lookAtRef.current.clone()
+    lookWithMouse.x += sm.x * parallaxStrength
+    lookWithMouse.y += sm.y * parallaxStrength * 0.6
+
+    camera.lookAt(lookWithMouse)
   })
 
   return null

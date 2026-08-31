@@ -145,14 +145,16 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(182, 122, 70, 0.2);
-  border: 1px solid rgba(182, 122, 70, 0.4);
-  color: var(--bronze-highlight);
+  background: #ffffff;
+  border: none;
+  color: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: "Outfit", "Inter", sans-serif;
+  letter-spacing: 0.03em;
 }
 
 .user-info {
@@ -821,11 +823,6 @@ select.form-input option {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: transform 0.2s ease;
-}
-
-.user-avatar-btn:hover {
-  transform: scale(1.05);
 }
 
 .dropdown-overlay {
