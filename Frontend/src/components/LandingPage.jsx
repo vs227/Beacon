@@ -193,10 +193,10 @@ export default function LandingPage({ auth }) {
 
       {/* ThreeUI Nebula Background Layer (Fades in during How It Works portal transition) */}
       {(() => {
-        const nebulaOpacity = activeSection < 5 
-          ? 0 
-          : activeSection >= 6 
-            ? 1 
+        const nebulaOpacity = activeSection < 5
+          ? 0
+          : activeSection >= 6
+            ? 1
             : Math.max(0, Math.min(1, (blackProgress - 0.55) / 0.45));
 
         return (
