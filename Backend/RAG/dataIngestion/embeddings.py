@@ -58,7 +58,7 @@ def _hf_api_embedding(texts: List[str]) -> np.ndarray | None:
                 norms[norms == 0] = 1.0
                 return arr / norms
     except Exception as e:
-        print(f"HF Router embedding failed: {e}")
+        logger.debug(f"HF Router embedding failed: {e}")
 
     # Strategy B: Standard Feature Extraction Endpoint
     try:
@@ -74,7 +74,7 @@ def _hf_api_embedding(texts: List[str]) -> np.ndarray | None:
                 norms[norms == 0] = 1.0
                 return vecs / norms
     except Exception as e:
-        print(f"HF direct embedding failed: {e}")
+        logger.debug(f"HF direct embedding failed: {e}")
 
     return None
 
