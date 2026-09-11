@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import LandingHeader from './landing/LandingHeader'
+import { StructureFlowCollection } from './ui/StructureFlowCollection'
+import './ProjectPage.css'
 
 /* ─── Inline SVG Icons ─── */
 function IconArrowLeft({ size = 16 }) {
@@ -21,6 +24,16 @@ function IconDatabase({ size = 16 }) {
 function IconKey({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg>
+  )
+}
+function IconLock({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+  )
+}
+function IconPlus({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   )
 }
 function IconSettings({ size = 16 }) {
@@ -70,9 +83,19 @@ function IconTwinkle({ size = 18 }) {
     </svg>
   )
 }
+function IconZap({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+  )
+}
 function IconSend({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+  )
+}
+function IconUser({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
   )
 }
 function IconActivity({ size = 16 }) {
@@ -112,12 +135,17 @@ function IconLoader({ size = 16 }) {
 }
 function IconGithub({ size = 16 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
   )
 }
 function IconRefresh({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+  )
+}
+function IconX({ size = 16, style = {} }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
   )
 }
 
@@ -131,7 +159,6 @@ export default function ProjectPage({ auth }) {
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeSection, setActiveSection] = useState('overview')
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
 
   // Documents & Ingestion State
   const [documents, setDocuments] = useState([])
@@ -165,12 +192,22 @@ export default function ProjectPage({ auth }) {
 
   // RAG AI Assistant State
   const [ragMessages, setRagMessages] = useState([])
+  const [tokenUsageLogs, setTokenUsageLogs] = useState([])
   const [ragInput, setRagInput] = useState('')
   const [ragLoading, setRagLoading] = useState(false)
   const [ragProvider, setRagProvider] = useState('groq')
-  const [byokKey, setByokKey] = useState('')
+  const [byokKey, setByokKey] = useState(() => localStorage.getItem('beacon_byok_key') || '')
   const [showByokModal, setShowByokModal] = useState(false)
   const [topK, setTopK] = useState(4)
+  const [nowTimestamp, setNowTimestamp] = useState(Date.now())
+
+  // Real-time 1-second ticker to decay tokens automatically as 60s passes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTimestamp(Date.now())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Real API Keys & Activity Logs State
   const [apiKeys, setApiKeys] = useState([])
@@ -245,7 +282,7 @@ export default function ProjectPage({ auth }) {
 
       const savedKeys = localStorage.getItem(storageKey)
       if (savedKeys) {
-        try { setApiKeys(JSON.parse(savedKeys)) } catch (e) {}
+        try { setApiKeys(JSON.parse(savedKeys)) } catch (e) { }
       }
       setLoadingApiKeys(false)
     }
@@ -272,7 +309,7 @@ export default function ProjectPage({ auth }) {
 
       const savedLogs = localStorage.getItem(storageKey)
       if (savedLogs) {
-        try { setActivityLogs(JSON.parse(savedLogs)) } catch (e) {}
+        try { setActivityLogs(JSON.parse(savedLogs)) } catch (e) { }
       }
       setLoadingActivity(false)
     }
@@ -323,7 +360,7 @@ export default function ProjectPage({ auth }) {
           return updated
         })
       }
-      logActivityEvent('API_KEY_CREATED', `Generated API Key: "${keyName}" (${env.toUpperCase()})`, '18ms', 'CREATED', 'var(--bronze-highlight)')
+      logActivityEvent('API_KEY_CREATED', `Generated API Key: "${keyName}" (${env.toUpperCase()})`, '18ms', 'CREATED', '#ffffff')
     } catch (err) {
       console.error('Create API Key error:', err)
     }
@@ -352,6 +389,8 @@ export default function ProjectPage({ auth }) {
   }
 
   const chatScrollRef = useRef(null)
+  const ragInputRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   // Load saved project chat history from localStorage on load or project switch
   useEffect(() => {
@@ -401,95 +440,103 @@ export default function ProjectPage({ auth }) {
         sources: [],
       }
     ])
+    setTimeout(() => ragInputRef.current?.focus(), 50)
   }
 
-  // Auto-scroll chat to bottom as messages arrive or type out
-  useEffect(() => {
+  // Scroll to bottom helper
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'instant', block: 'end' })
+    }
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
-  }, [ragMessages, ragLoading])
+  }, [])
 
-// Formatter for AI output: renders bold headers and styled bullet points
-function renderFormattedMessage(text) {
-  if (!text) return null
+  // Always auto-scroll chat to bottom as messages arrive, type out, or when switching tabs
+  useEffect(() => {
+    if (activeSection === 'rag-chat') {
+      scrollToBottom()
+      const t1 = setTimeout(scrollToBottom, 50)
+      const t2 = setTimeout(scrollToBottom, 150)
+      const t3 = setTimeout(scrollToBottom, 350)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+        clearTimeout(t3)
+      }
+    }
+  }, [ragMessages, ragLoading, activeSection, scrollToBottom])
 
-  const lines = text.split('\n')
-  return lines.map((line, idx) => {
-    const cleanLine = line.trim()
-    if (!cleanLine) return <div key={idx} style={{ height: '4px' }} />
+  // Formatter for AI output: renders bold headers and styled bullet points
+  function renderFormattedMessage(text) {
+    if (!text) return null
 
-    // Check if line is a bullet point (*, -, •)
-    const bulletMatch = cleanLine.match(/^[*\-•]\s+(.*)/)
-    const isBullet = Boolean(bulletMatch)
-    const lineContent = isBullet ? bulletMatch[1] : cleanLine
+    const lines = text.split('\n')
+    return lines.map((line, idx) => {
+      const cleanLine = line.trim()
+      if (!cleanLine) return <div key={idx} style={{ height: '4px' }} />
 
-    // Parse bold text **bold**
-    const parts = lineContent.split(/(\*\*.*?\*\*)/g)
-    const formattedContent = parts.map((part, pIdx) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
+      // Check if line is a bullet point (*, -, •)
+      const bulletMatch = cleanLine.match(/^[*\-•]\s+(.*)/)
+      const isBullet = Boolean(bulletMatch)
+      const lineContent = isBullet ? bulletMatch[1] : cleanLine
+
+      // Parse bold text **bold**
+      const parts = lineContent.split(/(\*\*.*?\*\*)/g)
+      const formattedContent = parts.map((part, pIdx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={pIdx} style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+              {part.slice(2, -2)}
+            </strong>
+          )
+        }
+        return part
+      })
+
+      if (isBullet) {
         return (
-          <strong key={pIdx} style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-            {part.slice(2, -2)}
-          </strong>
+          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '4px 0 4px 4px' }}>
+            <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.85rem', lineHeight: '1.4' }}>•</span>
+            <span style={{ flex: 1, lineHeight: '1.45' }}>{formattedContent}</span>
+          </div>
         )
       }
-      return part
-    })
 
-    if (isBullet) {
       return (
-        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '4px 0 4px 4px' }}>
-          <span style={{ color: 'var(--bronze-highlight, #f4d1a6)', fontSize: '0.85rem', lineHeight: '1.4' }}>•</span>
-          <span style={{ flex: 1, lineHeight: '1.45' }}>{formattedContent}</span>
+        <div key={idx} style={{ margin: '3px 0', lineHeight: '1.45' }}>
+          {formattedContent}
         </div>
       )
-    }
+    })
+  }
 
-    return (
-      <div key={idx} style={{ margin: '3px 0', lineHeight: '1.45' }}>
-        {formattedContent}
-      </div>
-    )
-  })
-}
-
-  // Realistic Human Live Typing Animation
+  // High-Speed Smooth Live Typing Animation (60fps chunked rendering)
   const typeTextHumanLike = async (fullText, assistantIndex) => {
-    let currentText = ''
-    let idx = 0
+    if (!fullText) return
 
-    while (idx < fullText.length) {
-      // Reveal 1 to 2 characters per keystroke tick
-      const char = fullText[idx]
-      const nextChar = fullText[idx + 1] || ''
-      const increment = (char === ' ' || char === '\n') ? 1 : Math.min(2, fullText.length - idx)
-      
-      idx += increment
-      currentText = fullText.slice(0, idx)
+    let idx = 0
+    const totalLen = fullText.length
+    // Chunk size dynamically scales with response length for uniform high speed (4-10 chars per frame step)
+    const chunkSize = Math.max(4, Math.ceil(totalLen / 50))
+
+    while (idx < totalLen) {
+      idx = Math.min(totalLen, idx + chunkSize)
+      const currentText = fullText.slice(0, idx)
 
       setRagMessages(prev => {
         const copy = [...prev]
         if (copy[assistantIndex]) {
-          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: idx < fullText.length }
+          copy[assistantIndex] = { ...copy[assistantIndex], content: currentText, typing: idx < totalLen }
         }
         return copy
       })
 
-      // Calculate realistic human typing pause:
-      let delay = Math.floor(Math.random() * 15) + 18 // Base keystroke: 18-33ms
-
-      // Human pause on punctuation marks
-      if (['.', '!', '?', '\n'].includes(char)) {
-        delay = Math.floor(Math.random() * 80) + 140 // Pause on sentence ends / line breaks
-      } else if ([',', ';', ':', '-'].includes(char)) {
-        delay = Math.floor(Math.random() * 40) + 70  // Slight pause on commas & clauses
-      }
-
-      await new Promise(res => setTimeout(res, delay))
+      // Fast, non-laggy frame delay (10ms)
+      await new Promise(res => setTimeout(res, 10))
     }
 
-    // Ensure final state is clean and typing indicator is turned off
     setRagMessages(prev => {
       const copy = [...prev]
       if (copy[assistantIndex]) {
@@ -499,10 +546,43 @@ function renderFormattedMessage(text) {
     })
   }
 
+  // Derived token telemetry (Tokens Per Minute — 60s rolling window)
+  const lastAssistantMessage = [...ragMessages].reverse().find(m => m.role === 'assistant' && m.tokens)
+  const lastQueryTokens = lastAssistantMessage ? lastAssistantMessage.tokens : null
+
+  // Rolling 1-minute (60s) Tokens Per Minute (TPM) calculation using persistent token log history
+  const recent1MinUsage = tokenUsageLogs.filter(
+    item => item.timestamp && (nowTimestamp - item.timestamp < 60000)
+  )
+  const tpmFromLogs = recent1MinUsage.reduce((sum, item) => sum + (item.tokens || 0), 0)
+
+  // Fallback to ragMessages for initial stored messages
+  const recent1MinMessages = ragMessages.filter(
+    m => m.role === 'assistant' && m.tokens && m.timestamp && (nowTimestamp - m.timestamp < 60000)
+  )
+  const tpmFromMessages = recent1MinMessages.reduce((sum, msg) => sum + (msg.tokens?.total_tokens || 0), 0)
+  const tpmTokens = Math.max(tpmFromLogs, tpmFromMessages)
+
+  const TPM_LIMIT = 6000
+
+  const isGenerating = ragLoading || ragMessages.some(m => m.typing)
+  const isFreeTier = !byokKey.trim() && ragProvider !== 'gemini'
+  const isChatLocked = isFreeTier && (tpmTokens >= TPM_LIMIT)
+
+  // Always default focus to input box when on RAG chat tab or when generation completes
+  useEffect(() => {
+    if (activeSection === 'rag-chat' && !isGenerating && !isChatLocked) {
+      const timer = setTimeout(() => {
+        ragInputRef.current?.focus()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [activeSection, isGenerating, isChatLocked])
+
   // Handle RAG AI Query
   const handleSendRagQuery = async (e) => {
     e?.preventDefault()
-    if (!ragInput.trim() || ragLoading) return
+    if (!ragInput.trim() || ragLoading || isGenerating || isChatLocked) return
 
     const userMsg = ragInput.trim()
     setRagInput('')
@@ -540,21 +620,36 @@ function renderFormattedMessage(text) {
       if (res.ok) {
         const data = await res.json()
         const fullAnswer = data.answer || 'No response.'
-        
+
         logActivityEvent('VECTOR_SEARCH_QUERY', `RAG query: "${userMsg.substring(0, 45)}"`, `${data.execution_time_ms || 28}ms`, '200 OK', '#4ade80')
 
-        // Hide loading spinner and insert initial empty assistant message
+        // Clean raw technical error strings into user-friendly admin notification
+        let cleanAnswer = fullAnswer
+        if (cleanAnswer.includes('LLM generation failed') || cleanAnswer.includes('rate limit') || cleanAnswer.includes('Tokens/Min')) {
+          cleanAnswer = '⚠️ Token limit reached. Please contact your administrator to upgrade tokens or add a BYOK API key.'
+        }
+
+        // Track token usage in persistent rolling log (decoupled from visible chat history)
+        if (data.token_usage?.total_tokens) {
+          setTokenUsageLogs(prev => [
+            ...prev.filter(item => Date.now() - item.timestamp < 60000),
+            { timestamp: Date.now(), tokens: data.token_usage.total_tokens }
+          ])
+        }
+
+        // Hide loading spinner immediately before adding assistant response
         setRagLoading(false)
-        
+
         setRagMessages(prev => {
           const assistantIndex = prev.length
-          // Add placeholder message
-          const withPlaceholder = [
+          setTimeout(() => typeTextHumanLike(cleanAnswer, assistantIndex), 0)
+          return [
             ...prev,
             {
               role: 'assistant',
               content: '',
               typing: true,
+              timestamp: Date.now(),
               sources: data.sources || [],
               confidence: data.confidence_score,
               provider: data.provider_used,
@@ -563,9 +658,6 @@ function renderFormattedMessage(text) {
               executionTime: data.execution_time_ms,
             }
           ]
-          // Trigger dynamic typing
-          typeTextHumanLike(fullAnswer, assistantIndex)
-          return withPlaceholder
         })
       } else {
         const err = await res.json()
@@ -574,21 +666,22 @@ function renderFormattedMessage(text) {
           ...prev,
           {
             role: 'assistant',
-            content: `⚠️ Error: ${err.detail || 'RAG Query failed.'}`,
+            content: '⚠️ Token limit reached. Please contact your administrator to upgrade tokens or add a BYOK API key.',
             sources: [],
           }
         ])
       }
     } catch (err) {
-      setRagLoading(false)
       setRagMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ Connection Error: ${err.message}`,
+          content: '⚠️ Token limit reached. Please contact your administrator.',
           sources: [],
         }
       ])
+    } finally {
+      setRagLoading(false)
     }
   }
 
@@ -932,71 +1025,92 @@ function renderFormattedMessage(text) {
   return (
     <div className="dashboard-container">
 
-      {/* Top Navbar */}
-      <header className="dashboard-navbar">
-        <div className="navbar-left">
-          <div className="logo-text navbar-brand" onClick={() => navigate('/dashboard/organizations')} style={{ cursor: 'pointer' }}>
-            <span>Beacon</span>
-          </div>
-        </div>
+      {/* Dynamic 3D Crisp White Nebula Background Layer for all sections EXCEPT Test RAG */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: activeSection !== 'rag-chat' ? 1 : 0,
+          transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'opacity',
+        }}
+      >
+        <StructureFlowCollection
+          variant="nebula"
+          hue={0}
+          saturation={0}
+          brightness={0.55}
+          style={{ filter: 'brightness(1.0) contrast(1.1)' }}
+        />
+        {/* Soft Ambient White Tint & Dark Overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.70) 100%), radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 70%)',
+          }}
+        />
+      </div>
 
-        {/* Right User profile & Navigation Tabs */}
-        <div className="navbar-right" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item${activeSection === item.id ? ' active' : ''}`}
-              onClick={() => setActiveSection(item.id)}
-            >
-              <span>{item.label}</span>
-            </button>
-          ))}
+      {/* Dynamic 3D Original Cosmic Violet Nebula Background Layer SPECIFICALLY for Test RAG section */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: activeSection === 'rag-chat' ? 1 : 0,
+          transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'opacity',
+        }}
+      >
+        <StructureFlowCollection
+          variant="nebula"
+          hue={0}
+          saturation={0.92}
+          brightness={0.53}
+        />
+        {/* Soft Ambient Overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.50) 0%, rgba(0, 0, 0, 0.65) 100%), radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.75) 100%)',
+          }}
+        />
+      </div>
 
-          <button
-            className="user-avatar-btn"
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            aria-label="User menu"
-            style={{ marginLeft: '6px' }}
-          >
-            <div className="user-avatar">
-              {auth.user?.username?.[0]?.toUpperCase() || auth.user?.email?.[0]?.toUpperCase() || 'U'}
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {showProfileDropdown && (
-              <>
-                <div className="dropdown-overlay" onClick={() => setShowProfileDropdown(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="profile-dropdown"
-                >
-                  <div className="dropdown-header">
-                    <span className="dropdown-username">{auth.user?.username || 'Explorer'}</span>
-                    <span className="dropdown-email">{auth.user?.email}</span>
-                  </div>
-                  <div className="dropdown-divider" />
-                  <button className="dropdown-item" onClick={() => { setShowProfileDropdown(false); navigate('/dashboard/settings') }}>
-                    <IconSettings size={14} /><span>Account Settings</span>
-                  </button>
-                  <div className="dropdown-divider" />
-                  <button className="dropdown-item logout" onClick={() => { setShowProfileDropdown(false); auth.logout() }}>
-                    <IconLogOut size={14} /><span>Sign Out</span>
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
+      {/* Top Floating Landing-Style Navbar with Project Tabs */}
+      <LandingHeader
+        auth={auth}
+        isDashboard={true}
+        activeTab={activeSection}
+        navItems={navItems}
+        onSelectTab={setActiveSection}
+        projectName={project?.name}
+        onNavigate={navigate}
+      />
 
       {/* Main Content Area */}
-      <main style={{ width: '100%', padding: '36px 32px 24px 32px', boxSizing: 'border-box' }}>
-        {/* Back to Projects link on far left under BEACON logo */}
-        <div style={{ marginBottom: '24px', marginTop: '6px' }}>
+      <main style={{
+        width: '100%',
+        padding: '110px 32px 32px 32px',
+        boxSizing: 'border-box',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        zIndex: 1,
+        overflowY: activeSection === 'rag-chat' ? 'hidden' : 'auto'
+      }}>
+        {/* Back to Projects Link */}
+        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto 36px auto', flexShrink: 0 }}>
           <button
             onClick={() => navigate(`/dashboard/org/${orgId}`)}
             style={{
@@ -1005,14 +1119,18 @@ function renderFormattedMessage(text) {
               gap: '6px',
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-secondary)',
+              color: 'rgba(255, 255, 255, 0.45)',
               cursor: 'pointer',
-              fontSize: '0.84rem',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
               padding: 0,
               transition: 'color 0.2s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)')}
           >
             <IconArrowLeft size={14} />
             <span>Back to Projects</span>
@@ -1020,12 +1138,17 @@ function renderFormattedMessage(text) {
         </div>
 
         {/* Centered Container for Project Details & Tabs */}
-        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
-              {project?.name || 'Project'}
-            </h1>
-          </div>
+        <div style={{
+          maxWidth: '1080px',
+          width: '100%',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+          overflow: activeSection === 'rag-chat' ? 'hidden' : 'visible'
+        }}>
+
           {loading ? (
             <div className="spinner-container">
               <div className="dashboard-spinner"></div>
@@ -1043,97 +1166,101 @@ function renderFormattedMessage(text) {
               {activeSection === 'overview' && (
                 <motion.div
                   key="overview"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   style={{ width: '100%' }}
                 >
-                  {/* Top Metric Cards Strip */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '8px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  {/* Top Metric Strip - Minimal Horizontal Telemetry Bar */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '36px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                    paddingBottom: '24px',
+                    flexWrap: 'wrap',
+                    gap: '24px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                         INDEXED DOCUMENTS
                       </div>
-                      <div style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: '#fff' }}>
-                        {documents.length}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        {documents.length === 1 ? '1 file provisioned' : `${documents.length} files provisioned`}
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        {documents.length} FILES
                       </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '8px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                         VECTOR CHUNKS
                       </div>
-                      <div style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: '#fff' }}>
-                        {documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Embedded vectors in database
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        {documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)} EMBEDDINGS
                       </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '8px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                        SEARCH ENGINE
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        VECTOR DATABASE
                       </div>
-                      <div style={{ fontSize: '0.98rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                         SUPABASE PGVECTOR
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        HNSW 384D cosine similarity
-                      </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.025)', borderRadius: '8px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
                         OPTIMIZER PIPELINE
                       </div>
-                      <div style={{ fontSize: '0.98rem', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
-                        ADAPTIVE TOP-K
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        30–50% token ratio pruning
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        ADAPTIVE TOP-K (384D)
                       </div>
                     </div>
                   </div>
 
                   {/* Two-Column Grid: Details & Quick Actions */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                    {/* Left Column: Project Configuration Panel */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '18px' }}>
-                      <h3 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '14px', letterSpacing: '-0.01em' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '48px' }}>
+                    {/* Left Column: Project Configuration Panel - Flat Layout */}
+                    <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.05)', paddingLeft: '18px' }}>
+                      <h3 style={{ fontSize: '0.96rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '14px', letterSpacing: '-0.01em' }}>
                         Project Details
                       </h3>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Project Name</span>
-                          <span style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{project.name}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif' }}>Project Name</span>
+                          <span style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{project.name}</span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Identifier Slug</span>
-                          <span style={{ color: 'var(--bronze-highlight)', fontSize: '0.82rem', fontFamily: 'monospace' }}>{project.slug}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif' }}>Identifier Slug</span>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontFamily: 'monospace' }}>{project.slug}</span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Use Case</span>
-                          <span style={{ color: '#fff', fontSize: '0.82rem' }}>{project.project_type || 'General AI Assistant'}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif' }}>Use Case</span>
+                          <span style={{ color: '#fff', fontSize: '0.84rem', fontFamily: 'Outfit, sans-serif' }}>{project.project_type || 'General AI Assistant'}</span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Environment</span>
-                          <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif' }}>Environment</span>
+                          <span style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', letterSpacing: '0.08em' }}>
                             {(project.environment || 'DEVELOPMENT').toUpperCase()}
                           </span>
                         </div>
 
                         {project.description && (
-                          <div style={{ paddingTop: '4px' }}>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '6px' }}>Description</div>
-                            <div style={{ color: '#d1d5db', fontSize: '0.82rem', lineHeight: '1.5', background: 'rgba(0, 0, 0, 0.3)', padding: '10px 12px', borderRadius: '6px' }}>
+                          <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>Description</div>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.84rem', fontFamily: 'Outfit, sans-serif', lineHeight: '1.5' }}>
                               {project.description}
                             </div>
                           </div>
@@ -1141,13 +1268,13 @@ function renderFormattedMessage(text) {
                       </div>
                     </div>
 
-                    {/* Right Column: Quick Action Shortcuts */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '18px' }}>
-                      <h3 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '14px', letterSpacing: '-0.01em' }}>
+                    {/* Right Column: Quick Action Shortcuts - Flat Layout */}
+                    <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.05)', paddingLeft: '18px' }}>
+                      <h3 style={{ fontSize: '0.96rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '14px', letterSpacing: '-0.01em' }}>
                         Quick Navigation
                       </h3>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {[
                           { id: 'documents', title: 'Manage Documents', desc: 'Upload PDFs, text files, or sync GitHub repos' },
                           { id: 'rag-chat', title: 'Test RAG Assistant', desc: 'Query your knowledge base with AI assistant' },
@@ -1158,32 +1285,31 @@ function renderFormattedMessage(text) {
                             key={action.id}
                             onClick={() => setActiveSection(action.id)}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.025)',
-                              borderRadius: '6px',
-                              padding: '12px 14px',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                              padding: '12px 0',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               cursor: 'pointer',
-                              transition: 'all 0.2s ease',
+                              transition: 'opacity 0.2s ease',
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+                              e.currentTarget.style.opacity = '0.75'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'
+                              e.currentTarget.style.opacity = '1'
                             }}
                           >
                             <div>
-                              <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600, marginBottom: '2px' }}>
+                              <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif', marginBottom: '2px' }}>
                                 {action.title}
                               </div>
-                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>
+                              <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif' }}>
                                 {action.desc}
                               </div>
                             </div>
-                            <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                              &rarr;
+                            <span style={{ fontSize: '0.84rem', color: 'rgba(255, 255, 255, 0.5)', fontFamily: 'Outfit, sans-serif' }}>
+                              ➔
                             </span>
                           </div>
                         ))}
@@ -1197,32 +1323,27 @@ function renderFormattedMessage(text) {
               {activeSection === 'documents' && (
                 <motion.div
                   key="documents"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="project-section"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <div>
-                      <h2 className="section-title" style={{ margin: 0 }}>Document Pipeline & Data Ingestion</h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '4px', margin: 0 }}>
-                        Ingest local files and GitHub repositories directly into vector embedding storage.
-                      </p>
-                    </div>
-                  </div>
+
 
                   {/* Pipeline Sub-Tabs */}
-                  <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.02)', padding: '4px', borderRadius: '8px', width: 'fit-content', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.025)', padding: '4px', borderRadius: '100px', width: 'fit-content', marginBottom: '24px' }}>
                     <button
                       onClick={() => setDocTab('upload')}
                       style={{
-                        background: docTab === 'upload' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
-                        color: docTab === 'upload' ? '#fff' : 'var(--text-secondary)',
+                        background: docTab === 'upload' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                        color: docTab === 'upload' ? '#fff' : 'rgba(255, 255, 255, 0.45)',
                         border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        fontSize: '0.84rem',
-                        fontWeight: 500,
+                        borderRadius: '100px',
+                        padding: '8px 18px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        fontFamily: 'Outfit, sans-serif',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1230,19 +1351,20 @@ function renderFormattedMessage(text) {
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <IconUpload size={15} style={{ color: docTab === 'upload' ? 'var(--bronze-highlight)' : 'currentColor' }} />
+                      <IconUpload size={15} style={{ color: docTab === 'upload' ? '#fff' : 'currentColor' }} />
                       <span>Local File Upload</span>
                     </button>
                     <button
                       onClick={() => setDocTab('github')}
                       style={{
-                        background: docTab === 'github' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
-                        color: docTab === 'github' ? '#fff' : 'var(--text-secondary)',
+                        background: docTab === 'github' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                        color: docTab === 'github' ? '#fff' : 'rgba(255, 255, 255, 0.45)',
                         border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        fontSize: '0.84rem',
-                        fontWeight: 500,
+                        borderRadius: '100px',
+                        padding: '8px 18px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        fontFamily: 'Outfit, sans-serif',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1250,7 +1372,7 @@ function renderFormattedMessage(text) {
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <IconGithub size={15} style={{ color: docTab === 'github' ? 'var(--bronze-highlight)' : 'currentColor' }} />
+                      <IconGithub size={15} style={{ color: docTab === 'github' ? '#fff' : 'currentColor' }} />
                       <span>GitHub Repository</span>
                     </button>
                   </div>
@@ -1261,11 +1383,12 @@ function renderFormattedMessage(text) {
                       <div
                         className={`upload-dropzone ${dragOver ? 'drag-over' : ''} ${uploading ? 'uploading' : ''}`}
                         style={{
-                          background: dragOver ? 'rgba(182, 122, 70, 0.08)' : 'rgba(255, 255, 255, 0.018)',
-                          borderRadius: '10px',
+                          background: dragOver ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                          borderRadius: '16px',
                           padding: '36px 24px',
-                          border: 'none',
+                          border: '1px dashed rgba(255, 255, 255, 0.12)',
                           transition: 'all 0.25s ease',
+                          cursor: 'pointer',
                         }}
                         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                         onDragLeave={() => setDragOver(false)}
@@ -1285,18 +1408,18 @@ function renderFormattedMessage(text) {
                             if (e.target.files?.[0]) handleUploadFile(e.target.files[0])
                           }}
                         />
-                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
-                          <IconUpload size={24} />
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                          <IconUpload size={22} />
                         </div>
                         <div className="dropzone-text" style={{ textAlign: 'center' }}>
-                          <strong style={{ fontSize: '0.96rem', color: '#fff', display: 'block', marginBottom: '4px' }}>
+                          <strong style={{ fontSize: '0.92rem', fontFamily: 'Outfit, sans-serif', color: '#fff', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
                             {uploading ? 'Uploading & Triggering Pipeline...' : 'Click or drop document to upload'}
                           </strong>
-                          <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)' }}>Supports PDF, TXT, MD, DOCX (Max 10MB)</span>
+                          <span style={{ fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>Supports PDF, TXT, MD, DOCX (Max 10MB)</span>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                           {['PDF', 'TXT', 'MD', 'DOCX'].map((fmt, idx) => (
-                            <span key={idx} style={{ fontSize: '0.68rem', fontFamily: 'monospace', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.04)', color: 'var(--bronze-highlight)' }}>
+                            <span key={idx} style={{ fontSize: '0.66rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(255, 255, 255, 0.05)', color: 'rgba(255, 255, 255, 0.7)' }}>
                               {fmt}
                             </span>
                           ))}
@@ -1304,7 +1427,7 @@ function renderFormattedMessage(text) {
                       </div>
 
                       {uploadError && (
-                        <div className="upload-error">
+                        <div className="upload-error" style={{ background: 'rgba(239, 68, 68, 0.12)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#f87171', fontFamily: 'Outfit, sans-serif' }}>
                           <IconAlertCircle size={16} />
                           <span>{uploadError}</span>
                         </div>
@@ -1314,7 +1437,7 @@ function renderFormattedMessage(text) {
 
                   {/* GitHub Repository Pipeline */}
                   {docTab === 'github' && (
-                    <div className="github-scan-card">
+                    <div className="github-scan-card" style={{ width: '100%' }}>
 
                       {/* ── Step 1: GitHub Repo Picker (for GitHub-authenticated users) ── */}
                       {isGithubUser && !githubScanResult && (
@@ -1326,15 +1449,14 @@ function renderFormattedMessage(text) {
                               display: 'flex',
                               alignItems: 'center',
                               gap: '10px',
-                              background: 'rgba(255,255,255,0.03)',
+                              background: 'rgba(255, 255, 255, 0.03)',
                               border: 'none',
-                              borderRadius: '6px',
+                              borderRadius: '12px',
                               padding: '10px 14px',
                             }}>
-                              <IconSearch size={16} />
+                              <IconSearch size={16} style={{ color: 'rgba(255, 255, 255, 0.45)' }} />
                               <input
                                 type="text"
-                                placeholder="Search your repositories..."
                                 value={repoSearchFilter}
                                 onChange={(e) => setRepoSearchFilter(e.target.value)}
                                 style={{
@@ -1344,16 +1466,29 @@ function renderFormattedMessage(text) {
                                   outline: 'none',
                                   color: '#fff',
                                   fontSize: '0.88rem',
-                                  fontFamily: 'var(--font-body)',
+                                  fontFamily: 'Outfit, sans-serif',
                                 }}
                               />
                             </div>
                             <button
                               type="button"
-                              className="github-scan-btn"
                               onClick={fetchUserRepos}
                               disabled={loadingRepos}
-                              style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: 'none',
+                                borderRadius: '100px',
+                                color: '#fff',
+                                padding: '10px 18px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                fontFamily: 'Outfit, sans-serif',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                whiteSpace: 'nowrap',
+                              }}
                             >
                               <IconRefresh size={14} className={loadingRepos ? 'spin-icon' : ''} />
                               <span>{loadingRepos ? 'Loading...' : 'Refresh'}</span>
@@ -1428,7 +1563,7 @@ function renderFormattedMessage(text) {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                                       {repo.language && (
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--bronze-highlight, #f4d1a6)', display: 'inline-block' }}></span>
+                                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.6)', display: 'inline-block' }}></span>
                                           {repo.language}
                                         </span>
                                       )}
@@ -1444,19 +1579,47 @@ function renderFormattedMessage(text) {
                           )}
 
                           {/* Manual URL fallback */}
-                          <div style={{ marginTop: '18px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '10px' }}>
+                          <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '18px' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', display: 'block', marginBottom: '10px' }}>
                               Or paste a repository URL manually
                             </span>
-                            <form onSubmit={handleScanGithubRepo} className="github-url-form">
+                            <form onSubmit={handleScanGithubRepo} className="github-url-form" style={{ display: 'flex', gap: '10px' }}>
                               <input
                                 type="text"
                                 className="github-input"
-                                placeholder="https://github.com/owner/repo"
                                 value={githubUrl}
                                 onChange={(e) => setGithubUrl(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  background: 'rgba(255, 255, 255, 0.03)',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  padding: '10px 14px',
+                                  color: '#fff',
+                                  fontFamily: 'Outfit, sans-serif',
+                                  fontSize: '0.86rem',
+                                  outline: 'none',
+                                }}
                               />
-                              <button type="submit" className="github-scan-btn" disabled={scanningGithub}>
+                              <button
+                                type="submit"
+                                disabled={scanningGithub}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.06)',
+                                  border: 'none',
+                                  borderRadius: '100px',
+                                  color: '#fff',
+                                  padding: '10px 20px',
+                                  fontSize: '0.82rem',
+                                  fontWeight: 600,
+                                  fontFamily: 'Outfit, sans-serif',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
                                 {scanningGithub ? <IconLoader size={16} /> : <IconGithub size={16} />}
                                 <span>{scanningGithub ? 'Scanning...' : 'Scan'}</span>
                               </button>
@@ -1467,15 +1630,43 @@ function renderFormattedMessage(text) {
 
                       {/* ── Non-GitHub users: original URL paste flow ── */}
                       {!isGithubUser && !githubScanResult && (
-                        <form onSubmit={handleScanGithubRepo} className="github-url-form">
+                        <form onSubmit={handleScanGithubRepo} className="github-url-form" style={{ display: 'flex', gap: '10px' }}>
                           <input
                             type="text"
                             className="github-input"
-                            placeholder="Paste GitHub Repository URL (e.g. https://github.com/owner/repo)"
                             value={githubUrl}
                             onChange={(e) => setGithubUrl(e.target.value)}
+                            style={{
+                              flex: 1,
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              border: 'none',
+                              borderRadius: '12px',
+                              padding: '10px 14px',
+                              color: '#fff',
+                              fontFamily: 'Outfit, sans-serif',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                            }}
                           />
-                          <button type="submit" className="github-scan-btn" disabled={scanningGithub}>
+                          <button
+                            type="submit"
+                            disabled={scanningGithub}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              border: 'none',
+                              borderRadius: '100px',
+                              color: '#fff',
+                              padding: '10px 20px',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              fontFamily: 'Outfit, sans-serif',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {scanningGithub ? <IconLoader size={16} /> : <IconGithub size={16} />}
                             <span>{scanningGithub ? 'Scanning Tree...' : 'Scan Repository'}</span>
                           </button>
@@ -1486,20 +1677,20 @@ function renderFormattedMessage(text) {
                       {scanningGithub && (
                         <div className="spinner-container" style={{ minHeight: '120px', marginTop: '16px' }}>
                           <div className="dashboard-spinner"></div>
-                          <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>Scanning repository tree...</span>
+                          <span style={{ fontSize: '0.86rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif' }}>Scanning repository tree...</span>
                         </div>
                       )}
 
                       {githubError && (
-                        <div className="upload-error" style={{ marginTop: '14px' }}>
+                        <div className="upload-error" style={{ marginTop: '14px', background: 'rgba(239, 68, 68, 0.12)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#f87171', fontFamily: 'Outfit, sans-serif' }}>
                           <IconAlertCircle size={16} />
                           <span>{githubError}</span>
                         </div>
                       )}
 
-                      {/* ── Step 2: Detected Files Tree Selector (unchanged) ── */}
+                      {/* ── Step 2: Detected Files Tree Selector ── */}
                       {githubScanResult && (
-                        <div className="github-tree-container">
+                        <div className="github-tree-container" style={{ background: 'transparent', border: 'none', padding: 0 }}>
                           {/* Back to repo list button for GitHub users */}
                           {isGithubUser && (
                             <button
@@ -1510,61 +1701,67 @@ function renderFormattedMessage(text) {
                                 gap: '6px',
                                 background: 'transparent',
                                 border: 'none',
-                                color: 'var(--text-secondary)',
+                                color: 'rgba(255, 255, 255, 0.45)',
                                 cursor: 'pointer',
-                                fontSize: '0.82rem',
-                                padding: '0 0 12px 0',
+                                fontFamily: 'Outfit, sans-serif',
+                                fontSize: '0.78rem',
+                                fontWeight: 500,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                padding: '0 0 16px 0',
                                 transition: 'color 0.2s ease',
                               }}
                               onClick={() => { setGithubScanResult(null); setGithubUrl(''); }}
                               onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)')}
                             >
                               <IconArrowLeft size={13} />
                               <span>Back to repositories</span>
                             </button>
                           )}
 
-                          <div className="github-tree-header">
+                          <div className="github-tree-header" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '14px', marginBottom: '14px' }}>
                             <div>
-                              <span className="github-tree-title">
+                              <span className="github-tree-title" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>
                                 {githubScanResult.owner}/{githubScanResult.repo} ({githubScanResult.branch} @ {githubScanResult.commit_sha})
                               </span>
-                              <span className="doc-meta">Detected {githubScanResult.total_detected} supported files</span>
+                              <span className="doc-meta" style={{ fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.78rem', marginLeft: '10px' }}>
+                                Detected {githubScanResult.total_detected} supported files
+                              </span>
                             </div>
-                            <div className="github-tree-actions">
+                            <div className="github-tree-actions" style={{ display: 'flex', gap: '8px' }}>
                               <button
                                 type="button"
-                                className="github-text-btn"
                                 onClick={() => {
                                   if (githubScanResult) {
                                     const mdOnly = githubScanResult.files.filter(f => f.extension === 'md' || f.path.toLowerCase().endsWith('.md')).map(f => f.path);
                                     setSelectedGithubFiles(mdOnly);
                                   }
                                 }}
+                                style={{ background: 'transparent', border: 'none', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Select .md Only
                               </button>
-                              <span style={{ color: '#475569' }}>|</span>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.15)' }}>|</span>
                               <button
                                 type="button"
-                                className="github-text-btn"
                                 onClick={() => handleSelectAllGithubFiles(true)}
+                                style={{ background: 'transparent', border: 'none', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Select All
                               </button>
-                              <span style={{ color: '#475569' }}>|</span>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.15)' }}>|</span>
                               <button
                                 type="button"
-                                className="github-text-btn"
                                 onClick={() => handleSelectAllGithubFiles(false)}
+                                style={{ background: 'transparent', border: 'none', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Clear All
                               </button>
                             </div>
                           </div>
 
-                          <div className="github-file-list">
+                          <div className="github-file-list" style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '14px', padding: '8px', border: 'none', maxHeight: '340px', overflowY: 'auto' }}>
                             {githubScanResult.files.map((file) => {
                               const isChecked = selectedGithubFiles.includes(file.path)
                               return (
@@ -1572,8 +1769,9 @@ function renderFormattedMessage(text) {
                                   key={file.path}
                                   className="github-file-row"
                                   onClick={() => handleToggleGithubFile(file.path)}
+                                  style={{ background: isChecked ? 'rgba(255, 255, 255, 0.04)' : 'transparent', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer' }}
                                 >
-                                  <div className="github-file-left">
+                                  <div className="github-file-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <input
                                       type="checkbox"
                                       className="github-checkbox"
@@ -1581,13 +1779,13 @@ function renderFormattedMessage(text) {
                                       onChange={() => handleToggleGithubFile(file.path)}
                                       onClick={(e) => e.stopPropagation()}
                                     />
-                                    <span className="github-file-path">{file.path}</span>
+                                    <span className="github-file-path" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.84rem', color: '#fff' }}>{file.path}</span>
                                   </div>
-                                  <div className="github-file-right">
-                                    <span className={`github-ext-badge ${file.extension}`}>
+                                  <div className="github-file-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{ fontSize: '0.70rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', textTransform: 'uppercase' }}>
                                       {file.extension}
                                     </span>
-                                    <span className="github-file-size">
+                                    <span style={{ fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>
                                       {formatBytes(file.size_bytes)}
                                     </span>
                                   </div>
@@ -1596,13 +1794,26 @@ function renderFormattedMessage(text) {
                             })}
                           </div>
 
-                          <div className="github-import-footer">
+                          <div className="github-import-footer" style={{ marginTop: '18px' }}>
                             <button
                               type="button"
-                              className="btn-create-org"
                               disabled={importingGithub || selectedGithubFiles.length === 0}
                               onClick={handleImportGithubFiles}
-                              style={{ width: 'auto', padding: '10px 24px' }}
+                              style={{
+                                width: 'auto',
+                                background: 'rgba(255, 255, 255, 0.88)',
+                                color: '#000',
+                                border: 'none',
+                                borderRadius: '100px',
+                                padding: '12px 24px',
+                                fontSize: '0.84rem',
+                                fontWeight: 600,
+                                fontFamily: 'Outfit, sans-serif',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                              }}
                             >
                               {importingGithub ? <IconLoader size={16} /> : <IconDatabase size={16} />}
                               <span>
@@ -1619,38 +1830,46 @@ function renderFormattedMessage(text) {
 
                   {/* Document List */}
                   <div className="doc-list-container" style={{ marginTop: '32px' }}>
-                    <h3 className="subsection-title">Indexed Documents & Repositories ({documents.length})</h3>
+                    <h3 className="subsection-title" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
+                      Indexed Documents & Repositories ({documents.length})
+                    </h3>
 
                     {loadingDocs ? (
                       <div className="spinner-container">
                         <div className="dashboard-spinner"></div>
                       </div>
                     ) : documents.length === 0 ? (
-                      <div className="empty-state" style={{ minHeight: '180px' }}>
-                        <IconFile size={24} />
-                        <p style={{ fontSize: '0.85rem' }}>No documents or repositories indexed yet. Upload a file or connect GitHub above.</p>
+                      <div className="empty-state" style={{ minHeight: '160px', background: 'transparent', textAlign: 'center', padding: '30px 0' }}>
+                        <IconFile size={24} style={{ color: 'rgba(255, 255, 255, 0.3)', marginBottom: '8px' }} />
+                        <p style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>No documents or repositories indexed yet. Upload a file or connect GitHub above.</p>
                       </div>
                     ) : (
-                      <div className="doc-table">
+                      <div className="doc-table" style={{ display: 'flex', flexDirection: 'column' }}>
                         {documents.map((doc) => (
-                          <div key={doc.id} className="doc-row">
-                            <div className="doc-info">
-                              {doc.file_type === 'github' ? <IconGithub size={18} /> : <IconFile size={18} />}
+                          <div key={doc.id} className="doc-row" style={{
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                            padding: '14px 0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}>
+                            <div className="doc-info" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                              {doc.file_type === 'github' ? <IconGithub size={18} style={{ color: '#fff' }} /> : <IconFile size={18} style={{ color: '#fff' }} />}
                               <div>
-                                <span className="doc-name">{doc.file_name}</span>
-                                <span className="doc-meta">
+                                <span className="doc-name" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '0.88rem', color: '#fff', display: 'block' }}>{doc.file_name}</span>
+                                <span className="doc-meta" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)' }}>
                                   {doc.file_size_bytes > 0 ? formatBytes(doc.file_size_bytes) + ' • ' : ''}
                                   {doc.chunk_count || 0} chunks • {formatDate(doc.created_at)}
                                 </span>
                                 {doc.status === 'failed' && doc.error_message && (
-                                  <span style={{ color: '#fca5a5', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                                  <span style={{ color: '#fca5a5', fontSize: '0.75rem', fontFamily: 'Outfit, sans-serif', display: 'block', marginTop: '4px' }}>
                                     Error: {doc.error_message}
                                   </span>
                                 )}
                               </div>
                             </div>
 
-                            <div className="doc-actions">
+                            <div className="doc-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               {/* Sync Now Button for GitHub repos */}
                               {doc.file_type === 'github' && (
                                 <button
@@ -1658,6 +1877,20 @@ function renderFormattedMessage(text) {
                                   disabled={syncingRepoUrl === doc.storage_path}
                                   onClick={() => handleSyncGithubRepo(doc.storage_path)}
                                   title="Check latest GitHub commit & re-index"
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    border: 'none',
+                                    borderRadius: '100px',
+                                    color: '#fff',
+                                    padding: '6px 14px',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 600,
+                                    fontFamily: 'Outfit, sans-serif',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                  }}
                                 >
                                   <IconRefresh size={12} className={syncingRepoUrl === doc.storage_path ? 'spin-icon' : ''} />
                                   <span>{syncingRepoUrl === doc.storage_path ? 'Syncing...' : 'Sync Now'}</span>
@@ -1665,7 +1898,18 @@ function renderFormattedMessage(text) {
                               )}
 
                               {/* Status Badge */}
-                              <span className={`doc-status-badge ${doc.status}`}>
+                              <span className={`doc-status-badge ${doc.status}`} style={{
+                                fontSize: '0.72rem',
+                                fontFamily: 'Outfit, sans-serif',
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                borderRadius: '100px',
+                                background: doc.status === 'completed' ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+                                color: doc.status === 'completed' ? '#4ade80' : '#fff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}>
                                 {doc.status === 'processing' || doc.status === 'pending' ? (
                                   <>
                                     <IconLoader size={12} />
@@ -1684,7 +1928,21 @@ function renderFormattedMessage(text) {
                                 )}
                               </span>
 
-                              <button className="btn-delete-card" onClick={() => handleDeleteDoc(doc.id)}>
+                              <button
+                                className="btn-delete-card"
+                                onClick={() => handleDeleteDoc(doc.id)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'rgba(239, 68, 68, 0.7)',
+                                  cursor: 'pointer',
+                                  padding: '6px',
+                                  borderRadius: '6px',
+                                  transition: 'color 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = '#f87171')}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(239, 68, 68, 0.7)')}
+                              >
                                 <IconTrash size={14} />
                               </button>
                             </div>
@@ -1701,83 +1959,113 @@ function renderFormattedMessage(text) {
               {activeSection === 'knowledge-base' && (
                 <motion.div
                   key="knowledge-base"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="project-section"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
-                      <h2 className="section-title" style={{ margin: 0 }}>Knowledge Base & Vector Index</h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '4px', margin: 0 }}>
-                        Real-time vector search across document embeddings using HNSW cosine similarity.
-                      </p>
+                      <h2 className="section-title" style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Knowledge Base & Vector Index</h2>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.03)', padding: '6px 12px', borderRadius: '6px' }}>
+                      <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', background: 'rgba(255, 255, 255, 0.03)', padding: '6px 14px', borderRadius: '100px' }}>
                         Min Score: <strong style={{ color: '#fff' }}>0.20</strong>
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--bronze-highlight)', background: 'rgba(182, 122, 70, 0.12)', padding: '6px 12px', borderRadius: '6px', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: '#fff', background: 'rgba(255, 255, 255, 0.06)', padding: '6px 14px', borderRadius: '100px', fontWeight: 600 }}>
                         Top-K: {topK}
                       </span>
                     </div>
                   </div>
 
-                  {/* Vector Stats KPI Bar */}
-                  <div className="kb-stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px 18px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>Vector Index Chunks</span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-display)' }}>
-                        {documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)}
-                      </span>
+                  {/* Vector Stats KPI Bar - Minimal Horizontal Telemetry Bar */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '36px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                    paddingBottom: '24px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        VECTOR INDEX CHUNKS
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        {documents.reduce((acc, d) => acc + (d.chunk_count || 0), 0)} EMBEDDINGS
+                      </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px 18px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>Embedding Model</span>
-                      <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', fontFamily: 'monospace' }}>
-                        all-MiniLM-L6-v2
-                      </span>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        EMBEDDING MODEL
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        ALL-MINILM-L6-V2 (384D)
+                      </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px 18px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>Distance Metric</span>
-                      <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff' }}>
-                        Cosine Similarity
-                      </span>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        DISTANCE METRIC
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        COSINE SIMILARITY
+                      </div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px 18px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>Index Health</span>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }}></span>
-                        HNSW Ready
-                      </span>
+                    <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+                        INDEX HEALTH
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        HNSW READY
+                      </div>
                     </div>
                   </div>
 
                   {/* Search Bar Container */}
-                  <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255, 255, 255, 0.025)', borderRadius: '8px', padding: '8px 12px 8px 16px', marginBottom: '14px' }}>
-                    <IconSearch size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                  <form onSubmit={handleSearch} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: 'rgba(255, 255, 255, 0.035)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    borderRadius: '16px',
+                    padding: '8px 12px 8px 16px',
+                    marginBottom: '14px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
+                  }}>
+                    <IconSearch size={18} style={{ color: 'rgba(255, 255, 255, 0.45)', flexShrink: 0 }} />
                     <input
                       type="text"
                       className="search-input"
-                      placeholder="Enter natural language query or technical keyword to search embeddings..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.88rem', outline: 'none', flex: 1 }}
+                      style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif', outline: 'none', flex: 1 }}
                     />
                     <button
                       type="submit"
                       disabled={searching || !searchQuery.trim()}
                       style={{
-                        background: searching || !searchQuery.trim() ? 'rgba(255, 255, 255, 0.06)' : 'var(--bronze-base)',
-                        color: '#fff',
+                        background: searching || !searchQuery.trim() ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.88)',
+                        color: searching || !searchQuery.trim() ? 'rgba(255, 255, 255, 0.3)' : '#000',
                         border: 'none',
-                        borderRadius: '6px',
-                        padding: '10px 18px',
-                        fontSize: '0.84rem',
+                        borderRadius: '100px',
+                        padding: '10px 20px',
+                        fontSize: '0.82rem',
                         fontWeight: 600,
+                        fontFamily: 'Outfit, sans-serif',
                         cursor: searching || !searchQuery.trim() ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1792,7 +2080,7 @@ function renderFormattedMessage(text) {
 
                   {/* Sample Query Chips */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '28px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Sample queries:</span>
+                    <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>Sample queries:</span>
                     {['authentication API', 'vector database pipeline', 'error handling logic'].map((chip, idx) => (
                       <button
                         key={idx}
@@ -1801,17 +2089,16 @@ function renderFormattedMessage(text) {
                           setSearchQuery(chip)
                         }}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
+                          background: 'rgba(255, 255, 255, 0.035)',
                           border: 'none',
-                          color: 'var(--text-secondary)',
-                          padding: '4px 10px',
-                          borderRadius: '12px',
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          fontFamily: 'Outfit, sans-serif',
+                          padding: '4px 12px',
+                          borderRadius: '100px',
                           fontSize: '0.74rem',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
                       >
                         {chip}
                       </button>
@@ -1822,40 +2109,46 @@ function renderFormattedMessage(text) {
                   {hasSearched && (
                     <div className="search-results-container">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <h3 className="subsection-title" style={{ margin: 0 }}>
+                        <h3 className="subsection-title" style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
                           Search Results {searchResults.length > 0 && `(${searchResults.length} chunks)`}
                         </h3>
                         {searchResults.length > 0 && (
-                          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ fontSize: '0.76rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>
                             Ranked by Cosine Similarity
                           </span>
                         )}
                       </div>
 
                       {searching ? (
-                        <div className="spinner-container" style={{ minHeight: '140px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px' }}>
+                        <div className="spinner-container" style={{ minHeight: '140px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px' }}>
                           <div className="dashboard-spinner"></div>
-                          <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>Scanning HNSW vector index...</span>
+                          <span style={{ fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>Scanning HNSW vector index...</span>
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <div className="empty-state" style={{ minHeight: '160px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px' }}>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No vector matches found above threshold.</p>
+                        <div className="empty-state" style={{ minHeight: '160px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px' }}>
+                          <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem' }}>No vector matches found above threshold.</p>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
                           {searchResults.map((res, i) => (
-                            <div key={res.chunk_id || i} style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div key={res.chunk_id || i} style={{
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                              padding: '16px 0',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '10px',
+                            }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem' }}>
-                                  <IconFile size={14} style={{ color: 'var(--bronze-highlight)' }} />
-                                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{res.document_name || 'Document'}</span>
-                                  <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.76rem' }}>Chunk #{res.chunk_index}</span>
+                                  <IconFile size={14} style={{ color: '#fff' }} />
+                                  <span style={{ fontWeight: 600, color: '#ffffff', fontFamily: 'Outfit, sans-serif' }}>{res.document_name || 'Document'}</span>
+                                  <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.76rem' }}>Chunk #{res.chunk_index}</span>
                                 </div>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'monospace', color: '#4ade80', background: 'rgba(34, 197, 94, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif', color: '#4ade80', background: 'rgba(34, 197, 94, 0.12)', padding: '3px 10px', borderRadius: '100px' }}>
                                   {Math.round((res.similarity || 0) * 100)}% Match
                                 </span>
                               </div>
-                              <p style={{ fontSize: '0.86rem', color: '#e2e8f0', lineHeight: 1.6, background: 'rgba(0, 0, 0, 0.3)', borderRadius: '6px', padding: '12px 14px', margin: 0, fontFamily: 'var(--font-sans)', borderLeft: '2px solid var(--bronze-base)' }}>
+                              <p style={{ fontSize: '0.86rem', color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.6, margin: 0, fontFamily: 'Outfit, sans-serif' }}>
                                 {res.content}
                               </p>
                             </div>
@@ -1871,261 +2164,317 @@ function renderFormattedMessage(text) {
               {activeSection === 'rag-chat' && (
                 <motion.div
                   key="rag-chat"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  style={{ maxWidth: '940px', width: '100%', margin: '0 auto' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  style={{ maxWidth: '980px', width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                 >
-                  {/* Consolidated RAG Playground Container */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', overflow: 'hidden' }}>
-                    {/* Integrated Console Header Toolbar */}
-                    <div style={{
-                      padding: '12px 18px',
-                      background: 'rgba(255, 255, 255, 0.025)',
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '12px'
-                    }}>
-                      {/* Left Status Indicator */}
+                  {/* Consolidated RAG Playground Container - Minimalist Layout */}
+                  <div className="rag-playground-card" style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    height: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '0',
+                    padding: '0',
+                  }}>
+                    {/* Integrated Console Header Toolbar at TOP */}
+                    <div className="rag-header-toolbar" style={{ padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderBottom: '1px solid rgba(255, 255, 255, 0.04)', background: 'transparent' }}>
+                      {/* Integrated Telemetry & Clear Controls */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px rgba(74, 222, 128, 0.6)' }}></span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'monospace' }}>
-                          RAG Playground
-                        </span>
-                      </div>
-
-                      {/* Integrated Control Pills */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        {/* Provider Selector */}
-                        <select
-                          value={ragProvider}
-                          onChange={(e) => setRagProvider(e.target.value)}
+                        {/* TPM Telemetry Badge Pill */}
+                        <div
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
-                        >
-                          <option value="groq" style={{ background: '#121217' }}>Groq (Llama 3.3 70B)</option>
-                          <option value="openai" style={{ background: '#121217' }}>OpenAI (GPT-4o)</option>
-                          <option value="claude" style={{ background: '#121217' }}>Anthropic (Claude 3.5)</option>
-                          <option value="local" style={{ background: '#121217' }}>Local DeepSeek R1</option>
-                        </select>
-
-                        {/* BYOK Key Toggle Pill */}
-                        <button
-                          type="button"
-                          onClick={() => setShowByokModal(!showByokModal)}
-                          style={{
-                            background: byokKey.trim() ? 'rgba(182, 122, 70, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                            color: byokKey.trim() ? 'var(--bronze-highlight)' : 'var(--text-secondary)',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
+                            borderRadius: '100px',
+                            padding: '5px 12px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            transition: 'all 0.2s ease',
+                            gap: '8px',
+                            fontSize: '0.76rem',
+                            fontWeight: 600,
+                            color: tpmTokens >= 6000 ? '#f87171' : 'rgba(255, 255, 255, 0.45)',
+                            fontFamily: 'Outfit, sans-serif'
                           }}
-                          title="Manage custom API Keys (BYOK)"
+                          title="Rolling 1-minute token usage limit"
                         >
-                          <IconKey size={13} />
-                          <span>{byokKey.trim() ? 'BYOK Active' : 'BYOK Key'}</span>
-                        </button>
+                          <span>{byokKey.trim() ? 'Unmetered' : (ragProvider === 'gemini' ? '1M TPM' : `${tpmTokens.toLocaleString()} / 6k TPM`)}</span>
+                          
+                          {/* Modern Visual Progress Meter Line */}
+                          {!byokKey.trim() && ragProvider !== 'gemini' && (
+                            <div style={{
+                              width: '54px',
+                              height: '4px',
+                              borderRadius: '2px',
+                              background: 'rgba(0, 0, 0, 0.7)',
+                              overflow: 'hidden',
+                              marginLeft: '4px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}>
+                              <div style={{
+                                height: '100%',
+                                width: `${Math.min(100, Math.max(3, (tpmTokens / 6000) * 100))}%`,
+                                background: tpmTokens >= 6000 
+                                  ? '#f87171' 
+                                  : '#ffffff',
+                                borderRadius: '2px',
+                                transition: 'width 0.4s ease, background 0.3s ease'
+                              }} />
+                            </div>
+                          )}
+                        </div>
 
-                        {/* Context Depth Selector Pill */}
-                        <select
-                          value={topK}
-                          onChange={(e) => setTopK(Number(e.target.value))}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            color: 'var(--text-secondary)',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
-                          title="Context depth for retrieval (Top-K)"
-                        >
-                          <option value={2} style={{ background: '#121217' }}>Concise (K=2)</option>
-                          <option value={4} style={{ background: '#121217' }}>Balanced (K=4)</option>
-                          <option value={6} style={{ background: '#121217' }}>Deep (K=6)</option>
-                        </select>
-
-                        {/* Clear Chat Button Pill */}
+                        {/* Clear Chat Cross Icon Pill */}
                         {ragMessages.length > 0 && (
                           <button
                             type="button"
                             onClick={handleClearChat}
                             style={{
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              color: '#fca5a5',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              color: 'rgba(255, 255, 255, 0.45)',
                               border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '0.78rem',
-                              fontWeight: 500,
+                              borderRadius: '100px',
+                              padding: '5px 8px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '5px',
+                              justifyContent: 'center',
                               transition: 'all 0.2s ease',
                             }}
-                            title="Reset conversation"
+                            title="Clear conversation"
                           >
-                            <IconTrash size={13} />
-                            <span>Clear</span>
+                            <IconX size={14} />
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Chat Messages Console */}
-                    <div className="rag-chat-container" style={{ height: '500px', background: 'transparent' }}>
-                      <div className="rag-messages-scroll" ref={chatScrollRef}>
+                    <div className="rag-chat-col" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                      {/* Messages Scroll Area */}
+                      <div className="rag-messages-scroll" ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
                         {ragMessages.length === 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '18px', padding: '40px 20px' }}>
-                            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(182, 122, 70, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bronze-highlight)' }}>
-                              <IconCpu size={28} />
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '20px', padding: '40px 20px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                              <IconCpu size={24} />
                             </div>
                             <div style={{ maxWidth: '460px' }}>
-                              <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>RAG Grounding Console</h4>
-                              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
+                              <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '1.05rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.01em' }}>Grounding Assistant</h4>
+                              <p style={{ fontSize: '0.84rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginTop: '6px', margin: 0, lineHeight: 1.55 }}>
                                 Query your knowledge base to receive verified answers grounded directly in uploaded PDF documents and GitHub repositories.
                               </p>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', width: '100%', maxWidth: '580px', marginTop: '8px' }}>
+                            <div className="rag-prompts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', width: '100%', maxWidth: '620px', marginTop: '8px' }}>
                               {[
-                                { title: '⚡ System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
-                                { title: '🔍 Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
-                                { title: '🛡️ Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
-                                { title: '📊 RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
+                                { title: 'System Architecture', prompt: 'Summarize the indexed system architecture and dependencies.' },
+                                { title: 'Vector Search Parameters', prompt: 'What cosine similarity threshold and Top-K settings are active?' },
+                                { title: 'Auth & Security Pipeline', prompt: 'Explain the authentication, token expiration, and API key design.' },
+                                { title: 'RAG Performance Metrics', prompt: 'What is the average retrieval latency and token efficiency?' }
                               ].map((chip, i) => (
                                 <button
                                   key={i}
-                                  onClick={() => setRagInput(chip.prompt)}
+                                  onClick={() => {
+                                    if (!isGenerating && !isChatLocked) {
+                                      setRagInput(chip.prompt)
+                                      setTimeout(() => ragInputRef.current?.focus(), 20)
+                                    }
+                                  }}
+                                  disabled={isGenerating || isChatLocked}
                                   style={{
-                                    background: 'rgba(255, 255, 255, 0.03)',
-                                    border: 'none',
-                                    color: '#fff',
-                                    padding: '12px 14px',
-                                    borderRadius: '8px',
+                                    background: 'rgba(255, 255, 255, 0.02)',
+                                    border: '1px solid rgba(255, 255, 255, 0.04)',
+                                    color: isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.3)' : '#fff',
+                                    padding: '14px 16px',
+                                    borderRadius: '12px',
                                     fontSize: '0.78rem',
+                                    fontFamily: 'Outfit, sans-serif',
                                     textAlign: 'left',
-                                    cursor: 'pointer',
+                                    cursor: isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
+                                    opacity: isGenerating || isChatLocked ? 0.6 : 1,
                                     transition: 'all 0.2s ease',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '4px',
                                   }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(182, 122, 70, 0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.transform = 'translateY(0)' }}
+                                  onMouseEnter={(e) => {
+                                    if (!isGenerating && !isChatLocked) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isGenerating && !isChatLocked) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'
+                                  }}
                                 >
-                                  <span style={{ fontWeight: 600, color: 'var(--bronze-highlight)', fontSize: '0.80rem' }}>{chip.title}</span>
-                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.4 }}>{chip.prompt}</span>
+                                  <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif' }}>{chip.title}</span>
+                                  <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.76rem', lineHeight: 1.4, fontFamily: 'Outfit, sans-serif' }}>{chip.prompt}</span>
                                 </button>
                               ))}
                             </div>
                           </div>
                         ) : (
                           ragMessages.map((msg, idx) => (
-                            <div key={idx} className={`rag-message-wrapper ${msg.role}`}>
-                              <div className="rag-message-avatar">
-                                {msg.role === 'assistant' ? <IconCpu size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>YOU</span>}
-                              </div>
-
-                              <div className="rag-message-bubble" style={{ position: 'relative' }}>
-                                <div className="rag-message-content">
-                                  {renderFormattedMessage(msg.content)}
-                                  {msg.typing && <span className="typing-cursor">▌</span>}
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                gap: '12px',
+                                marginBottom: '16px',
+                                flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                                alignItems: 'flex-start'
+                              }}
+                            >
+                              {msg.role === 'user' && (
+                                <div style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '50%',
+                                  background: 'rgba(255, 255, 255, 0.12)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#fff',
+                                  flexShrink: 0,
+                                }}>
+                                  <IconUser size={14} />
                                 </div>
+                              )}
+
+                              <div style={{
+                                maxWidth: msg.role === 'user' ? '75%' : '80%',
+                                background: msg.role === 'user' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)',
+                                padding: '12px 16px',
+                                borderRadius: msg.role === 'user' ? '14px 14px 2px 14px' : '2px 14px 14px 14px',
+                                color: '#fff',
+                                fontSize: '0.88rem',
+                                lineHeight: '1.55',
+                                fontFamily: 'Outfit, sans-serif'
+                              }}>
+                                {msg.role === 'assistant' && !msg.content ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 4px' }}>
+                                    <span className="dot-typing"></span>
+                                    <span className="dot-typing"></span>
+                                    <span className="dot-typing"></span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {renderFormattedMessage(msg.content)}
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))
                         )}
 
                         {ragLoading && (
-                          <div className="rag-message-wrapper assistant">
-                            <div className="rag-message-avatar">
-                              <IconCpu size={16} />
-                            </div>
-                            <div className="rag-message-bubble loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 18px' }}>
-                              <IconLoader size={14} className="spin" style={{ color: 'var(--bronze-highlight)' }} />
-                              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                Retrieving vector chunks & generating answer...
-                              </span>
+                          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '12px 16px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.04)',
+                              borderRadius: '2px 14px 14px 14px'
+                            }}>
+                              <span className="dot-typing"></span>
+                              <span className="dot-typing"></span>
+                              <span className="dot-typing"></span>
                             </div>
                           </div>
                         )}
+                        {/* Auto-scroll anchor target */}
+                        <div ref={messagesEndRef} style={{ float: 'left', clear: 'both', height: '1px', width: '100%' }} />
                       </div>
 
-                      {/* Chat Input Console Bar */}
+                      {/* Locked Banner Notification */}
+                      {isChatLocked && (
+                        <div style={{
+                          padding: '12px 20px',
+                          background: 'rgba(239, 68, 68, 0.10)',
+                          borderTop: '1px solid rgba(239, 68, 68, 0.15)',
+                          color: '#fca5a5',
+                          fontSize: '0.78rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontFamily: 'Outfit, sans-serif'
+                        }}>
+                          <IconLock size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+                          <span><strong>Chat Locked:</strong> Token limit reached. Switch provider, add a BYOK key, or contact your admin to continue.</span>
+                        </div>
+                      )}
+
+                      {/* Chat Input Console Form */}
                       <form
                         className="rag-input-form"
                         onSubmit={handleSendRagQuery}
-                        style={{ padding: '14px 18px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', gap: '12px' }}
+                        style={{
+                          padding: '16px 20px',
+                          background: 'rgba(255, 255, 255, 0.01)',
+                          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}
                       >
                         <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                          <div style={{ position: 'absolute', left: '14px', display: 'flex', alignItems: 'center', pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))' }}>
-                            <IconTwinkle size={18} />
+                          <div style={{ position: 'absolute', left: '16px', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: isChatLocked ? '#f87171' : 'rgba(255, 255, 255, 0.45)' }}>
+                            {isChatLocked ? <IconLock size={18} /> : <IconTwinkle size={18} />}
                           </div>
                           <input
+                            ref={ragInputRef}
+                            autoFocus
                             type="text"
                             className="rag-chat-input"
-                            placeholder="Ask a question grounded in your documents..."
                             value={ragInput}
                             onChange={(e) => setRagInput(e.target.value)}
-                            disabled={ragLoading}
+                            disabled={isGenerating || isChatLocked}
                             style={{
                               width: '100%',
-                              borderRadius: '6px',
+                              borderRadius: '100px',
                               background: 'rgba(255, 255, 255, 0.04)',
-                              border: 'none',
-                              padding: '12px 16px 12px 42px',
-                              color: '#fff',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              padding: '12px 20px 12px 46px',
+                              color: isChatLocked ? '#f87171' : '#fff',
                               fontSize: '0.88rem',
+                              fontFamily: 'Outfit, sans-serif',
                               outline: 'none',
+                              cursor: (isGenerating || isChatLocked) ? 'not-allowed' : 'text',
+                              opacity: (isGenerating || isChatLocked) ? 0.7 : 1,
                             }}
                           />
                         </div>
                         <button
                           type="submit"
                           className="rag-send-btn"
-                          disabled={!ragInput.trim() || ragLoading}
+                          disabled={!ragInput.trim() || isGenerating || isChatLocked}
                           style={{
-                            background: !ragInput.trim() || ragLoading ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
-                            color: !ragInput.trim() || ragLoading ? 'var(--text-secondary)' : '#000000',
-                            borderRadius: '6px',
-                            padding: '0 18px',
-                            height: '42px',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: !ragInput.trim() || isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                            color: !ragInput.trim() || isGenerating || isChatLocked ? 'rgba(255, 255, 255, 0.3)' : '#000000',
+                            padding: 0,
                             border: 'none',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            cursor: !ragInput.trim() || ragLoading ? 'not-allowed' : 'pointer',
+                            justifyContent: 'center',
+                            cursor: !ragInput.trim() || isGenerating || isChatLocked ? 'not-allowed' : 'pointer',
                             transition: 'all 0.2s ease',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            fontFamily: 'var(--font-sans)',
+                            flexShrink: 0,
                           }}
+                          title={isGenerating ? "Generating response..." : isChatLocked ? "Chat Locked" : "Send Query"}
                         >
-                          {ragLoading ? <IconLoader size={16} /> : <IconSend size={16} style={{ color: !ragInput.trim() || ragLoading ? 'var(--text-secondary)' : '#000000' }} />}
-                          <span>Ask</span>
+                          {isGenerating ? (
+                            <IconLoader size={18} className="spin" style={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+                          ) : isChatLocked ? (
+                            <IconLock size={18} style={{ color: '#f87171' }} />
+                          ) : (
+                            <IconSend size={18} />
+                          )}
                         </button>
                       </form>
                     </div>
@@ -2137,17 +2486,15 @@ function renderFormattedMessage(text) {
               {activeSection === 'activity' && (
                 <motion.div
                   key="activity"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="project-section"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
                     <div>
-                      <h2 className="section-title" style={{ margin: 0 }}>System Activity & Audit Log</h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '4px', margin: 0 }}>
-                        Real-time audit telemetry for document ingestion, vector queries, and API authentication.
-                      </p>
+                      <h2 className="section-title" style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Audit Log</h2>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2156,13 +2503,14 @@ function renderFormattedMessage(text) {
                           key={filter}
                           onClick={() => setActivityFilter(filter)}
                           style={{
-                            background: activityFilter === filter ? 'var(--bronze-base)' : 'rgba(255, 255, 255, 0.03)',
-                            color: activityFilter === filter ? '#fff' : 'var(--text-secondary)',
+                            background: activityFilter === filter ? 'rgba(255, 255, 255, 0.88)' : 'rgba(255, 255, 255, 0.035)',
+                            color: activityFilter === filter ? '#000' : 'rgba(255, 255, 255, 0.6)',
                             border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
+                            borderRadius: '100px',
+                            padding: '6px 14px',
                             fontSize: '0.76rem',
                             fontWeight: 600,
+                            fontFamily: 'Outfit, sans-serif',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                           }}
@@ -2173,24 +2521,24 @@ function renderFormattedMessage(text) {
                     </div>
                   </div>
 
-                  {/* Activity Log Table */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '16px' }}>
+                  {/* Activity Log List - Flat Layout */}
+                  <div>
                     {loadingActivity ? (
-                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                      <div style={{ padding: '30px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.84rem' }}>
                         Loading real-time audit stream...
                       </div>
                     ) : activityLogs.length === 0 ? (
-                      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <IconActivity size={22} style={{ color: 'var(--bronze-highlight)' }} />
+                      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <IconActivity size={22} style={{ color: '#fff' }} />
                         </div>
-                        <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '0.96rem' }}>No Audit Events Recorded Yet</h4>
-                        <p style={{ fontSize: '0.82rem', margin: 0, maxWidth: '420px', lineHeight: 1.5 }}>
+                        <h4 style={{ color: '#fff', margin: 0, fontWeight: 600, fontSize: '0.96rem', fontFamily: 'Outfit, sans-serif' }}>No Audit Events Recorded Yet</h4>
+                        <p style={{ fontSize: '0.82rem', margin: 0, maxWidth: '420px', lineHeight: 1.5, fontFamily: 'Outfit, sans-serif' }}>
                           Audit logs will automatically populate in real-time as you execute RAG queries, ingest documents, or manage API keys.
                         </p>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {activityLogs
                           .filter(item => {
                             if (activityFilter === 'QUERIES') return item.event.includes('QUERY') || item.event.includes('SEARCH')
@@ -2202,30 +2550,29 @@ function renderFormattedMessage(text) {
                             <div
                               key={idx}
                               style={{
-                                background: 'rgba(255, 255, 255, 0.025)',
-                                borderRadius: '6px',
-                                padding: '12px 16px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                padding: '14px 18px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 gap: '12px',
                                 transition: 'all 0.2s ease',
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)')}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                <span style={{ fontSize: '0.70rem', fontFamily: 'monospace', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', color: '#fff', letterSpacing: '0.04em', fontWeight: 600 }}>
+                                <span style={{ fontSize: '0.70rem', fontFamily: 'Outfit, sans-serif', padding: '4px 10px', borderRadius: '100px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', letterSpacing: '0.04em', fontWeight: 600 }}>
                                   {item.event}
                                 </span>
-                                <span style={{ color: '#e2e8f0', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontFamily: 'Outfit, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {item.details}
                                 </span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '0.74rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{item.latency}</span>
-                                <span style={{ fontSize: '0.74rem', fontFamily: 'monospace', color: item.statusColor || '#4ade80', fontWeight: 600 }}>{item.status}</span>
-                                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{item.time}</span>
+                                <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>{item.latency}</span>
+                                <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: item.statusColor || '#4ade80', fontWeight: 600 }}>{item.status}</span>
+                                <span style={{ fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', color: 'rgba(255, 255, 255, 0.45)' }}>{item.time}</span>
                               </div>
                             </div>
                           ))}
@@ -2239,17 +2586,15 @@ function renderFormattedMessage(text) {
               {activeSection === 'api-keys' && (
                 <motion.div
                   key="api-keys"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="project-section"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
                     <div>
-                      <h2 className="section-title" style={{ margin: 0 }}>API Secret Keys</h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '4px', margin: 0 }}>
-                        Manage secret credentials to authenticate programmatic SDK and REST API access.
-                      </p>
+                      <h2 className="section-title" style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>API</h2>
                     </div>
                     <button
                       onClick={() => {
@@ -2257,23 +2602,22 @@ function renderFormattedMessage(text) {
                         setCopiedKey(false)
                         setShowKeyModal(true)
                       }}
+                      title="Create Secret Key"
                       style={{
-                        background: 'var(--bronze-base)',
+                        background: 'rgba(255, 255, 255, 0.88)',
                         border: 'none',
-                        color: '#fff',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
+                        color: '#000',
+                        borderRadius: '50%',
+                        width: '36px',
+                        height: '36px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        fontFamily: 'var(--font-sans)',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
                       }}
                     >
-                      <IconKey size={14} />
-                      <span>Create Secret Key</span>
+                      <IconPlus size={18} />
                     </button>
                   </div>
 
@@ -2284,36 +2628,43 @@ function renderFormattedMessage(text) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.035)',
+                          backdropFilter: 'blur(24px) saturate(180%)',
+                          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                          borderRadius: '20px',
+                          padding: '24px',
+                          marginBottom: '20px',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
+                        }}
                       >
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', margin: '0 0 6px 0' }}>Generate New API Key</h3>
-                        <p style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', margin: '0 0 6px 0' }}>Generate New API Key</h3>
+                        <p style={{ fontSize: '0.80rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', margin: '0 0 18px 0' }}>
                           Assign a descriptive name and scope environment for this credential.
                         </p>
 
                         {!generatedSecretKey ? (
-                          <form onSubmit={handleCreateApiKey} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          <form onSubmit={handleCreateApiKey} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                               <div style={{ flex: 1, minWidth: '220px' }}>
-                                <label style={{ display: 'block', fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Key Identifier / Name</label>
+                                <label style={{ display: 'block', fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px' }}>Key Identifier / Name</label>
                                 <input
                                   type="text"
-                                  placeholder="e.g. Production RAG Service"
                                   value={keyNameInput}
                                   onChange={(e) => setKeyNameInput(e.target.value)}
-                                  style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '6px', padding: '10px 14px', color: '#fff', fontSize: '0.86rem', outline: 'none' }}
+                                  style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', outline: 'none' }}
                                 />
                               </div>
 
-                              <div style={{ width: '140px' }}>
-                                <label style={{ display: 'block', fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Environment</label>
+                              <div style={{ width: '150px' }}>
+                                <label style={{ display: 'block', fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px' }}>Environment</label>
                                 <select
                                   value={keyEnvInput}
                                   onChange={(e) => setKeyEnvInput(e.target.value)}
-                                  style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '6px', padding: '10px 14px', color: '#fff', fontSize: '0.86rem', outline: 'none', cursor: 'pointer' }}
+                                  style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '12px', padding: '12px 16px', color: '#fff', fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', outline: 'none', cursor: 'pointer' }}
                                 >
-                                  <option value="live">Live (Prod)</option>
-                                  <option value="test">Test (Dev)</option>
+                                  <option value="live" style={{ background: '#121217' }}>Live (Prod)</option>
+                                  <option value="test" style={{ background: '#121217' }}>Test (Dev)</option>
                                 </select>
                               </div>
                             </div>
@@ -2322,7 +2673,7 @@ function renderFormattedMessage(text) {
                               <button
                                 type="button"
                                 onClick={() => setShowKeyModal(false)}
-                                style={{ background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', fontSize: '0.80rem', cursor: 'pointer' }}
+                                style={{ background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#fff', borderRadius: '100px', padding: '8px 20px', fontSize: '0.80rem', fontFamily: 'Outfit, sans-serif', cursor: 'pointer' }}
                               >
                                 Cancel
                               </button>
@@ -2330,13 +2681,14 @@ function renderFormattedMessage(text) {
                                 type="submit"
                                 disabled={!keyNameInput.trim()}
                                 style={{
-                                  background: !keyNameInput.trim() ? 'rgba(255, 255, 255, 0.06)' : 'var(--bronze-base)',
+                                  background: !keyNameInput.trim() ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.88)',
                                   border: 'none',
-                                  color: '#fff',
-                                  borderRadius: '6px',
-                                  padding: '8px 18px',
+                                  color: !keyNameInput.trim() ? 'rgba(255, 255, 255, 0.3)' : '#000',
+                                  borderRadius: '100px',
+                                  padding: '8px 22px',
                                   fontSize: '0.80rem',
                                   fontWeight: 600,
+                                  fontFamily: 'Outfit, sans-serif',
                                   cursor: !keyNameInput.trim() ? 'not-allowed' : 'pointer',
                                 }}
                               >
@@ -2346,12 +2698,12 @@ function renderFormattedMessage(text) {
                           </form>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div style={{ background: 'rgba(74, 222, 128, 0.08)', borderRadius: '6px', padding: '12px 14px', fontSize: '0.80rem', color: '#4ade80' }}>
+                            <div style={{ background: 'rgba(74, 222, 128, 0.1)', borderRadius: '12px', padding: '14px 16px', fontSize: '0.80rem', fontFamily: 'Outfit, sans-serif', color: '#4ade80' }}>
                               <strong>API Key Created Successfully!</strong> Please copy your secret key now. You will not be able to view it again.
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '6px', padding: '10px 14px' }}>
-                              <code style={{ flex: 1, color: 'var(--bronze-highlight)', fontFamily: 'monospace', fontSize: '0.88rem', wordBreak: 'break-all' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '12px', padding: '12px 16px' }}>
+                              <code style={{ flex: 1, color: '#fff', fontFamily: 'monospace', fontSize: '0.88rem', wordBreak: 'break-all' }}>
                                 {generatedSecretKey}
                               </code>
                               <button
@@ -2361,7 +2713,7 @@ function renderFormattedMessage(text) {
                                   setCopiedKey(true)
                                   setTimeout(() => setCopiedKey(false), 2000)
                                 }}
-                                style={{ background: 'var(--bronze-base)', border: 'none', color: '#fff', borderRadius: '6px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                                style={{ background: 'rgba(255, 255, 255, 0.88)', border: 'none', color: '#000', borderRadius: '100px', padding: '8px 18px', fontSize: '0.78rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif', cursor: 'pointer', flexShrink: 0 }}
                               >
                                 {copiedKey ? 'Copied!' : 'Copy Key'}
                               </button>
@@ -2374,7 +2726,7 @@ function renderFormattedMessage(text) {
                                   setShowKeyModal(false)
                                   setGeneratedSecretKey(null)
                                 }}
-                                style={{ background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', fontSize: '0.80rem', cursor: 'pointer' }}
+                                style={{ background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#fff', borderRadius: '100px', padding: '8px 20px', fontSize: '0.80rem', fontFamily: 'Outfit, sans-serif', cursor: 'pointer' }}
                               >
                                 Done
                               </button>
@@ -2385,29 +2737,30 @@ function renderFormattedMessage(text) {
                     )}
                   </AnimatePresence>
 
-                  {/* API Keys List */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '18px' }}>
-                    <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '14px' }}>
+                  {/* API Keys List - Flat Layout */}
+                  <div>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '14px' }}>
                       Active Credentials ({apiKeys.filter(k => k.status !== 'REVOKED').length})
                     </h3>
 
                     {loadingApiKeys ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', fontSize: '0.84rem' }}>
                         Loading API keys...
                       </div>
                     ) : apiKeys.length === 0 ? (
-                      <div style={{ padding: '30px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        <p style={{ fontSize: '0.84rem', margin: 0 }}>No API secret keys created yet. Click <strong>Create Secret Key</strong> above to issue a credential.</p>
+                      <div style={{ padding: '30px 0', textAlign: 'center', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif' }}>
+                        <p style={{ fontSize: '0.84rem', margin: 0 }}>No API secret keys created yet. Click <strong>+</strong> above to issue a credential.</p>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {apiKeys.map((k, i) => (
                           <div
                             key={k.id || i}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.025)',
-                              borderRadius: '6px',
-                              padding: '14px 16px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                              borderRadius: '10px',
+                              padding: '14px 18px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
@@ -2416,19 +2769,19 @@ function renderFormattedMessage(text) {
                             }}
                           >
                             <div>
-                              <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span>{k.name}</span>
-                                <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: k.environment === 'live' ? 'rgba(182, 122, 70, 0.15)' : 'rgba(255, 255, 255, 0.06)', color: k.environment === 'live' ? 'var(--bronze-highlight)' : 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                                <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '100px', background: k.environment === 'live' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.06)', color: '#fff', textTransform: 'uppercase', fontFamily: 'Outfit, sans-serif' }}>
                                   {k.environment || 'LIVE'}
                                 </span>
                               </div>
-                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontFamily: 'monospace' }}>{k.masked_key}</div>
+                              <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.78rem', fontFamily: 'monospace' }}>{k.masked_key}</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: k.status === 'REVOKED' ? '#f87171' : '#4ade80', padding: '3px 8px', borderRadius: '4px', background: k.status === 'REVOKED' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(74, 222, 128, 0.1)', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.72rem', fontFamily: 'Outfit, sans-serif', color: k.status === 'REVOKED' ? '#f87171' : '#4ade80', padding: '4px 10px', borderRadius: '100px', background: k.status === 'REVOKED' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(74, 222, 128, 0.1)', fontWeight: 600 }}>
                                 {k.status || 'ACTIVE'}
                               </span>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{k.created_at || k.created}</span>
+                              <span style={{ fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif' }}>{k.created_at || k.created}</span>
                               {k.status !== 'REVOKED' && (
                                 <button
                                   onClick={() => handleRevokeApiKey(k.id, k.name)}
@@ -2451,68 +2804,212 @@ function renderFormattedMessage(text) {
               {activeSection === 'settings' && (
                 <motion.div
                   key="settings"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="project-section"
-                  style={{ maxWidth: '820px' }}
+                  style={{ maxWidth: '820px', borderLeft: '1px solid rgba(255, 255, 255, 0.05)', paddingLeft: '20px' }}
                 >
-                  <h2 className="section-title">Project Settings</h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '24px' }}>
-                    Manage environment configurations, metadata identifiers, and system parameters for this project.
-                  </p>
+                  <h2 className="section-title" style={{ fontFamily: 'Outfit, sans-serif', marginBottom: '28px', fontSize: '1.2rem', fontWeight: 600 }}>Project Settings</h2>
+
+                  {/* RAG Model & Retrieval Configuration */}
+                  <div style={{
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>
+                      RAG Model & Retrieval Parameters
+                    </h3>
+                    <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', marginBottom: '18px' }}>
+                      Configure default AI LLM provider models and document context retrieval depth (Top-K chunks) for RAG responses.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px', fontWeight: 500 }}>
+                          AI Model Provider
+                        </label>
+                        <select
+                          value={ragProvider}
+                          onChange={(e) => setRagProvider(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '12px 16px',
+                            fontSize: '0.84rem',
+                            fontFamily: 'Outfit, sans-serif',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="groq" style={{ background: '#121217' }}>Groq (GPT-OSS 120B)</option>
+                          <option value="qwen" style={{ background: '#121217' }}>Groq (Qwen 3.8 27B)</option>
+                          <option value="gemini" style={{ background: '#121217' }}>Gemini (2.0 Flash)</option>
+                          <option value="openai" style={{ background: '#121217' }}>OpenAI (GPT-4o)</option>
+                          <option value="claude" style={{ background: '#121217' }}>Anthropic (Claude 3.5)</option>
+                          <option value="local" style={{ background: '#121217' }}>Local DeepSeek R1</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px', fontWeight: 500 }}>
+                          Retrieval Depth (Top-K Chunks)
+                        </label>
+                        <select
+                          value={topK}
+                          onChange={(e) => setTopK(Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '12px 16px',
+                            fontSize: '0.84rem',
+                            fontFamily: 'Outfit, sans-serif',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value={2} style={{ background: '#121217' }}>Concise (K=2 chunks)</option>
+                          <option value={4} style={{ background: '#121217' }}>Balanced (K=4 chunks)</option>
+                          <option value={6} style={{ background: '#121217' }}>Deep (K=6 chunks)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* General Configuration */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '16px' }}>
+                  <div style={{
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '16px' }}>
                       General Configuration
                     </h3>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Project Name</label>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px' }}>Project Name</label>
                         <input
                           type="text"
                           value={project.name}
                           readOnly
-                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '0.86rem', fontFamily: 'var(--font-sans)', outline: 'none' }}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '8px', padding: '12px 16px', color: '#fff', fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', outline: 'none' }}
                         />
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Description</label>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', marginBottom: '6px' }}>Description</label>
                         <textarea
                           value={project.description || 'No description provided.'}
                           readOnly
                           rows={2}
-                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '0.86rem', fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none' }}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: 'none', borderRadius: '8px', padding: '12px 16px', color: '#fff', fontSize: '0.86rem', fontFamily: 'Outfit, sans-serif', resize: 'none', outline: 'none' }}
                         />
                       </div>
                     </div>
                   </div>
 
+                  {/* Custom LLM API Keys (BYOK) */}
+                  <div style={{
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', margin: 0 }}>
+                          Custom LLM API Keys (BYOK)
+                        </h3>
+                        <p style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.78rem', fontFamily: 'Outfit, sans-serif', marginTop: '4px', margin: 0 }}>
+                          Provide your own API keys (Groq, OpenAI, or Gemini) for unmetered execution and bypassing free tier rate limits.
+                        </p>
+                      </div>
+                      {byokKey.trim() && (
+                        <span style={{ fontSize: '0.72rem', background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '4px 10px', borderRadius: '100px', fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>
+                          ✓ KEY ACTIVE
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="password"
+                        value={byokKey}
+                        onChange={(e) => {
+                          setByokKey(e.target.value)
+                          localStorage.setItem('beacon_byok_key', e.target.value)
+                        }}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '12px 16px',
+                          color: '#fff',
+                          fontSize: '0.86rem',
+                          fontFamily: 'monospace',
+                          outline: 'none'
+                        }}
+                      />
+                      {byokKey.trim() && (
+                        <button
+                          onClick={() => {
+                            setByokKey('')
+                            localStorage.removeItem('beacon_byok_key')
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            color: '#f87171',
+                            border: 'none',
+                            borderRadius: '100px',
+                            padding: '10px 18px',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          Remove Key
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* System Identifiers */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: '16px' }}>
+                  <div style={{
+                    paddingBottom: '28px',
+                    marginBottom: '28px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: '16px' }}>
                       System Identifiers & API Metadata
                     </h3>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {[
                         { title: 'Project ID', sub: 'Required in RAG query headers', value: project.id },
                         { title: 'Organization ID', sub: 'Parent organization namespace', value: project.organization_id },
                         { title: 'Project Slug', sub: 'URL-safe project identifier', value: project.slug },
                       ].map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.025)', borderRadius: '6px', padding: '10px 14px' }}>
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                           <div>
-                            <div style={{ color: '#fff', fontSize: '0.84rem', fontWeight: 600 }}>{item.title}</div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>{item.sub}</div>
+                            <div style={{ color: '#fff', fontSize: '0.84rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{item.title}</div>
+                            <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif' }}>{item.sub}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <code style={{ fontSize: '0.80rem', color: 'var(--bronze-highlight)', fontFamily: 'monospace', background: 'rgba(0, 0, 0, 0.4)', padding: '4px 8px', borderRadius: '4px' }}>{item.value}</code>
+                            <code style={{ fontSize: '0.80rem', color: '#fff', fontFamily: 'monospace', background: 'rgba(255, 255, 255, 0.04)', padding: '4px 10px', borderRadius: '6px' }}>{item.value}</code>
                             <button
                               onClick={() => navigator.clipboard.writeText(item.value)}
-                              style={{ background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '0.74rem', cursor: 'pointer' }}
+                              style={{ background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: '100px', fontSize: '0.74rem', fontFamily: 'Outfit, sans-serif', cursor: 'pointer' }}
                             >
                               Copy
                             </button>
@@ -2523,16 +3020,18 @@ function renderFormattedMessage(text) {
                   </div>
 
                   {/* Danger Zone */}
-                  <div style={{ background: 'rgba(239, 68, 68, 0.04)', borderRadius: '8px', padding: '20px' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fca5a5', fontFamily: 'var(--font-display)', marginBottom: '6px' }}>
+                  <div style={{
+                    paddingTop: '8px'
+                  }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fca5a5', fontFamily: 'Outfit, sans-serif', marginBottom: '6px' }}>
                       Danger Zone
                     </h3>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, marginBottom: '14px' }}>
+                    <p style={{ fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', margin: 0, marginBottom: '16px' }}>
                       Deleting this project will permanently purge all indexed vector embeddings, uploaded files, GitHub repository links, and RAG chat history.
                     </p>
                     <button
                       onClick={() => alert('Project deletion protection active.')}
-                      style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', color: '#f87171', padding: '8px 16px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                      style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', color: '#f87171', padding: '10px 20px', borderRadius: '100px', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif', cursor: 'pointer' }}
                     >
                       Delete Project
                     </button>

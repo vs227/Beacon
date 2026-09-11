@@ -33,6 +33,15 @@ from app.api.query import router as query_router
 
 app = FastAPI(title="Beacon API", version="1.0.0")
 
+@app.on_event("startup")
+async def prewarm_rag_model():
+    """Pre-warm embedding model at server startup to eliminate 1st query cold start latency."""
+    try:
+        from RAG.dataIngestion.embeddings import get_embedding_model
+        get_embedding_model()
+    except Exception as e:
+        print(f"RAG model prewarm status: {e}")
+
 # ── Fix 1: Rate limiting ──────────────────────────────────────────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_handler)

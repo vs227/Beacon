@@ -56,6 +56,7 @@ update on projects for EACH row
 execute FUNCTION update_updated_at ();
 
 
+
 create table public.documents (
   id uuid not null default gen_random_uuid (),
   project_id uuid not null,

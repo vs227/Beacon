@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Default model per provider — use smaller/faster models for lower token cost
 DEFAULT_MODELS = {
-    "groq": "llama3-70b-8192",
+    "groq": "openai/gpt-oss-120b",
     "openai": "gpt-4o-mini",
     "gemini": "gemini-2.0-flash",
     "anthropic": "claude-3-5-sonnet-20241022",
@@ -28,6 +28,9 @@ class MultiProviderLLMClient:
             return custom_key.strip()
 
         provider = provider.lower()
+        if provider == "claude":
+            provider = "anthropic"
+
         key_map = {
             "groq": settings.GROQ_API_KEY,
             "openai": settings.OPENAI_API_KEY,
@@ -48,8 +51,22 @@ class MultiProviderLLMClient:
     ) -> Dict[str, Any]:
         """Generate chat completion using the requested provider and model."""
         provider = provider.lower()
+        if provider == "claude":
+            provider = "anthropic"
+        elif provider == "local":
+            provider = "custom"
+        elif provider == "qwen":
+            provider = "groq"
+            if not model_name:
+                model_name = "qwen/qwen3.8-27b"
+
         api_key = self.resolve_api_key(provider, custom_api_key)
-        model = model_name or DEFAULT_MODELS.get(provider, "llama3-70b-8192")
+
+        # Normalize legacy/decommissioned Groq model names
+        if provider == "groq" and model_name and any(x in model_name.lower() for x in ["llama", "8192"]):
+            model_name = "openai/gpt-oss-120b"
+
+        model = model_name or DEFAULT_MODELS.get(provider, "openai/gpt-oss-120b")
 
         if provider in ("groq", "openai", "custom"):
             base_urls = {
@@ -81,7 +98,7 @@ class MultiProviderLLMClient:
             return self._call_openai_compatible(
                 base_url="https://api.groq.com/openai/v1/chat/completions",
                 api_key=api_key,
-                model="llama3-70b-8192",
+                model="openai/gpt-oss-120b",
                 prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=temperature,
@@ -107,7 +124,7 @@ class MultiProviderLLMClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
-            "max_tokens": 2048,
+            "max_tokens": 1024,
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -119,8 +136,42 @@ class MultiProviderLLMClient:
                 time.sleep(4.0)  # Wait 4 seconds for TPM window to clear
                 resp = client.post(base_url, headers=headers, json=payload)
 
+            # Auto-fallback if model is decommissioned or not found
+            if resp.status_code in (400, 404) and provider_name == "groq" and model != "openai/gpt-oss-120b":
+                err_text = resp.text.lower()
+                if "decommissioned" in err_text or "not exist" in err_text or "not_found" in err_text:
+                    logger.warning(f"Groq model {model} unavailable, falling back to openai/gpt-oss-120b")
+                    payload["model"] = "openai/gpt-oss-120b"
+                    model = "openai/gpt-oss-120b"
+                    resp = client.post(base_url, headers=headers, json=payload)
+
+            if resp.status_code == 429 and provider_name == "groq":
+                groq_fallbacks = ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "llama-3.3-70b-versatile"]
+                for alt_model in groq_fallbacks:
+                    if alt_model != model:
+                        logger.warning(f"Groq 429 on {model}. Auto-switching to Groq model {alt_model}")
+                        payload["model"] = alt_model
+                        resp = client.post(base_url, headers=headers, json=payload)
+                        if resp.status_code == 200:
+                            model = alt_model
+                            break
+
             if resp.status_code == 429:
-                raise ValueError("Groq rate limit reached (6,000 Tokens/Min limit on free tier). Please wait 5 seconds before asking your next question, or select Gemini in settings.")
+                if settings.GEMINI_API_KEY:
+                    logger.warning("Groq rate limit reached across models. Auto-failing over to Gemini 2.0 Flash.")
+                    return self._call_gemini(settings.GEMINI_API_KEY, "gemini-2.0-flash", prompt, system_prompt, temperature)
+                elif settings.OPENAI_API_KEY:
+                    logger.warning("Groq rate limit reached across models. Auto-failing over to OpenAI.")
+                    return self._call_openai_compatible(
+                        base_url="https://api.openai.com/v1/chat/completions",
+                        api_key=settings.OPENAI_API_KEY,
+                        model="gpt-4o-mini",
+                        prompt=prompt,
+                        system_prompt=system_prompt,
+                        temperature=temperature,
+                        provider_name="openai",
+                    )
+                raise ValueError("Token limit reached. Please contact your admin.")
 
             if resp.status_code != 200:
                 raise ValueError(f"{provider_name} API Error ({resp.status_code}): {resp.text[:300]}")
@@ -142,14 +193,14 @@ class MultiProviderLLMClient:
 
     def _call_gemini(self, api_key, model, prompt, system_prompt, temperature) -> Dict[str, Any]:
         if not api_key:
-            raise ValueError("No Gemini API Key. Set GEMINI_API_KEY in .env or pass custom_api_key.")
+            raise ValueError("No Gemini API Key. Set GEMINI_API_KEY in .env or pass custom_api_key (BYOK).")
 
         gemini_model = model if "gemini" in model else "gemini-2.0-flash"
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
 
         payload = {
             "contents": [{"parts": [{"text": f"System Instructions: {system_prompt}\n\nUser Question: {prompt}"}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 2048},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 1024},
         }
 
         with httpx.Client(timeout=30.0) as client:
@@ -176,7 +227,7 @@ class MultiProviderLLMClient:
 
     def _call_anthropic(self, api_key, model, prompt, system_prompt, temperature) -> Dict[str, Any]:
         if not api_key:
-            raise ValueError("No Anthropic API Key. Set ANTHROPIC_API_KEY in .env or pass custom_api_key.")
+            raise ValueError("No Anthropic API Key. Set ANTHROPIC_API_KEY in .env or pass custom_api_key (BYOK).")
 
         headers = {
             "x-api-key": api_key,
@@ -187,7 +238,7 @@ class MultiProviderLLMClient:
             "model": model if "claude" in model else "claude-3-5-sonnet-20241022",
             "system": system_prompt,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 2048,
+            "max_tokens": 1024,
             "temperature": temperature,
         }
 

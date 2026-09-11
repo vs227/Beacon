@@ -6,11 +6,12 @@ _model = None
 
 
 def get_embedding_model() -> SentenceTransformer:
-    """Lazy-load the sentence-transformer model."""
+    """Load and pre-warm the sentence-transformer model in RAM."""
     global _model
     if _model is None:
-        print("Loading embedding model: all-MiniLM-L6-v2...")
         _model = SentenceTransformer("all-MiniLM-L6-v2")
+        # Pre-warm model tensors so 1st query runs instantly without cold start latency
+        _model.encode(["warmup"], show_progress_bar=False, normalize_embeddings=True)
     return _model
 
 

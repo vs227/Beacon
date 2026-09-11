@@ -1,0 +1,928 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── LandingPage Component Styles ────────────────────────────────────────── */
+
+.scroll-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: #272320;
+  border-radius: 3px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #3c3530;
+}
+
+.scroll-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  pointer-events: none;
+  padding: 2rem 6%;
+}
+
+.interactive-content {
+  pointer-events: auto;
+  margin-bottom: 2rem;
+}
+
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.info-column {
+  width: 40%;
+  max-width: 480px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  height: 70%;
+  transition: filter 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.tag-label {
+  font-family: var(--font-sans);
+  color: #94A3B8;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.title-serif {
+  font-family: var(--font-serif);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.description-text {
+  font-family: var(--font-sans);
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 420px;
+  text-align: left;
+  margin-bottom: 2.2rem;
+}
+
+.outfit-landing {
+  font-family: "Outfit", sans-serif;
+  font-style: normal;
+}
+
+.outfit-landing .title-serif {
+  font-family: "Cinzel", serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.outfit-landing .description-text {
+  font-family: "Outfit", sans-serif;
+  font-weight: 300;
+}
+
+.outfit-landing .tag-label {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+}
+
+.outfit-landing .btn-terracotta {
+  font-family: "Outfit", sans-serif;
+  font-weight: 500;
+}
+
+.outfit-landing .stat-label {
+  font-family: "Outfit", sans-serif;
+  font-weight: 400;
+}
+
+.outfit-landing .stat-value {
+  font-family: "Outfit", sans-serif;
+  font-weight: 500;
+}
+
+.btn-terracotta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  background: var(--accent-terracotta);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(200, 111, 82, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.btn-terracotta:hover {
+  background: #db7d5f;
+  box-shadow: 0 6px 24px rgba(200, 111, 82, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Glassmorphism Button ──────────────────────────────────────────────── */
+.btn-glassy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2.2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.btn-glassy:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.4), 0 12px 35px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.btn-glassy:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+.stats-container {
+  display: flex;
+  gap: 3.5rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stat-value {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--warm-tint);
+  font-weight: 500;
+  margin-top: 0.2rem;
+}
+
+.floor-labels {
+  position: absolute;
+  bottom: 2rem;
+  right: 6%;
+  display: flex;
+  gap: 2rem;
+  z-index: 100;
+  pointer-events: none;
+  align-items: center;
+}
+
+.floor-label-item {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: all 0.4s ease;
+}
+
+.floor-label-item.active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.floor-label-item.terracotta.active {
+  color: var(--accent-terracotta);
+}
+
+.nav-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 6%;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.logo-text,
+.navbar-brand {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.logo-text:hover,
+.navbar-brand:hover {
+  opacity: 0.88;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  padding: 4px;
+  border-radius: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.nav-link {
+  position: relative;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 6px 18px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.nav-link-text {
+  position: relative;
+  z-index: 2;
+  font-family: "Outfit", "Inter", sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.32);
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.nav-link:hover .nav-link-text {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.nav-link--active .nav-link-text {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+  text-shadow: none;
+}
+
+.nav-active-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.nav-link--dashboard {
+  gap: 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 2px;
+  padding-right: 16px;
+}
+
+.loader-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+}
+
+.loader-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.loader-percent {
+  font-family: 'Outfit', monospace;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+  align-self: flex-end;
+}
+
+.loader {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.loader-dot {
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.loader-dot.filled {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.loader-label {
+  font-family: 'Outfit', monospace;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.beyond-column {}
+
+.beyond-label {
+  color: #52A88B;
+}
+
+.beyond-title {
+  color: #D6EAE2;
+}
+
+.beyond-text {
+  color: #7aaba0;
+}
+
+.btn-void {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2.2rem;
+  background: rgba(10, 10, 16, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: #E2E8F0;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.btn-void:hover {
+  background: rgba(18, 18, 26, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+.btn-void:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* ── Extended Section Inline Extras (matching original palette) ── */
+
+.section-callout-card {
+  background: rgba(200, 111, 82, 0.08);
+  border: 1px solid rgba(200, 111, 82, 0.25);
+  padding: 14px 18px;
+  border-radius: 6px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.section-callout-card p {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #C86F52;
+  line-height: 1.5;
+}
+
+.section-flow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.flow-node {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #FFF5E0);
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.flow-node.beacon-hl {
+  background: rgba(82, 168, 139, 0.12);
+  border-color: rgba(82, 168, 139, 0.35);
+  color: #52A88B;
+}
+
+.flow-sep {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 1rem;
+}
+
+.section-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #52A88B;
+  min-width: 24px;
+}
+
+.step-label {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-primary, #FFF5E0);
+}
+
+.step-text {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.section-code-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(82, 168, 139, 0.25);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: -0.5rem;
+  pointer-events: auto;
+  width: 100%;
+}
+
+.code-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: rgba(82, 168, 139, 0.15);
+  color: #52A88B;
+  font-weight: 600;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  border-color: rgba(82, 168, 139, 0.4);
+  color: #52A88B;
+}
+
+.code-pre {
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #52A88B;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.section-arch-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: -0.5rem;
+  pointer-events: none;
+  width: 100%;
+}
+
+.arch-node {
+  width: 100%;
+  text-align: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-primary, #FFF5E0);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.arch-node.hl {
+  background: rgba(82, 168, 139, 0.1);
+  border-color: rgba(82, 168, 139, 0.3);
+  color: #52A88B;
+}
+
+.arch-arrow {
+  text-align: center;
+  width: 100%;
+  display: block;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* ── Ultra-Minimal Architecture Chart (Section 08 Right Panel) ── */
+.clean-arch-chart {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(400px, 32vw, 540px);
+  z-index: 60;
+  pointer-events: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clean-chart-node {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  border: none;
+  transition: background 0.25s ease;
+}
+
+.clean-chart-node:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.clean-chart-node.node-hl {
+  background: rgba(82, 168, 139, 0.06);
+}
+
+.clean-chart-node.node-hl:hover {
+  background: rgba(82, 168, 139, 0.1);
+}
+
+.clean-node-title {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.clean-chart-node.node-hl .clean-node-title {
+  color: #FFFFFF;
+}
+
+.clean-node-desc {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.4;
+}
+
+/* ── Dev SDK Code Box (Section 06 Right Panel - Glass Card with 3D Tilt) ── */
+.sdk-code-panel-wrapper {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(420px, 34vw, 560px);
+  z-index: 60;
+  pointer-events: auto;
+}
+
+.sdk-code-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.sdk-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.sdk-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.sdk-tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sdk-tab-btn.active {
+  background: rgba(82, 168, 139, 0.14);
+  color: #52A88B;
+  font-weight: 600;
+}
+
+.sdk-copy-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.76rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.sdk-copy-btn:hover {
+  background: rgba(82, 168, 139, 0.15);
+  color: #52A88B;
+}
+
+.sdk-code-content {
+  padding: 20px 22px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.sdk-code-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: #FFF5E0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── VS Code Dark+ Code Syntax Colors ── */
+.syn-keyword {
+  color: #C586C0;
+  font-weight: 500;
+}
+
+/* VS Code Magenta */
+.syn-class {
+  color: #4EC9B0;
+  font-weight: 500;
+}
+
+/* VS Code Turquoise */
+.syn-var {
+  color: #9CDCFE;
+}
+
+/* VS Code Variable Light Blue */
+.syn-string {
+  color: #CE9178;
+}
+
+/* VS Code String Warm Amber */
+.syn-prop {
+  color: #9CDCFE;
+}
+
+/* VS Code Property Light Blue */
+.syn-fn {
+  color: #DCDCAA;
+}
+
+/* VS Code Function Yellow */
+.syn-const {
+  color: #4FC1FF;
+}
+
+/* VS Code Constant Bright Blue */
+.syn-cmd {
+  color: #569CD6;
+  font-weight: 500;
+}
+
+/* VS Code Command Blue */
+.syn-flag {
+  color: #9CDCFE;
+}
+
+/* VS Code Flag Light Blue */
+
+/* ── Ultra-Minimal Modern Steps Box (Section 05 Right Panel) ── */
+.minimal-steps-panel {
+  position: fixed;
+  right: 6%;
+  top: 30%;
+  transform: translateY(-50%);
+  width: clamp(400px, 32vw, 540px);
+  z-index: 60;
+  pointer-events: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.minimal-step-item {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  border: none;
+  transition: background 0.25s ease;
+}
+
+.minimal-step-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.minimal-step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.minimal-step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.minimal-step-title {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #FFF5E0;
+  letter-spacing: 0.08em;
+}
+
+.minimal-step-desc {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── CometCard 3D Hover Tilt & Depth Container ── */
+.comet-card-container {
+  width: 100%;
+  cursor: pointer;
+  will-change: transform;
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+.comet-card-content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
+}
