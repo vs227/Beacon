@@ -2,6 +2,7 @@
 Document CRUD service — handles file storage in Supabase Storage
 and metadata persistence in the documents table.
 """
+import gc
 import uuid
 from fastapi import HTTPException, status, UploadFile
 from postgrest.exceptions import APIError as PostgrestAPIError
@@ -38,7 +39,8 @@ async def upload_document(
         )
 
     file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
+    file_size = len(file_bytes)
+    if file_size > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.",
@@ -60,6 +62,9 @@ async def upload_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file to storage: {str(e)}",
         )
+    finally:
+        del file_bytes
+        gc.collect()
 
     # Insert metadata row
     payload = {
@@ -68,11 +73,12 @@ async def upload_document(
         "organization_id": organization_id,
         "file_name": file.filename,
         "file_type": ext,
-        "file_size_bytes": len(file_bytes),
+        "file_size_bytes": file_size,
         "storage_path": storage_path,
         "status": "pending",
         "uploaded_by": owner_id,
     }
+
 
     try:
         result = supabase.table("documents").insert(payload).execute()

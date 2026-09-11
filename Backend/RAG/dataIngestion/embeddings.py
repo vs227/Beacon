@@ -34,41 +34,49 @@ def _fallback_embedding(text: str, dim: int = 384) -> np.ndarray:
 
 
 def _hf_api_embedding_batch(texts: List[str], headers: dict) -> np.ndarray | None:
-    """Process a small sub-batch (e.g. <=16 texts) via Hugging Face Inference API."""
+    """Process a small sub-batch (e.g. <=16 texts) via Hugging Face Inference API with auto-retry."""
     if not texts:
         return np.empty((0, 384), dtype=np.float32)
 
-    # Strategy A: New Hugging Face Embeddings Router Endpoint
-    try:
-        url = "https://router.huggingface.co/hf-inference/v1/embeddings"
-        payload = {"model": "sentence-transformers/all-MiniLM-L6-v2", "input": texts}
-        res = httpx.post(url, json=payload, headers=headers, timeout=10.0)
-        if res.status_code == 200:
-            data = res.json()
-            if "data" in data and isinstance(data["data"], list):
-                vecs = [item["embedding"] for item in data["data"]]
-                arr = np.array(vecs, dtype=np.float32)
-                norms = np.linalg.norm(arr, axis=1, keepdims=True)
-                norms[norms == 0] = 1.0
-                return arr / norms
-    except Exception as e:
-        logger.debug(f"HF Router embedding failed for sub-batch: {e}")
+    import time
+    for attempt in range(3):
+        # Strategy A: New Hugging Face Embeddings Router Endpoint
+        try:
+            url = "https://router.huggingface.co/hf-inference/v1/embeddings"
+            payload = {"model": "sentence-transformers/all-MiniLM-L6-v2", "input": texts}
+            res = httpx.post(url, json=payload, headers=headers, timeout=12.0)
+            if res.status_code == 200:
+                data = res.json()
+                if "data" in data and isinstance(data["data"], list):
+                    vecs = [item["embedding"] for item in data["data"]]
+                    arr = np.array(vecs, dtype=np.float32)
+                    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+                    norms[norms == 0] = 1.0
+                    return arr / norms
+            elif res.status_code in {503, 429} and attempt < 2:
+                time.sleep(1.5)
+                continue
+        except Exception as e:
+            logger.debug(f"HF Router embedding failed for sub-batch (attempt {attempt+1}): {e}")
 
-    # Strategy B: Standard Feature Extraction Endpoint
-    try:
-        url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
-        res = httpx.post(url, json={"inputs": texts}, headers=headers, timeout=10.0)
-        if res.status_code == 200:
-            data = res.json()
-            if isinstance(data, list):
-                vecs = np.array(data, dtype=np.float32)
-                if len(vecs.shape) == 3:
-                    vecs = np.mean(vecs, axis=1)
-                norms = np.linalg.norm(vecs, axis=1, keepdims=True)
-                norms[norms == 0] = 1.0
-                return vecs / norms
-    except Exception as e:
-        logger.debug(f"HF direct embedding failed for sub-batch: {e}")
+        # Strategy B: Standard Feature Extraction Endpoint
+        try:
+            url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+            res = httpx.post(url, json={"inputs": texts}, headers=headers, timeout=12.0)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data, list):
+                    vecs = np.array(data, dtype=np.float32)
+                    if len(vecs.shape) == 3:
+                        vecs = np.mean(vecs, axis=1)
+                    norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+                    norms[norms == 0] = 1.0
+                    return vecs / norms
+            elif res.status_code in {503, 429} and attempt < 2:
+                time.sleep(1.5)
+                continue
+        except Exception as e:
+            logger.debug(f"HF direct embedding failed for sub-batch (attempt {attempt+1}): {e}")
 
     return None
 
@@ -77,6 +85,7 @@ def _hf_api_embedding(texts: List[str], sub_batch_size: int = 16) -> np.ndarray 
     """
     Generate 384D embeddings via Hugging Face Free Inference API in small sub-batches.
     Slices large text arrays into micro-requests to avoid HTTP 413 Payload Too Large or timeouts.
+    Falls back gracefully per sub-batch if remote API is unavailable.
     """
     hf_token = (
         os.environ.get("HUGGINGFACE_API_KEY")
@@ -95,15 +104,15 @@ def _hf_api_embedding(texts: List[str], sub_batch_size: int = 16) -> np.ndarray 
         sub_texts = texts[i : i + sub_batch_size]
         sub_vecs = _hf_api_embedding_batch(sub_texts, headers)
         if sub_vecs is None:
-            # If any sub-batch fails completely, abort API attempt to allow overall fallback
-            logger.warning(f"HF API embedding failed for sub-batch starting at index {i}")
-            return None
+            logger.warning(f"HF API unavailable for sub-batch at {i}, using lightweight fallback vectors.")
+            sub_vecs = np.array([_fallback_embedding(t) for t in sub_texts], dtype=np.float32)
         all_vecs.append(sub_vecs)
 
     if not all_vecs:
         return None
 
     return np.vstack(all_vecs)
+
 
 
 def get_embedding_model():
