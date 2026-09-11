@@ -24,4 +24,7 @@ services:
         value: https://beacon-9oyd.onrender.com
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: LOW_RAM_MODE
+        value: "true"
+
 
