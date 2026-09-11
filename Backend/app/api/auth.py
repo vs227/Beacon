@@ -30,12 +30,17 @@ def _get_frontend_url() -> str:
     return url if url.endswith('/') else f"{url}/"
 
 
-def _build_github_oauth_callback_url() -> str:
+def _build_github_oauth_callback_url(request: Request | None = None) -> str:
     """Build the callback URL that GitHub should redirect back to.
 
     Matches the Authorization callback URL configured in the GitHub OAuth app.
     """
-    backend_base = (settings.BACKEND_URL or "http://localhost:8000").rstrip('/')
+    if settings.BACKEND_URL and "localhost" not in settings.BACKEND_URL:
+        backend_base = settings.BACKEND_URL.rstrip('/')
+    elif request:
+        backend_base = str(request.base_url).rstrip('/')
+    else:
+        backend_base = (settings.BACKEND_URL or "http://localhost:8000").rstrip('/')
     return f"{backend_base}/auth/github/callback"
 
 
@@ -163,13 +168,13 @@ def get_profile(
 
 
 @router.api_route("/auth/github", methods=["GET", "HEAD"])
-def github_login():
+def github_login(request: Request):
     if not settings.GITHUB_CLIENT_ID:
         raise HTTPException(
             status_code=500,
             detail="GitHub OAuth is not configured (missing GITHUB_CLIENT_ID)"
         )
-    callback = _build_github_oauth_callback_url()
+    callback = _build_github_oauth_callback_url(request)
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
         "redirect_uri": callback,
