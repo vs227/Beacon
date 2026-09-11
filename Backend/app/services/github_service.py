@@ -1,3 +1,4 @@
+import gc
 import re
 import tempfile
 import logging
@@ -184,11 +185,11 @@ def ingest_github_selected_files(
     owner_id: str,
 ) -> Dict[str, Any]:
     """
-    In-memory stream ingestion:
+    Streaming in-memory ingestion:
     1. Parse owner/repo and fetch latest commit_sha.
     2. Get or create parent document entry in `documents`.
     3. Purge existing vector chunks for this document_id.
-    4. Stream selected files in-memory, chunk, embed, and store in document_chunks.
+    4. Stream selected files sequentially in micro-batches to prevent memory spikes.
     """
     owner, repo = parse_github_url(repo_url)
     branch = get_default_branch(owner, repo)
@@ -209,9 +210,9 @@ def ingest_github_selected_files(
             logger.warning(f"Could not purge old chunks for doc_id {doc_id}: {e}")
 
     total_chunks_created = 0
-    all_chunk_rows = []
+    micro_batch_size = 25
 
-    # 3. Stream & process each file in-memory
+    # 3. Stream & process each file individually with instant DB insertion and GC
     for file_path in selected_file_paths:
         try:
             file_bytes = fetch_raw_file(owner, repo, branch, file_path)
@@ -219,10 +220,12 @@ def ingest_github_selected_files(
             if not file_ext:
                 file_ext = ".txt"
 
-            # Use temp file for loader file-type handling
             with tempfile.NamedTemporaryFile(suffix=file_ext, delete=False) as tmp:
                 tmp.write(file_bytes)
                 tmp_path = Path(tmp.name)
+
+            del file_bytes
+            gc.collect()
 
             try:
                 documents = load_file(tmp_path)
@@ -240,62 +243,58 @@ def ingest_github_selected_files(
             if not documents:
                 continue
 
-            # Split into chunks
             chunks = split_documents(documents, chunk_size=1000, chunk_overlap=200)
+            del documents
+            gc.collect()
+
             if not chunks:
                 continue
 
-            # Generate embeddings
-            texts = [c.page_content for c in chunks]
-            embeddings = generate_embeddings(texts, batch_size=32)
+            # Process file chunks in micro-batches to insert immediately into DB
+            for i in range(0, len(chunks), micro_batch_size):
+                batch_chunks = chunks[i : i + micro_batch_size]
+                batch_texts = [c.page_content for c in batch_chunks]
 
-            for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                meta = chunk.metadata.copy()
-                meta["file_name"] = Path(file_path).name
-                meta["file_path"] = file_path
-                meta["file_type"] = file_ext.replace(".", "")
-                meta["source_repo"] = f"https://github.com/{owner}/{repo}"
-                meta["commit_sha"] = commit_sha
+                embeddings = generate_embeddings(batch_texts, batch_size=16)
 
-                row = {
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "chunk_index": total_chunks_created + idx,
-                    "content": chunk.page_content,
-                    "token_count": len(chunk.page_content.split()),
-                    "embedding": embedding.tolist(),
-                    "metadata": meta,
-                }
-                if doc_id:
-                    row["document_id"] = doc_id
+                batch_rows = []
+                for idx, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings)):
+                    meta = chunk.metadata.copy()
+                    meta["file_name"] = Path(file_path).name
+                    meta["file_path"] = file_path
+                    meta["file_type"] = file_ext.replace(".", "")
+                    meta["source_repo"] = f"https://github.com/{owner}/{repo}"
+                    meta["commit_sha"] = commit_sha
 
-                all_chunk_rows.append(row)
+                    row = {
+                        "project_id": project_id,
+                        "organization_id": organization_id,
+                        "chunk_index": total_chunks_created + idx,
+                        "content": chunk.page_content,
+                        "token_count": len(chunk.page_content.split()),
+                        "embedding": embedding.tolist(),
+                        "metadata": meta,
+                    }
+                    if doc_id:
+                        row["document_id"] = doc_id
 
-            total_chunks_created += len(chunks)
+                    batch_rows.append(row)
+
+                if supabase and batch_rows:
+                    supabase.table("document_chunks").insert(batch_rows).execute()
+
+                total_chunks_created += len(batch_chunks)
+
+                del batch_chunks, batch_texts, embeddings, batch_rows
+                gc.collect()
+
+            del chunks
+            gc.collect()
 
         except Exception as err:
             logger.error(f"Error processing GitHub file {file_path}: {err}")
 
-    # 4. Batch insert chunk rows to Supabase
-    if supabase and all_chunk_rows:
-        try:
-            batch_size = 100
-            for i in range(0, len(all_chunk_rows), batch_size):
-                batch = all_chunk_rows[i : i + batch_size]
-                supabase.table("document_chunks").insert(batch).execute()
-        except Exception as e:
-            logger.error(f"Failed to insert document chunks for doc {doc_id}: {e}")
-            if doc_id:
-                supabase.table("documents").update({
-                    "status": "failed",
-                    "error_message": f"Ingestion error: {str(e)}",
-                }).eq("id", doc_id).execute()
-            return {
-                "status": "failed",
-                "error": str(e),
-            }
-
-    # 5. Update GitHub Document Entry status to completed
+    # 4. Update GitHub Document Entry status to completed
     if supabase and doc_id:
         supabase.table("documents").update({
             "status": "completed",
@@ -310,6 +309,7 @@ def ingest_github_selected_files(
         "files_indexed": len(selected_file_paths),
         "total_chunks": total_chunks_created,
     }
+
 
 
 def list_user_github_repos(github_access_token: str) -> List[Dict[str, Any]]:

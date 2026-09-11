@@ -1,9 +1,4 @@
-"""
-Ingestion Service Bridge
-
-Connects FastAPI backend background tasks and semantic search endpoints
-to the RAG/dataIngestion pipeline.
-"""
+import gc
 import tempfile
 import logging
 from pathlib import Path
@@ -13,7 +8,7 @@ from app.core.database import supabase
 from app.services.document_service import get_file_bytes
 from RAG.dataIngestion.loader import load_file
 from RAG.dataIngestion.chunker import split_documents
-from RAG.dataIngestion.embeddings import generate_embeddings, get_embedding_model
+from RAG.dataIngestion.embeddings import generate_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +16,7 @@ logger = logging.getLogger(__name__)
 def run_ingestion(document_id: str) -> None:
     """
     Full pipeline: download file from storage → save temp file → load via RAG loader →
-    chunk → generate 384D embeddings → store in Supabase document_chunks.
+    chunk → generate 384D embeddings in micro-batches → store in Supabase document_chunks.
     """
     try:
         # Mark status as processing
@@ -35,7 +30,6 @@ def run_ingestion(document_id: str) -> None:
         doc = result.data[0]
 
         # Guard: GitHub documents use a separate ingestion pipeline (ingest_github_selected_files).
-        # run_ingestion only handles directly uploaded files with a Supabase Storage path.
         if doc.get("file_type") == "github":
             logger.warning(f"Document {document_id} is a GitHub document — use GitHub import pipeline instead.")
             supabase.table("documents").update({
@@ -56,15 +50,17 @@ def run_ingestion(document_id: str) -> None:
             tmp.write(file_bytes)
             tmp_path = Path(tmp.name)
 
+        # Free raw bytes reference immediately
+        del file_bytes
+        gc.collect()
+
         try:
             # 1. Load document via RAG loader
             documents = load_file(tmp_path)
-            # Override metadata to reflect actual file name
             for d in documents:
                 d.metadata["source_file"] = doc["file_name"]
                 d.metadata["document_id"] = document_id
         finally:
-            # Delete temp file
             if tmp_path.exists():
                 tmp_path.unlink()
 
@@ -77,6 +73,9 @@ def run_ingestion(document_id: str) -> None:
 
         # 2. Chunk documents
         chunks = split_documents(documents, chunk_size=1000, chunk_overlap=200)
+        del documents
+        gc.collect()
+
         if not chunks:
             supabase.table("documents").update({
                 "status": "failed",
@@ -84,41 +83,54 @@ def run_ingestion(document_id: str) -> None:
             }).eq("id", document_id).execute()
             return
 
-        # 3. Generate embeddings
-        texts = [c.page_content for c in chunks]
-        embeddings = generate_embeddings(texts, batch_size=32)
+        # Purge any existing chunks for this document before inserting fresh ones
+        if supabase:
+            try:
+                supabase.table("document_chunks").delete().eq("document_id", document_id).execute()
+            except Exception as purge_err:
+                logger.warning(f"Could not purge old chunks for document {document_id}: {purge_err}")
 
-        # 4. Prepare batch rows for Supabase insertion
-        chunk_rows = []
-        for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            meta = chunk.metadata.copy()
-            meta["file_name"] = doc["file_name"]
-            meta["file_type"] = doc["file_type"]
+        # 3. Micro-batched Embedding & Database Insertion (25 chunks per batch to cap RAM usage)
+        micro_batch_size = 25
+        total_chunks = len(chunks)
 
-            chunk_rows.append({
-                "document_id": document_id,
-                "project_id": doc["project_id"],
-                "organization_id": doc["organization_id"],
-                "chunk_index": idx,
-                "content": chunk.page_content,
-                "token_count": len(chunk.page_content.split()),
-                "embedding": embedding.tolist(),
-                "metadata": meta,
-            })
+        for i in range(0, total_chunks, micro_batch_size):
+            batch_chunks = chunks[i : i + micro_batch_size]
+            batch_texts = [c.page_content for c in batch_chunks]
 
-        # Batch insert to document_chunks
-        batch_size = 100
-        for i in range(0, len(chunk_rows), batch_size):
-            batch = chunk_rows[i : i + batch_size]
-            supabase.table("document_chunks").insert(batch).execute()
+            embeddings = generate_embeddings(batch_texts, batch_size=16)
+
+            chunk_rows = []
+            for idx, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings)):
+                meta = chunk.metadata.copy()
+                meta["file_name"] = doc["file_name"]
+                meta["file_type"] = doc["file_type"]
+
+                chunk_rows.append({
+                    "document_id": document_id,
+                    "project_id": doc["project_id"],
+                    "organization_id": doc["organization_id"],
+                    "chunk_index": i + idx,
+                    "content": chunk.page_content,
+                    "token_count": len(chunk.page_content.split()),
+                    "embedding": embedding.tolist(),
+                    "metadata": meta,
+                })
+
+            if supabase and chunk_rows:
+                supabase.table("document_chunks").insert(chunk_rows).execute()
+
+            # Clear intermediate batch objects immediately
+            del batch_chunks, batch_texts, embeddings, chunk_rows
+            gc.collect()
 
         # Mark as completed
         supabase.table("documents").update({
             "status": "completed",
-            "chunk_count": len(chunks),
+            "chunk_count": total_chunks,
         }).eq("id", document_id).execute()
 
-        logger.info(f"Document {document_id}: successfully ingested ({len(chunks)} chunks)")
+        logger.info(f"Document {document_id}: successfully ingested ({total_chunks} chunks)")
 
     except Exception as e:
         logger.exception(f"Ingestion failed for document {document_id}")
@@ -140,8 +152,14 @@ def semantic_search(
     Embed the search query, then run cosine similarity search against document_chunks
     using Supabase RPC match_document_chunks.
     """
-    model = get_embedding_model()
-    query_embedding = model.encode([query], normalize_embeddings=True)[0].tolist()
+    try:
+        embeddings = generate_embeddings([query], batch_size=1)
+        if len(embeddings) == 0:
+            return []
+        query_embedding = embeddings[0].tolist()
+    except Exception as err:
+        logger.error(f"Failed to generate query embedding: {err}")
+        return []
 
     try:
         result = supabase.rpc(
@@ -157,3 +175,4 @@ def semantic_search(
         return []
 
     return result.data or []
+
