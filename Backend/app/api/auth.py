@@ -162,7 +162,7 @@ def get_profile(
     }
 
 
-@router.get("/auth/github")
+@router.api_route("/auth/github", methods=["GET", "HEAD"])
 def github_login():
     if not settings.GITHUB_CLIENT_ID:
         raise HTTPException(
