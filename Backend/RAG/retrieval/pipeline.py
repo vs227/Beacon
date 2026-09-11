@@ -2,14 +2,28 @@ import time
 import logging
 from typing import Dict, Any, List, Optional
 
-from RAG.retrieval.retriever import RAGRetriever
-from RAG.retrieval.llm_client import MultiProviderLLMClient, DEFAULT_MODELS
+from RAG.retrieval.llm_client import DEFAULT_MODELS
 
 logger = logging.getLogger(__name__)
 
-# Global singleton instances (cached, never re-instantiated)
-retriever = RAGRetriever(top_k=10, min_score=0.20)
-llm_client = MultiProviderLLMClient()
+_retriever = None
+_llm_client = None
+
+
+def get_retriever():
+    global _retriever
+    if _retriever is None:
+        from RAG.retrieval.retriever import RAGRetriever
+        _retriever = RAGRetriever(top_k=10, min_score=0.20)
+    return _retriever
+
+
+def get_llm_client():
+    global _llm_client
+    if _llm_client is None:
+        from RAG.retrieval.llm_client import MultiProviderLLMClient
+        _llm_client = MultiProviderLLMClient()
+    return _llm_client
 
 SYSTEM_PROMPT = """
 You are Beacon, an enterprise AI assistant designed to answer user queries based on the provided project documentation.
@@ -100,6 +114,9 @@ def run_rag_pipeline(
             last_msg = chat_history[-1].get("content", "")
             last_msg_summary = " ".join(last_msg.split()[:12])
             standalone_query = f"{query} {last_msg_summary}"
+
+    retriever = get_retriever()
+    llm_client = get_llm_client()
 
     # ── 3. Retrieve relevant document chunks ──
     chunks = retriever.retrieve(

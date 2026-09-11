@@ -2,12 +2,6 @@ import json
 from pathlib import Path
 from typing import List
 from langchain_core.documents import Document
-from langchain_community.document_loaders import (
-    PyPDFLoader,
-    Docx2txtLoader,
-    TextLoader,
-    CSVLoader,
-)
 
 
 def load_json(file_path: Path) -> List[Document]:
@@ -45,19 +39,22 @@ def load_file(file_path: str | Path) -> List[Document]:
     extension = file.suffix.lower()
 
     if extension == ".pdf":
+        from langchain_community.document_loaders import PyPDFLoader
         loader = PyPDFLoader(str(file))
         documents = loader.load()
 
     elif extension == ".docx":
+        from langchain_community.document_loaders import Docx2txtLoader
         loader = Docx2txtLoader(str(file))
         documents = loader.load()
 
     elif extension == ".txt":
+        from langchain_community.document_loaders import TextLoader
         loader = TextLoader(str(file), encoding="utf-8")
         documents = loader.load()
 
     elif extension == ".md":
-        # Fallback to TextLoader for markdown if unstructured is not installed
+        from langchain_community.document_loaders import TextLoader
         try:
             from langchain_community.document_loaders import UnstructuredMarkdownLoader
             loader = UnstructuredMarkdownLoader(str(file))
@@ -67,6 +64,7 @@ def load_file(file_path: str | Path) -> List[Document]:
             documents = loader.load()
 
     elif extension == ".csv":
+        from langchain_community.document_loaders import CSVLoader
         loader = CSVLoader(str(file), encoding="utf-8")
         documents = loader.load()
 
