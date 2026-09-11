@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 import httpx
 
-# Force single-threaded execution for PyTorch/BLAS to minimize RAM overhead on 512MB servers
+# Force single-threaded execution for PyTorch/BLAS to minimize RAM overhead
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -16,7 +16,7 @@ _model_failed = False
 
 
 def _fallback_embedding(text: str, dim: int = 384) -> np.ndarray:
-    """Ultra-lightweight 384-dim hash-based feature vector fallback for 512MB RAM environments (~2MB footprint)."""
+    """Ultra-lightweight 384-dim hash-based feature vector for 512MB RAM cloud environments (~2MB footprint, <1ms execution)."""
     vec = np.zeros(dim, dtype=np.float32)
     words = text.lower().split()
     if not words:
@@ -31,33 +31,64 @@ def _fallback_embedding(text: str, dim: int = 384) -> np.ndarray:
 
 
 def _hf_api_embedding(texts: List[str]) -> np.ndarray | None:
-    """Generate embeddings via Hugging Face Free Inference API if token is provided."""
-    hf_token = os.environ.get("HUGGINGFACE_API_KEY") or os.environ.get("HF_TOKEN")
+    """Generate 384D embeddings via Hugging Face Free Inference API if token is provided."""
+    hf_token = (
+        os.environ.get("HUGGINGFACE_API_KEY")
+        or os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+    )
     if not hf_token:
         return None
+
+    clean_token = hf_token.strip()
+    headers = {"Authorization": f"Bearer {clean_token}"}
+
+    # Strategy A: New Hugging Face Embeddings Router Endpoint
     try:
-        url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
-        headers = {"Authorization": f"Bearer {hf_token}"}
-        res = httpx.post(url, json={"inputs": texts}, headers=headers, timeout=10.0)
+        url = "https://router.huggingface.co/hf-inference/v1/embeddings"
+        payload = {"model": "sentence-transformers/all-MiniLM-L6-v2", "input": texts}
+        res = httpx.post(url, json=payload, headers=headers, timeout=6.0)
         if res.status_code == 200:
             data = res.json()
-            vecs = np.array(data, dtype=np.float32)
-            if len(vecs.shape) == 3:
-                vecs = np.mean(vecs, axis=1)
-            norms = np.linalg.norm(vecs, axis=1, keepdims=True)
-            norms[norms == 0] = 1.0
-            return vecs / norms
+            if "data" in data and isinstance(data["data"], list):
+                vecs = [item["embedding"] for item in data["data"]]
+                arr = np.array(vecs, dtype=np.float32)
+                norms = np.linalg.norm(arr, axis=1, keepdims=True)
+                norms[norms == 0] = 1.0
+                return arr / norms
     except Exception as e:
-        print(f"HuggingFace API embedding failed: {e}")
+        print(f"HF Router embedding failed: {e}")
+
+    # Strategy B: Standard Feature Extraction Endpoint
+    try:
+        url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+        res = httpx.post(url, json={"inputs": texts}, headers=headers, timeout=6.0)
+        if res.status_code == 200:
+            data = res.json()
+            if isinstance(data, list):
+                vecs = np.array(data, dtype=np.float32)
+                if len(vecs.shape) == 3:
+                    vecs = np.mean(vecs, axis=1)
+                norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+                norms[norms == 0] = 1.0
+                return vecs / norms
+    except Exception as e:
+        print(f"HF direct embedding failed: {e}")
+
     return None
 
 
 def get_embedding_model():
-    """Lazy load sentence-transformer with memory check & fallback."""
+    """Lazy load local sentence-transformer only in local development, never in cloud/Render."""
     global _model, _model_failed
 
-    # If LOW_RAM_MODE is explicitly enabled or PyTorch load failed earlier, use fallback
-    if _model_failed or os.environ.get("LOW_RAM_MODE", "false").lower() == "true":
+    # Auto-detect if running on Render / cloud environment / low-RAM server
+    is_cloud_env = bool(os.environ.get("RENDER") or os.environ.get("PORT") or os.environ.get("LOW_RAM_MODE"))
+    low_ram_setting = os.environ.get("LOW_RAM_MODE", "true" if is_cloud_env else "false").lower() == "true"
+
+    if _model_failed or low_ram_setting or is_cloud_env:
+        # Bypasses local PyTorch download completely on cloud to keep RAM < 50MB and prevent OOM
         return None
 
     if _model is None:
@@ -85,12 +116,12 @@ def generate_embeddings(texts: List[str], batch_size: int = 16) -> np.ndarray:
     if not texts:
         return np.array([])
 
-    # 1. Try HF Remote API if token configured (0 MB local RAM usage)
+    # 1. Try Hugging Face Remote API if token configured (0 MB local RAM usage)
     remote_vecs = _hf_api_embedding(texts)
     if remote_vecs is not None:
         return remote_vecs
 
-    # 2. Try Local SentenceTransformer model if memory permits
+    # 2. Try Local SentenceTransformer model if running locally (not on cloud)
     model = get_embedding_model()
     if model is not None:
         try:
@@ -108,7 +139,8 @@ def generate_embeddings(texts: List[str], batch_size: int = 16) -> np.ndarray:
             print(f"Embedding encoding memory exception ({e}). Falling back to ultra-lightweight vectors.")
             gc.collect()
 
-    # 3. Fallback for 512MB ultra-low RAM environments
+    # 3. Fast fallback for 512MB cloud environments (< 1ms execution, 0MB PyTorch RAM)
     fallback_vecs = [_fallback_embedding(t) for t in texts]
     return np.array(fallback_vecs, dtype=np.float32)
+
 
