@@ -24,10 +24,10 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_USER_URL = "https://api.github.com/user"
 GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
 
-# Where GitHub OAuth should redirect the user on success.
-# Dev: Vite runs on port 5173.
-# Production: replace with your hosted frontend URL, e.g. "https://beacon.app".
-FRONTEND_AFTER_AUTH = "http://localhost:5173/"
+def _get_frontend_url() -> str:
+    """Return configured frontend URL, ensuring trailing slash for path joins."""
+    url = settings.FRONTEND_URL or "http://localhost:5173"
+    return url if url.endswith('/') else f"{url}/"
 
 
 def _build_github_oauth_callback_url() -> str:
@@ -35,7 +35,8 @@ def _build_github_oauth_callback_url() -> str:
 
     Matches the Authorization callback URL configured in the GitHub OAuth app.
     """
-    return "http://localhost:8000/auth/github/callback"
+    backend_base = (settings.BACKEND_URL or "http://localhost:8000").rstrip('/')
+    return f"{backend_base}/auth/github/callback"
 
 
 @router.post("/register")
@@ -306,6 +307,7 @@ async def github_callback(code: str | None = None, error: str | None = None):
         "email": email,
         "username": username,
     })
-    sep = "&" if "?" in FRONTEND_AFTER_AUTH else "?"
-    redirect_to = f"{FRONTEND_AFTER_AUTH}{sep}{query}"
+    frontend_url = _get_frontend_url()
+    sep = "&" if "?" in frontend_url else "?"
+    redirect_to = f"{frontend_url}{sep}{query}"
     return RedirectResponse(url=redirect_to)

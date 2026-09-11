@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { API_BASE } from '../config'
 import LandingHeader from './landing/LandingHeader'
 import { StructureFlowCollection } from './ui/StructureFlowCollection'
 import './Dashboard.css'
@@ -140,7 +141,7 @@ export default function Dashboard({ auth }) {
   const [newProjectEnv, setNewProjectEnv] = useState('Development')
   const [projectSearchQuery, setProjectSearchQuery] = useState('')
 
-  const API_BASE = ''
+  // API_BASE is imported from ../config
 
   // Cache selectedOrg whenever it changes
   useEffect(() => {

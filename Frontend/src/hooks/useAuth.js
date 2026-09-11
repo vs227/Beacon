@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import { API_BASE } from '../config'
 
 const TOKEN_KEY = 'beacon_token'
 const USER_KEY = 'beacon_user'
 
-// Fetch base URL. Using relative URLs lets the Vite dev proxy handle requests
-// (see vite.config.js), so it works in dev AND any hosted env without changes.
-export const API_BASE = ''
+export { API_BASE }
 
 function readUser() {
   try {
