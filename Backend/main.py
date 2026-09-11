@@ -33,21 +33,6 @@ from app.api.query import router as query_router
 
 app = FastAPI(title="Beacon API", version="1.0.0")
 
-import asyncio
-
-@app.on_event("startup")
-async def prewarm_rag_model():
-    """Pre-warm embedding model in background thread so server port opens instantly for Render health checks."""
-    def _warmup():
-        try:
-            from RAG.dataIngestion.embeddings import get_embedding_model
-            get_embedding_model()
-            print("RAG model successfully pre-warmed in background.")
-        except Exception as e:
-            print(f"RAG model prewarm status: {e}")
-
-    asyncio.create_task(asyncio.to_thread(_warmup))
-
 # ── Fix 1: Rate limiting ──────────────────────────────────────────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_handler)
