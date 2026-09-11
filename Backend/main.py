@@ -57,6 +57,14 @@ async def hide_server_header(request: Request, call_next):
     response.headers["Server"] = "Beacon"
     return response
 
+# ── Fix 4: Path normalization middleware (strips duplicate slashes e.g. //auth/github) ──
+@app.middleware("http")
+async def normalize_path_middleware(request: Request, call_next):
+    if request.scope.get("path") and "//" in request.scope["path"]:
+        import re
+        request.scope["path"] = re.sub(r"/+", "/", request.scope["path"])
+    return await call_next(request)
+
 from app.core.config import settings
 
 # Parse comma-separated ALLOWED_ORIGINS env var or default to wildcard "*"
@@ -88,7 +96,7 @@ app.include_router(webhooks_router)
 app.include_router(query_router)
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {
         "message": "Welcome to Beacon API",
