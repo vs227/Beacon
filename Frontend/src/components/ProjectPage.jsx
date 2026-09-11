@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { API_BASE } from '../config'
 import LandingHeader from './landing/LandingHeader'
 import { StructureFlowCollection } from './ui/StructureFlowCollection'
 import './ProjectPage.css'
@@ -149,7 +150,7 @@ function IconX({ size = 16, style = {} }) {
   )
 }
 
-const API_BASE = ''
+// API_BASE is imported from ../config
 
 export default function ProjectPage({ auth }) {
   const navigate = useNavigate()

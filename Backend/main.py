@@ -66,10 +66,18 @@ async def hide_server_header(request: Request, call_next):
     response.headers["Server"] = "Beacon"
     return response
 
-# ── CORS ──────────────────────────────────────────────────────────────────────
+from app.core.config import settings
+
+# Parse comma-separated ALLOWED_ORIGINS env var or default to wildcard "*"
+origins = (
+    [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+    if settings.ALLOWED_ORIGINS and settings.ALLOWED_ORIGINS != "*"
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
