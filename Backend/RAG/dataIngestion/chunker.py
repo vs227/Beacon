@@ -1,6 +1,5 @@
 from typing import List
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 def split_documents(
@@ -14,6 +13,7 @@ def split_documents(
     (smaller chunks → fewer prompt tokens per retrieval hit).
     Attaches chunk_index metadata to every chunk.
     """
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
