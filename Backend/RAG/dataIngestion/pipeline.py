@@ -1,3 +1,4 @@
+import gc
 from pathlib import Path
 from typing import List, Dict, Any
 from app.core.database import supabase
@@ -11,7 +12,7 @@ def store_embeddings_batch(rows: List[Dict[str, Any]]) -> None:
     if not rows:
         return
 
-    batch_size = 100
+    batch_size = 50
     for i in range(0, len(rows), batch_size):
         batch = rows[i : i + batch_size]
         supabase.table("document_chunks").insert(batch).execute()
@@ -22,7 +23,7 @@ def ingest_files(directory: str | Path, project_id: str, organization_id: str) -
     Complete ingestion pipeline for a directory of files:
     1. Load multi-format files
     2. Split into chunks
-    3. Generate 384D embeddings
+    3. Generate 384D embeddings in micro-batches
     4. Store in Supabase pgvector database
     """
     # 1. Load files
@@ -33,33 +34,42 @@ def ingest_files(directory: str | Path, project_id: str, organization_id: str) -
 
     # 2. Split into chunks
     chunks = split_documents(documents)
+    del documents
+    gc.collect()
 
-    # 3. Generate embeddings
-    texts = [chunk.page_content for chunk in chunks]
-    embeddings = generate_embeddings(texts, batch_size=32)
+    # 3. Generate embeddings & insert in micro-batches
+    all_chunk_rows = []
+    micro_batch_size = 25
 
-    print(f"Embedding shape: {embeddings.shape}")
+    for i in range(0, len(chunks), micro_batch_size):
+        batch_chunks = chunks[i : i + micro_batch_size]
+        batch_texts = [c.page_content for c in batch_chunks]
 
-    # 4. Prepare rows & store in Supabase
-    chunk_rows = []
-    for chunk, embedding in zip(chunks, embeddings):
-        chunk_rows.append({
-            "project_id": project_id,
-            "organization_id": organization_id,
-            "document_id": chunk.metadata.get("document_id"),  # optional
-            "chunk_index": chunk.metadata.get("chunk_index", 0),
-            "content": chunk.page_content,
-            "token_count": len(chunk.page_content.split()),
-            "embedding": embedding.tolist(),
-            "metadata": chunk.metadata,
-        })
+        embeddings = generate_embeddings(batch_texts, batch_size=16)
 
-    if supabase:
-        store_embeddings_batch(chunk_rows)
-        print(f"Successfully stored {len(chunk_rows)} vectors in Supabase.")
+        batch_rows = []
+        for idx, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings)):
+            row = {
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "document_id": chunk.metadata.get("document_id"),
+                "chunk_index": i + idx,
+                "content": chunk.page_content,
+                "token_count": len(chunk.page_content.split()),
+                "embedding": embedding.tolist(),
+                "metadata": chunk.metadata,
+            }
+            batch_rows.append(row)
 
-    print("Ingestion completed!")
-    return chunk_rows
+        if supabase and batch_rows:
+            store_embeddings_batch(batch_rows)
+
+        all_chunk_rows.extend(batch_rows)
+        del batch_chunks, batch_texts, embeddings, batch_rows
+        gc.collect()
+
+    print(f"Ingestion completed! Stored {len(all_chunk_rows)} chunks.")
+    return all_chunk_rows
 
 
 def ingest_single_file(file_path: str | Path, project_id: str, organization_id: str, document_id: str = None) -> List[Dict[str, Any]]:
@@ -69,26 +79,41 @@ def ingest_single_file(file_path: str | Path, project_id: str, organization_id: 
         return []
 
     chunks = split_documents(documents)
-    texts = [chunk.page_content for chunk in chunks]
-    embeddings = generate_embeddings(texts, batch_size=32)
+    del documents
+    gc.collect()
 
-    chunk_rows = []
-    for chunk, embedding in zip(chunks, embeddings):
-        meta = chunk.metadata.copy()
-        if document_id:
-            meta["document_id"] = document_id
-        chunk_rows.append({
-            "project_id": project_id,
-            "organization_id": organization_id,
-            "document_id": document_id,
-            "chunk_index": chunk.metadata.get("chunk_index", 0),
-            "content": chunk.page_content,
-            "token_count": len(chunk.page_content.split()),
-            "embedding": embedding.tolist(),
-            "metadata": meta,
-        })
+    all_chunk_rows = []
+    micro_batch_size = 25
 
-    if supabase:
-        store_embeddings_batch(chunk_rows)
+    for i in range(0, len(chunks), micro_batch_size):
+        batch_chunks = chunks[i : i + micro_batch_size]
+        batch_texts = [c.page_content for c in batch_chunks]
 
-    return chunk_rows
+        embeddings = generate_embeddings(batch_texts, batch_size=16)
+
+        batch_rows = []
+        for idx, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings)):
+            meta = chunk.metadata.copy()
+            if document_id:
+                meta["document_id"] = document_id
+            row = {
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "document_id": document_id,
+                "chunk_index": i + idx,
+                "content": chunk.page_content,
+                "token_count": len(chunk.page_content.split()),
+                "embedding": embedding.tolist(),
+                "metadata": meta,
+            }
+            batch_rows.append(row)
+
+        if supabase and batch_rows:
+            store_embeddings_batch(batch_rows)
+
+        all_chunk_rows.extend(batch_rows)
+        del batch_chunks, batch_texts, embeddings, batch_rows
+        gc.collect()
+
+    return all_chunk_rows
+
