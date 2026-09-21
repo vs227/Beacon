@@ -1,3 +1,4 @@
+Deployed at : https://beacon-seven-iota.vercel.app/
 # Beacon
 
 Beacon is an enterprise Retrieval-Augmented Generation (RAG) platform that connects enterprise knowledge, vector databases, and multi-provider LLMs into high-performance REST APIs and interactive dashboards.
