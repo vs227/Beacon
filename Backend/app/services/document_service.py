@@ -4,6 +4,7 @@ and metadata persistence in the documents table.
 """
 import gc
 import uuid
+import anyio
 from fastapi import HTTPException, status, UploadFile
 from postgrest.exceptions import APIError as PostgrestAPIError
 from app.core.database import supabase
@@ -19,18 +20,32 @@ def _get_extension(filename: str) -> str:
     return filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
 
+def _sync_upload_to_storage(storage_path: str, file_bytes: bytes, content_type: str):
+    """Synchronous helper for uploading to Supabase Storage."""
+    return supabase.storage.from_(STORAGE_BUCKET).upload(
+        path=storage_path,
+        file=file_bytes,
+        file_options={"content-type": content_type},
+    )
+
+
+def _sync_insert_document_row(payload: dict):
+    """Synchronous helper for inserting metadata row into documents table."""
+    return supabase.table("documents").insert(payload).execute()
+
+
 async def upload_document(
     organization_id: str,
     project_id: str,
     owner_id: str,
     file: UploadFile,
 ) -> dict:
-    """Upload a document to Supabase Storage and create a metadata row."""
+    """Upload a document to Supabase Storage and create a metadata row using threadpool execution to prevent event loop stalls."""
 
     # Verify project ownership
     get_project_by_id(project_id, owner_id)
 
-    # Validate file
+    # Validate file extension
     ext = _get_extension(file.filename or "")
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -50,13 +65,10 @@ async def upload_document(
     file_id = str(uuid.uuid4())
     storage_path = f"{organization_id}/{project_id}/{file_id}.{ext}"
 
-    # Upload to Supabase Storage
+    # Upload to Supabase Storage in a worker thread so the main asyncio loop remains responsive
     try:
-        supabase.storage.from_(STORAGE_BUCKET).upload(
-            path=storage_path,
-            file=file_bytes,
-            file_options={"content-type": file.content_type or "application/octet-stream"},
-        )
+        content_type = file.content_type or "application/octet-stream"
+        await anyio.to_thread.run_sync(_sync_upload_to_storage, storage_path, file_bytes, content_type)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -66,7 +78,7 @@ async def upload_document(
         del file_bytes
         gc.collect()
 
-    # Insert metadata row
+    # Insert metadata row in a worker thread
     payload = {
         "id": file_id,
         "project_id": project_id,
@@ -79,13 +91,14 @@ async def upload_document(
         "uploaded_by": owner_id,
     }
 
-
     try:
-        result = supabase.table("documents").insert(payload).execute()
+        result = await anyio.to_thread.run_sync(_sync_insert_document_row, payload)
     except PostgrestAPIError as e:
-        # Cleanup storage if DB insert fails
+        # Cleanup storage if DB insert fails (transactional rollback guarantee)
         try:
-            supabase.storage.from_(STORAGE_BUCKET).remove([storage_path])
+            await anyio.to_thread.run_sync(
+                lambda: supabase.storage.from_(STORAGE_BUCKET).remove([storage_path])
+            )
         except Exception:
             pass
         raise HTTPException(
@@ -152,7 +165,7 @@ def delete_document(document_id: str, owner_id: str) -> dict:
     try:
         supabase.storage.from_(STORAGE_BUCKET).remove([doc["storage_path"]])
     except Exception:
-        pass  # Don't fail if storage cleanup errors
+        pass
 
     # Delete DB row (cascades to chunks)
     try:

@@ -1,21 +1,13 @@
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 import httpx
-from postgrest.exceptions import APIError as PostgrestAPIError
-from app.core.database import supabase
+
 from app.core.config import settings
-from app.core.auth import (
-    hash_password,
-    verify_password,
-    create_token,
-    get_current_user
-)
-from app.schemas.auth import (
-    RegisterUser,
-    LoginUser
-)
-from app.core.limiter import limiter  # shared singleton — no circular import
+from app.core.auth import get_current_user
+from app.schemas.auth import RegisterUser, LoginUser
+from app.core.limiter import limiter
+from app.services import auth_service
 
 router = APIRouter(tags=["Authentication"])
 
@@ -24,17 +16,22 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_USER_URL = "https://api.github.com/user"
 GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
 
-def _get_frontend_url() -> str:
+
+def _get_frontend_url(state: str | None = None) -> str:
     """Return configured frontend URL, ensuring trailing slash for path joins."""
-    url = settings.FRONTEND_URL or "http://localhost:5173"
+    if state and state.startswith("http"):
+        url = state
+    elif settings.FRONTEND_URL and "localhost" not in settings.FRONTEND_URL:
+        url = settings.FRONTEND_URL
+    elif "onrender.com" in (settings.BACKEND_URL or ""):
+        url = settings.FRONTEND_URL if settings.FRONTEND_URL and "localhost" not in settings.FRONTEND_URL else "https://beacon-seven-iota.vercel.app"
+    else:
+        url = settings.FRONTEND_URL or "http://localhost:5173"
     return url if url.endswith('/') else f"{url}/"
 
 
 def _build_github_oauth_callback_url(request: Request | None = None) -> str:
-    """Build the callback URL that GitHub should redirect back to.
-
-    Matches the Authorization callback URL configured in the GitHub OAuth app.
-    """
+    """Build the callback URL configured in the GitHub OAuth app."""
     if settings.BACKEND_URL and "localhost" not in settings.BACKEND_URL:
         backend_base = settings.BACKEND_URL.rstrip('/')
     elif request:
@@ -45,181 +42,107 @@ def _build_github_oauth_callback_url(request: Request | None = None) -> str:
 
 
 @router.post("/register")
-@limiter.limit("3/minute")  # Max 3 registration attempts per IP per minute
+@limiter.limit("3/minute")
 def register(request: Request, user: RegisterUser):
-    hashed_password = hash_password(user.password)
-    try:
-        result = (
-            supabase
-            .table("users")
-            .insert({
-                "username": user.username,
-                "email": user.email,
-                "password_hash": hashed_password,
-                "auth_provider": "email"
-            })
-            .execute()
-        )
-    except PostgrestAPIError as e:
-        if e.code == "23505":
-            raise HTTPException(
-                status_code=400,
-                detail="Email already exists"
-            )
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {e.message}"
-        )
-
+    registered_user = auth_service.register_user(
+        username=user.username,
+        email=user.email,
+        password=user.password,
+    )
     return {
         "message": "User registered successfully",
-        "user": result.data[0]
+        "user": registered_user,
     }
 
 
 @router.post("/login")
-@limiter.limit("5/minute")  # Max 5 login attempts per IP per minute (brute-force protection)
+@limiter.limit("5/minute")
 def login(request: Request, user: LoginUser):
-    try:
-        result = (
-            supabase
-            .table("users")
-            .select("*")
-            .eq("email", user.email)
-            .execute()
-        )
-    except PostgrestAPIError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {e.message}"
-        )
-    if not result.data:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password"
-        )
-
-    db_user = result.data[0]
-
-    if db_user.get("auth_provider") == "github" and not db_user.get("password_hash"):
-        raise HTTPException(
-            status_code=401,
-            detail="This account was created with GitHub. Please log in using GitHub."
-        )
-
-    if not db_user.get("password_hash") or not verify_password(
-        user.password,
-        db_user["password_hash"]
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password"
-        )
-
-    access_token = create_token({
-        "user_id": db_user["id"],
-        "email": db_user["email"]
-    })
-
+    auth_result = auth_service.authenticate_user(
+        email=user.email,
+        password=user.password,
+    )
     return {
         "message": "Login successful",
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": db_user["id"],
-            "username": db_user.get("username", db_user["email"].split("@")[0]),
-            "email": db_user["email"]
-        }
+        "access_token": auth_result["access_token"],
+        "token_type": auth_result["token_type"],
+        "user": auth_result["user"],
     }
 
 
 @router.get("/me")
-def get_profile(
-    current_user=Depends(get_current_user)
-):
-    try:
-        result = (
-            supabase
-            .table("users")
-            .select("id, username, email, auth_provider, github_username")
-            .eq("id", current_user["user_id"])
-            .execute()
-        )
-    except PostgrestAPIError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {e.message}"
-        )
-
-    if not result.data:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    db_user = result.data[0]
+def get_profile(current_user: dict = Depends(get_current_user)):
+    profile = auth_service.get_user_profile(user_id=current_user["user_id"])
     return {
         "message": "Authenticated",
-        "user": {
-            "user_id": db_user["id"],
-            "username": db_user.get("username", db_user["email"].split("@")[0]),
-            "email": db_user["email"],
-            "auth_provider": db_user.get("auth_provider", "email"),
-            "github_username": db_user.get("github_username", ""),
-        }
+        "user": profile,
     }
 
 
 @router.api_route("/auth/github", methods=["GET", "HEAD"])
-def github_login(request: Request):
+def github_login(request: Request, redirect_origin: str | None = None):
     if not settings.GITHUB_CLIENT_ID:
         raise HTTPException(
             status_code=500,
-            detail="GitHub OAuth is not configured (missing GITHUB_CLIENT_ID)"
+            detail="GitHub OAuth is not configured (missing GITHUB_CLIENT_ID)",
         )
+
+    origin = redirect_origin or request.headers.get("referer") or ""
+    if origin and "http" in origin:
+        parsed = urlparse(origin)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+    else:
+        origin = ""
+
     callback = _build_github_oauth_callback_url(request)
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
         "redirect_uri": callback,
-        "scope": "read:user user:email"
+        "scope": "read:user user:email",
     }
+    if origin:
+        params["state"] = origin
+
     return RedirectResponse(url=f"{GITHUB_AUTH_URL}?{urlencode(params)}")
 
 
 @router.get("/auth/github/callback")
-async def github_callback(code: str | None = None, error: str | None = None):
+async def github_callback(code: str | None = None, error: str | None = None, state: str | None = None):
     if error or not code:
         raise HTTPException(
             status_code=400,
-            detail=f"GitHub OAuth error: {error or 'No code provided'}"
+            detail=f"GitHub OAuth error: {error or 'No code provided'}",
         )
 
     if not settings.GITHUB_CLIENT_ID or not settings.GITHUB_CLIENT_SECRET:
         raise HTTPException(
             status_code=500,
-            detail="GitHub OAuth is not configured"
+            detail="GitHub OAuth is not configured",
         )
 
     token_payload = {
         "client_id": settings.GITHUB_CLIENT_ID,
         "client_secret": settings.GITHUB_CLIENT_SECRET,
-        "code": code
+        "code": code,
     }
 
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
             GITHUB_TOKEN_URL,
             json=token_payload,
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
         )
         token_data = token_res.json()
         access_token = token_data.get("access_token")
         if not access_token:
             raise HTTPException(
                 status_code=400,
-                detail=f"Failed to get GitHub access token: {token_data}"
+                detail=f"Failed to get GitHub access token: {token_data}",
             )
 
         auth_headers = {
             "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json"
+            "Accept": "application/json",
         }
 
         user_res = await client.get(GITHUB_USER_URL, headers=auth_headers)
@@ -236,83 +159,19 @@ async def github_callback(code: str | None = None, error: str | None = None):
                 primary = emails[0]
             email = primary["email"] if primary else f"{gh_id}@github.local"
 
-    try:
-        existing = (
-            supabase
-            .table("users")
-            .select("*")
-            .eq("email", email)
-            .execute()
-        )
-    except PostgrestAPIError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {e.message}"
-        )
+    gh_res = auth_service.handle_github_oauth_user(
+        email=email,
+        username=username,
+        access_token=access_token,
+    )
 
-    if existing.data:
-        db_user = existing.data[0]
-        # Update GitHub token & username on every login so it stays fresh
-        try:
-            supabase.table("users").update({
-                "github_access_token": access_token,
-                "github_username": username,
-            }).eq("id", db_user["id"]).execute()
-        except Exception:
-            pass  # Non-critical — continue login even if token save fails
-    else:
-        try:
-            insert_res = (
-                supabase
-                .table("users")
-                .insert({
-                    "username": username,
-                    "email": email,
-                    "password_hash": "",
-                    "auth_provider": "github",
-                    "github_access_token": access_token,
-                    "github_username": username,
-                })
-                .execute()
-            )
-            db_user = insert_res.data[0]
-        except PostgrestAPIError as e:
-            if e.code == "23505":
-                lookup = (
-                    supabase
-                    .table("users")
-                    .select("*")
-                    .eq("email", email)
-                    .execute()
-                )
-                if lookup.data:
-                    db_user = lookup.data[0]
-                else:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Email already exists under another provider"
-                    )
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Database error: {e.message}"
-                )
-
-    jwt_token = create_token({
-        "user_id": db_user["id"],
-        "email": db_user["email"]
-    })
-
-    # Redirect the user back to the frontend with the JWT in the query string.
-    # The React app picks this up on mount, stores it in localStorage, and
-    # clears it from the URL so the token doesn't linger in history.
     query = urlencode({
         "auth": "github",
-        "token": jwt_token,
+        "token": gh_res["jwt_token"],
         "email": email,
         "username": username,
     })
-    frontend_url = _get_frontend_url()
+    frontend_url = _get_frontend_url(state)
     sep = "&" if "?" in frontend_url else "?"
     redirect_to = f"{frontend_url}{sep}{query}"
     return RedirectResponse(url=redirect_to)

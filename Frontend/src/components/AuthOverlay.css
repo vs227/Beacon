@@ -177,7 +177,7 @@
 .auth-btn-github {
   width: 100%;
   background: rgba(255, 255, 255, 0.04);
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-primary);
   padding: 9px;
   border-radius: 8px;

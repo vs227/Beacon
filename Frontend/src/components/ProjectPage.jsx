@@ -218,6 +218,102 @@ export default function ProjectPage({ auth }) {
   const [keyEnvInput, setKeyEnvInput] = useState('live')
   const [generatedSecretKey, setGeneratedSecretKey] = useState(null)
   const [copiedKey, setCopiedKey] = useState(false)
+  const [sdkTab, setSdkTab] = useState('python')
+  const [copiedSdkCode, setCopiedSdkCode] = useState(false)
+
+  const getSdkSnippetCode = (tab, activeKeys) => {
+    const activeKey = activeKeys.find(k => k.status === 'ACTIVE')
+    const key = generatedSecretKey || (activeKey ? activeKey.secret || activeKey.masked_key : 'bc_live_9a8f3b2c1d4e5f6a')
+    const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:8000' : 'https://beacon-seven-iota.vercel.app'
+
+    if (tab === 'python') {
+      return `# Query your Beacon RAG Pipeline in Python
+import requests
+
+API_KEY = "${key}"
+API_URL = "${baseUrl}/api/v1/query"
+
+headers = {
+    "X-Beacon-Key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "query": "What is our enterprise refund policy?",
+    "top_k": 4
+}
+
+response = requests.post(API_URL, headers=headers, json=payload)
+data = response.json()
+
+print("Answer:", data.get("answer"))
+print("Sources:", [s.get("file_name") for s in data.get("sources", [])])
+print("Latency:", data.get("execution_time_ms"), "ms")`
+    }
+
+    if (tab === 'javascript') {
+      return `// Query Beacon RAG Pipeline from Node.js / JavaScript
+const API_KEY = "${key}";
+const API_URL = "${baseUrl}/api/v1/query";
+
+async function queryBeacon(prompt) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Beacon-Key": API_KEY,
+    },
+    body: JSON.stringify({
+      query: prompt,
+      top_k: 4,
+    }),
+  });
+
+  const data = await res.json();
+  console.log("Answer:", data.answer);
+  console.log("Sources:", data.sources);
+}
+
+queryBeacon("What are our terms of service?");`
+    }
+
+    if (tab === 'curl') {
+      return `# Query Beacon RAG Pipeline directly via cURL
+curl -X POST "${baseUrl}/api/v1/query" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Beacon-Key: ${key}" \\
+  -d '{
+    "query": "Summarize the document specifications",
+    "top_k": 4
+  }'`
+    }
+
+    return `// React Custom Hook for Beacon RAG Integration
+import { useState } from 'react';
+
+export function useBeaconRAG() {
+  const [loading, setLoading] = useState(false);
+
+  const queryRAG = async (prompt) => {
+    setLoading(true);
+    try {
+      const res = await fetch("${baseUrl}/api/v1/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Beacon-Key": "${key}",
+        },
+        body: JSON.stringify({ query: prompt, top_k: 4 }),
+      });
+      return await res.json();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { queryRAG, loading };
+}`
+  }
 
   const [activityLogs, setActivityLogs] = useState([])
   const [loadingActivity, setLoadingActivity] = useState(false)
@@ -1161,7 +1257,7 @@ export default function ProjectPage({ auth }) {
               <p>This project may have been deleted or you don't have access.</p>
             </div>
           ) : (
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
 
               {/* Overview Section */}
               {activeSection === 'overview' && (
@@ -2797,6 +2893,96 @@ export default function ProjectPage({ auth }) {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* SDK & API Integration Code Snippets Panel */}
+                  <div style={{ marginTop: '36px', paddingTop: '28px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', fontFamily: 'Outfit, sans-serif', margin: 0 }}>
+                          SDK & API Integration Snippets
+                        </h3>
+                        <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Outfit, sans-serif', margin: '4px 0 0 0' }}>
+                          Integrate your Beacon RAG pipeline into external Python, Node.js, cURL, or React projects using your API Key.
+                        </p>
+                      </div>
+
+                      {/* Language / SDK Tabs */}
+                      <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.03)', padding: '4px', borderRadius: '100px' }}>
+                        {[
+                          { id: 'python', label: 'Python' },
+                          { id: 'javascript', label: 'Node.js' },
+                          { id: 'curl', label: 'cURL' },
+                          { id: 'react', label: 'React' },
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setSdkTab(t.id)}
+                            style={{
+                              background: sdkTab === t.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                              color: sdkTab === t.id ? '#fff' : 'rgba(255, 255, 255, 0.45)',
+                              border: 'none',
+                              borderRadius: '100px',
+                              padding: '6px 14px',
+                              fontSize: '0.76rem',
+                              fontWeight: 600,
+                              fontFamily: 'Outfit, sans-serif',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Interactive Code Box */}
+                    <div style={{
+                      background: 'rgba(0, 0, 0, 0.65)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(255, 255, 255, 0.025)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'monospace' }}>
+                          {sdkTab === 'python' ? 'beacon_example.py' : sdkTab === 'javascript' ? 'beacon_rag.js' : sdkTab === 'curl' ? 'terminal / bash' : 'useBeaconRAG.jsx'}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const code = getSdkSnippetCode(sdkTab, apiKeys)
+                            navigator.clipboard.writeText(code)
+                            setCopiedSdkCode(true)
+                            setTimeout(() => setCopiedSdkCode(false), 2000)
+                          }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.88)',
+                            border: 'none',
+                            color: '#000',
+                            padding: '5px 14px',
+                            borderRadius: '100px',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            fontFamily: 'Outfit, sans-serif',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <IconCopy size={13} />
+                          <span>{copiedSdkCode ? 'Copied Code!' : 'Copy Snippet'}</span>
+                        </button>
+                      </div>
+
+                      <pre style={{ margin: 0, padding: '18px 20px', fontSize: '0.80rem', fontFamily: 'monospace', color: '#52a88b', lineHeight: 1.6, overflowX: 'auto' }}>
+                        {getSdkSnippetCode(sdkTab, apiKeys)}
+                      </pre>
+                    </div>
                   </div>
                 </motion.div>
               )}
