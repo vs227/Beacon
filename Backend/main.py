@@ -19,8 +19,6 @@ def _custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 from app.api.auth import router as auth_router
 from app.api.organizations import router as organizations_router
-from app.api.workspaces import router as workspaces_router
-from app.api.knowledge_bases import router as kb_router
 from app.api.api_keys import router as api_keys_router
 from app.api.activity import router as activity_router
 from app.api.projects import router as projects_router
@@ -28,7 +26,7 @@ from app.api.documents import router as documents_router
 from app.api.search import router as search_router
 from app.api.webhooks import router as webhooks_router
 from app.api.query import router as query_router
-
+from app.api.sdk_query import router as sdk_router
 
 
 app = FastAPI(title="Beacon API", version="1.0.0")
@@ -38,7 +36,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# ── Fix 2: Body size limit (via middleware callback, no body buffering) ────────
+# ── Fix 2: Body size limit ─────────────────────────────────────────────────────
 @app.middleware("http")
 async def limit_body_size(request: Request, call_next):
     max_bytes = 10 * 1024 * 1024  # 10 MB
@@ -57,7 +55,7 @@ async def hide_server_header(request: Request, call_next):
     response.headers["Server"] = "Beacon"
     return response
 
-# ── Fix 4: Path normalization middleware (strips duplicate slashes e.g. //auth/github) ──
+# ── Fix 4: Path normalization middleware ──────────────────────────────────────
 @app.middleware("http")
 async def normalize_path_middleware(request: Request, call_next):
     if request.scope.get("path") and "//" in request.scope["path"]:
@@ -67,7 +65,6 @@ async def normalize_path_middleware(request: Request, call_next):
 
 from app.core.config import settings
 
-# Parse comma-separated ALLOWED_ORIGINS env var or default to wildcard "*"
 origins = (
     [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
     if settings.ALLOWED_ORIGINS and settings.ALLOWED_ORIGINS != "*"
@@ -85,8 +82,6 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
 app.include_router(organizations_router)
-app.include_router(workspaces_router)
-app.include_router(kb_router)
 app.include_router(api_keys_router)
 app.include_router(activity_router)
 app.include_router(projects_router)
@@ -94,6 +89,7 @@ app.include_router(documents_router)
 app.include_router(search_router)
 app.include_router(webhooks_router)
 app.include_router(query_router)
+app.include_router(sdk_router)
 
 
 @app.api_route("/", methods=["GET", "HEAD"])
@@ -101,5 +97,5 @@ def home():
     return {
         "message": "Welcome to Beacon API",
         "status": "online",
-        "docs": "/docs"
+        "docs": "/docs",
     }

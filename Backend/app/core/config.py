@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str = ""
 
     # Deployment & CORS Settings
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "https://beacon-seven-iota.vercel.app"
     BACKEND_URL: str = "http://localhost:8000"
     ALLOWED_ORIGINS: str = "*"
 

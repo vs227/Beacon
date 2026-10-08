@@ -60,3 +60,75 @@ body,
   font-weight: 400;
   font-style: normal;
 }
+
+/* ── Global Anti-Flicker & Hardware Acceleration Reset for Buttons ──────── */
+button,
+[role="button"],
+.btn,
+.auth-tab,
+.auth-btn-primary,
+.auth-btn-github,
+.auth-btn-logout,
+.btn-terracotta,
+.btn-glassy,
+.btn-void,
+.btn-create,
+.btn-logout,
+.btn-copy,
+.btn-submit-key,
+.btn-modal-cancel,
+.btn-modal-submit,
+.nav-item,
+.tab-btn,
+.copy-btn,
+.sdk-copy-btn,
+.sdk-tab-btn,
+.pipeline-tab-btn,
+.sidebar-nav-item,
+.sidebar-back-btn,
+.github-scan-btn,
+.github-text-btn,
+.sync-repo-btn,
+.kb-search-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform, background-color, border-color, box-shadow;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* Prevent nested SVG icons or child spans from stealing hover mouse events */
+button *,
+[role="button"] *,
+.btn *,
+.auth-tab *,
+.auth-btn-primary *,
+.auth-btn-github *,
+.auth-btn-logout *,
+.btn-terracotta *,
+.btn-glassy *,
+.btn-void *,
+.btn-create *,
+.btn-logout *,
+.btn-copy *,
+.btn-submit-key *,
+.btn-modal-cancel *,
+.btn-modal-submit *,
+.nav-item *,
+.tab-btn *,
+.copy-btn *,
+.sdk-copy-btn *,
+.sdk-tab-btn *,
+.pipeline-tab-btn *,
+.sidebar-nav-item *,
+.sidebar-back-btn *,
+.github-scan-btn *,
+.github-text-btn *,
+.sync-repo-btn *,
+.kb-search-btn * {
+  pointer-events: none;
+}
+

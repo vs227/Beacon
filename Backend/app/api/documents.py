@@ -6,7 +6,7 @@ from app.schemas.document import (
     GitHubImportRequest,
     GitHubSyncRequest,
 )
-from app.services import document_service
+from app.services import document_service, auth_service
 from app.services.ingestion_service import run_ingestion
 from app.services.github_service import (
     scan_github_repository,
@@ -53,25 +53,7 @@ def list_github_repos(
     current_user: dict = Depends(get_current_user),
 ):
     """List the authenticated user's GitHub repositories (requires GitHub OAuth login)."""
-    from app.core.database import supabase as db
-
-    # Fetch user's stored GitHub access token
-    try:
-        user_row = db.table("users").select("github_access_token, auth_provider").eq("id", current_user["user_id"]).execute()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-    if not user_row.data:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user_data = user_row.data[0]
-    gh_token = user_data.get("github_access_token", "")
-
-    if not gh_token:
-        raise HTTPException(
-            status_code=400,
-            detail="No GitHub token found. Please log in with GitHub to access your repositories."
-        )
+    gh_token = auth_service.get_github_access_token(current_user["user_id"])
 
     try:
         repos = list_user_github_repos(gh_token)
@@ -132,7 +114,6 @@ def import_github_files(
         "repo_url": body.repo_url,
         "document": doc,
     }
-
 
 
 @router.post("/github-sync")
