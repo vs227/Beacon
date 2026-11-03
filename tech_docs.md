@@ -1,85 +1,92 @@
-# Beacon – Technical Overview
+# Beacon: Technical Overview
+
+Live demo: https://beacon-seven-iota.vercel.app/
+Code: https://github.com/vs227/Beacon
 
 ## What is Beacon?
 
-Beacon is an AI infrastructure project that I built to make it easier to connect applications with documents, vector search and different LLM providers.
+Beacon is a project I built to make it easier to connect an app with your own documents, vector search and different LLM providers.
 
-The main idea was to build a platform where a developer can add their data and use it with an RAG pipeline instead of building all these components separately.
+Normally a developer has to set up document processing, a vector database, an API and LLM access one by one. The idea behind Beacon was simple: add your data in one place and use it with a RAG pipeline, without wiring everything together yourself.
 
-## How Beacon Works
+## How it works
 
-The basic flow is:
+The flow is:
 
-User -> API -> Document Processing -> Vector Search -> LLM -> Response
+User -> API -> Document processing -> Vector search -> LLM -> Response
 
-When a document is added, Beacon processes the text, breaks it into smaller chunks and creates embeddings for those chunks. The embeddings are stored in PostgreSQL using pgvector.
+When a document is added, Beacon cleans the text, splits it into smaller chunks and makes an embedding for each chunk. These are saved in PostgreSQL using pgvector.
 
-When a user asks a question, the question is also converted into an embedding. Beacon then searches for the most relevant chunks and sends that information to the LLM along with the question.
+When someone asks a question, the question is turned into an embedding too. Beacon finds the chunks closest to it and sends them to the LLM together with the question.
 
-## RAG Pipeline
+## RAG pipeline
 
-The RAG part is one of the main components of Beacon.
+RAG is the core of Beacon. I used LangChain for the document processing and retrieval steps. Documents are split with recursive chunking, which tries to cut at natural places like paragraphs and sentences instead of in the middle of a thought. The chunks are then turned into embeddings with SentenceTransformers and stored in Supabase/PostgreSQL.
 
-I used LangChain for the document processing and retrieval workflow. Documents are divided into smaller chunks using recursive chunking and then converted into embeddings using SentenceTransformers.
+At query time Beacon looks for chunks with a similar meaning, not just the same keywords. Those chunks go to the LLM as context before it writes the answer.
 
-These embeddings are stored in Supabase/PostgreSQL with pgvector. During a query, semantic similarity is used to find the most relevant information instead of only looking for exact keywords.
+## Vector search
 
-The retrieved information is then given to the LLM as context before generating the final response.
+I used pgvector with an HNSW index.
 
-## Vector Search
+Vector search matters because two sentences can mean the same thing without sharing words. "How do I change my password?" and "Steps to update login details" look different but are close in meaning, and embeddings catch that. HNSW keeps the search fast when there are a lot of stored vectors, so it doesn't have to compare against every single one.
 
-For vector search, I used pgvector with HNSW indexing.
+## LLM integration
 
-The reason for using vector search is that two sentences can have similar meanings even when they don't contain the same words. Embeddings help Beacon compare this meaning and retrieve more useful results.
-
-HNSW was used to make similarity search more efficient when searching through stored vectors.
-
-## LLM Integration
-
-Beacon was designed to work with multiple LLM providers instead of depending on only one provider.
-
-I added an LLM routing layer that can work with providers such as [write the providers you actually implemented]. This also gives the application a fallback option when a provider is unavailable.
+I didn't want Beacon to depend on one provider. The routing layer supports Groq, OpenAI, Google Gemini, Anthropic Claude and custom endpoints. If one provider is down or slow, the app can fall back to another one.
 
 ## Authentication and APIs
 
-The backend of Beacon is built using FastAPI and exposes REST APIs for the main functionality.
+The backend is built with FastAPI and exposes REST APIs. Login uses JWT, and apps can use scoped API keys. There is also rate limiting, so one user can't flood the system. The React frontend sits on top and gives a simple dashboard to use all of this.
 
-I implemented authentication using JWT/OAuth and also worked with API keys for application access.
+## GitHub integration
 
-The backend handles the main processing while the React frontend provides the interface for interacting with the system.
+You can connect a GitHub repository to Beacon. Its content is pulled in, indexed, and becomes searchable through the same RAG system. Webhooks tell Beacon when someone pushes new code, so the index updates by itself and doesn't go stale.
 
-## GitHub Integration
+## Problems I faced
 
-One feature I worked on was connecting GitHub repositories with Beacon.
+Most of my problems had nothing to do with the LLM. They were around the pipeline.
 
-The idea is that repository content can be synchronized and indexed so that it can be searched through the RAG system. Webhooks can also be used to detect repository changes and trigger the required update process.
+- **Chunking changed everything.** When chunks were cut badly, the right information was split across two pieces and the answers got worse. Moving to recursive chunking, which respects paragraph and sentence boundaries, gave more useful results.
+- **Every provider behaves a bit differently.** Each one has its own API format, errors and limits. Putting them behind one routing layer, with a fallback, made the rest of the app much simpler.
+- **Too much text was going into prompts.** Sending every retrieved chunk in full cost more and slowed things down. Adding token compression helped keep prompts smaller.
+- **Keeping GitHub data fresh.** Re-indexing a whole repo on every change is wasteful. Webhooks that trigger an update only when something is pushed solved this.
 
-## Problems I Faced
-
-While building Beacon, I faced problems around [write your real problem].
-
-One issue was [explain what happened]. I solved it by [what you actually changed].
-
-Another problem was [second real problem]. After testing different approaches, I [solution].
-
-These problems helped me understand that building an AI application is not only about connecting an LLM. The data processing, retrieval quality, APIs and failure handling are also important.
+These taught me that building an AI app is not just plugging in an LLM. Data processing, retrieval quality, APIs and handling failures matter just as much.
 
 ## Performance
 
-I also worked on improving the performance of Beacon.
+I worked on three things:
 
-For example, I worked on [your actual optimization]. This helped reduce [actual metric/result if you have verified it].
+- HNSW indexing so similarity search stays quick as the data grows
+- Token compression so fewer unnecessary tokens reach the LLM
+- Startup time, so the app is ready to use sooner
 
-I also worked on reducing unnecessary prompt tokens and improving the application startup time.
+I haven't run proper benchmarks yet, so I'm not going to quote numbers I can't back up. Adding real measurements is on my list.
 
-## What I Learned
+## What works and what doesn't (yet)
 
-Building Beacon gave me practical experience with RAG systems, vector databases, APIs and LLM integration.
+**What works**
 
-More importantly, I learned how different parts of an AI application need to work together. I also learned that retrieved information needs to be checked properly because an LLM can still produce incorrect answers even when the system is working correctly.
+- + Not tied to one LLM provider, with a fallback if one fails
+- + Search by meaning, so questions don't have to match the document's exact words
+- + Documents, embeddings and app data all live in one Postgres database
+- + GitHub repos stay up to date through webhooks
+- + Smaller prompts mean faster and cheaper responses
 
-## Conclusion
+**What's still weak**
 
-Beacon is still a project that I want to improve, but it gave me a good understanding of how modern AI applications can be built around APIs, retrieval and LLMs.
+- - Answer quality depends heavily on chunking
+- - No proper retrieval evaluation yet, so I mostly check quality by hand
+- - The LLM can still give a wrong answer even when retrieval worked, so output needs checking
+- - Users have to set up their own Supabase/Postgres and bring their own API keys
 
-My next focus would be improving retrieval evaluation, reliability and making the platform easier for developers to use.
+## What I learned
+
+Building Beacon gave me real experience with RAG, vector databases, APIs and LLM integration.
+
+More than that, I learned how the different parts of an AI app have to work together. I also learned that retrieved information should always be checked, because an LLM can be wrong even when the system itself is working fine.
+
+## What's next
+
+Beacon is still a work in progress. Next I want to add retrieval evaluation so I can measure quality, make it more reliable when things fail, and make it easier for other developers to set up and use.
